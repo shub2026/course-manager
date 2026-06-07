@@ -2,10 +2,10 @@
   <div>
     <el-card>
       <template #header>
-        <div style="display: flex; justify-content: space-between; align-items: center">
+        <div class="card-header">
           <span>当前学期开课查询</span>
-          <div style="display: flex; gap: 8px">
-            <el-select v-model="filterMajor" clearable placeholder="按专业筛选" @change="load" style="width: 160px">
+          <div class="card-header-actions">
+            <el-select v-model="filterMajor" clearable placeholder="按专业筛选" @change="load" class="filter-select">
               <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />
             </el-select>
             <el-button type="success" @click="exportExcel">
@@ -15,12 +15,12 @@
         </div>
       </template>
 
-      <el-alert v-if="semesterLabel" :title="`当前学期：${semesterLabel} | 共 ${totalClasses} 个班级`" type="info" :closable="false" style="margin-bottom: 16px" />
+      <el-alert v-if="semesterLabel" :title="`当前学期：${semesterLabel} | 共 ${totalClasses} 个班级`" type="info" :closable="false" class="alert-info" />
 
-      <el-table :data="data" stripe row-key="classId">
+      <el-table :data="data" stripe row-key="classId" v-loading="loading">
         <el-table-column type="expand">
           <template #default="{ row }">
-            <div style="padding: 12px 24px">
+            <div class="expand-content">
               <el-table :data="row.courses" size="small" border>
                 <el-table-column prop="courseName" label="课程" width="150" />
                 <el-table-column label="类型" width="100">
@@ -39,7 +39,7 @@
                         {{ tb.title }} <el-tag size="small" v-if="tb.isRequired">必订</el-tag>
                       </div>
                     </div>
-                    <span v-else style="color: #999">未指定</span>
+                    <span v-else class="no-textbook">未指定</span>
                   </template>
                 </el-table-column>
               </el-table>
@@ -73,12 +73,14 @@ import { getSemesterQuery } from '../../api/query'
 import { getMajors } from '../../api/major'
 
 const data = ref([])
+const loading = ref(false)
 const majors = ref([])
 const filterMajor = ref(null)
 const semesterLabel = ref('')
 const totalClasses = ref(0)
 
 async function load() {
+  loading.value = true
   try {
     const params = filterMajor.value ? { majorId: filterMajor.value } : {}
     const res = await getSemesterQuery(params)
@@ -86,6 +88,7 @@ async function load() {
     semesterLabel.value = res.data?.semesterInfo?.label || ''
     totalClasses.value = res.data?.totalClasses || 0
   } catch (e) { console.error(e) }
+  finally { loading.value = false }
 }
 
 function exportExcel() {
@@ -98,3 +101,27 @@ onMounted(async () => {
   load()
 })
 </script>
+
+<style scoped>
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.card-header-actions {
+  display: flex;
+  gap: 12px;
+}
+.filter-select {
+  width: 160px;
+}
+.alert-info {
+  margin-bottom: 16px;
+}
+.expand-content {
+  padding: 12px 24px;
+}
+.no-textbook {
+  color: #999;
+}
+</style>

@@ -5,8 +5,8 @@
         <span>教材使用情况查询</span>
       </template>
 
-      <div style="display: flex; gap: 12px; margin-bottom: 20px">
-        <el-select v-model="selectedTextbook" filterable placeholder="搜索并选择教材" @change="loadDetail" style="width: 400px">
+      <div class="query-toolbar">
+        <el-select v-model="selectedTextbook" filterable placeholder="搜索并选择教材" @change="loadDetail" class="textbook-select">
           <el-option v-for="tb in textbooks" :key="tb.id" :label="`${tb.title} - ${tb.publisher || '未知出版社'}`" :value="tb.id" />
         </el-select>
         <el-button type="success" :disabled="!selectedTextbook" @click="exportExcel">
@@ -15,7 +15,7 @@
       </div>
 
       <div v-if="detail">
-        <el-descriptions :column="3" border style="margin-bottom: 20px">
+        <el-descriptions :column="3" border class="textbook-descriptions">
           <el-descriptions-item label="书名">{{ detail.textbook?.title }}</el-descriptions-item>
           <el-descriptions-item label="书号">{{ detail.textbook?.isbn || '-' }}</el-descriptions-item>
           <el-descriptions-item label="出版社">{{ detail.textbook?.publisher || '-' }}</el-descriptions-item>
@@ -23,9 +23,9 @@
           <el-descriptions-item label="当前学期">{{ detail.semesterInfo?.label }}</el-descriptions-item>
         </el-descriptions>
 
-        <el-alert :title="`共 ${detail.totalClasses} 个班级使用，合计 ${detail.totalStudents} 名学生`" type="success" :closable="false" style="margin-bottom: 16px" />
+        <el-alert :title="`共 ${detail.totalClasses} 个班级使用，合计 ${detail.totalStudents} 名学生`" type="success" :closable="false" class="alert-success" />
 
-        <el-table :data="detail.classes" stripe>
+        <el-table :data="detail.classes" stripe v-loading="loadingDetail">
           <el-table-column prop="className" label="班级" min-width="180" />
           <el-table-column prop="majorName" label="专业" width="120" />
           <el-table-column label="年级" width="80">
@@ -55,15 +55,18 @@ import { getTextbooks } from '../../api/textbook'
 import { getTextbookQuery } from '../../api/query'
 
 const textbooks = ref([])
+const loadingDetail = ref(false)
 const selectedTextbook = ref(null)
 const detail = ref(null)
 
 async function loadDetail(id) {
   if (!id) { detail.value = null; return }
+  loadingDetail.value = true
   try {
     const res = await getTextbookQuery(id)
     detail.value = res.data
   } catch (e) { detail.value = null }
+  finally { loadingDetail.value = false }
 }
 
 function exportExcel() {
@@ -77,3 +80,20 @@ onMounted(async () => {
   textbooks.value = res.data || []
 })
 </script>
+
+<style scoped>
+.query-toolbar {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.textbook-select {
+  width: 400px;
+}
+.textbook-descriptions {
+  margin-bottom: 20px;
+}
+.alert-success {
+  margin-bottom: 16px;
+}
+</style>

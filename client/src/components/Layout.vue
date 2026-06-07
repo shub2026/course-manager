@@ -1,7 +1,7 @@
 <template>
-  <el-container style="height: 100vh">
-    <el-aside :width="isCollapse ? '64px' : '220px'" style="transition: width 0.3s; background: #304156">
-      <div style="height: 60px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; font-weight: bold; border-bottom: 1px solid #3d4c5c">
+  <el-container class="layout-container">
+    <el-aside :width="isCollapse ? '64px' : '220px'" class="layout-aside">
+      <div class="layout-logo">
         <span v-if="!isCollapse">课程管理系统</span>
         <span v-else>课</span>
       </div>
@@ -46,19 +46,19 @@
       </el-menu>
     </el-aside>
     <el-container>
-      <el-header style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e6e6e6; background: #fff">
-        <div style="display: flex; align-items: center; gap: 16px">
-          <el-icon style="cursor: pointer; font-size: 20px" @click="isCollapse = !isCollapse">
+      <el-header class="layout-header">
+        <div class="layout-header-left">
+          <el-icon class="collapse-icon" @click="isCollapse = !isCollapse">
             <Fold v-if="!isCollapse" />
             <Expand v-else />
           </el-icon>
-          <span style="font-size: 16px; font-weight: 500">{{ currentTitle }}</span>
+          <span class="header-title">{{ currentTitle }}</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 12px">
+        <div class="layout-header-right">
           <el-tag type="info" v-if="semesterLabel">{{ semesterLabel }}</el-tag>
         </div>
       </el-header>
-      <el-main style="background: #f5f7fa; padding: 20px">
+      <el-main class="layout-main">
         <router-view />
       </el-main>
     </el-container>
@@ -82,3 +82,60 @@ onMounted(() => {
   settingsStore.load()
 })
 </script>
+
+<style scoped>
+.layout-container {
+  height: 100vh;
+}
+
+.layout-aside {
+  transition: width 0.3s;
+  background: #304156;
+}
+
+.layout-logo {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 16px;
+  font-weight: bold;
+  border-bottom: 1px solid #3d4c5c;
+}
+
+.layout-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e6e6e6;
+  background: #fff;
+}
+
+.layout-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.layout-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.collapse-icon {
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.header-title {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.layout-main {
+  background: #f5f7fa;
+  padding: 20px;
+}
+</style>

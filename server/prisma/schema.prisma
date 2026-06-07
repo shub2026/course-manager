@@ -62,11 +62,27 @@ model PlanCourse {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  plan           TrainingPlan    @relation(fields: [planId], references: [id], onDelete: Cascade)
-  course         Course          @relation(fields: [courseId], references: [id])
-  planTextbooks  PlanTextbook[]
+  plan                TrainingPlan           @relation(fields: [planId], references: [id], onDelete: Cascade)
+  course              Course                 @relation(fields: [courseId], references: [id])
+  planCourseSemesters PlanCourseSemester[]
 
   @@map("plan_courses")
+}
+
+model PlanCourseSemester {
+  id           Int      @id @default(autoincrement())
+  planCourseId Int      @map("plan_course_id")
+  semester     Int
+  weeklyHours  Float    @map("weekly_hours")
+  weeksCount   Int      @default(18) @map("weeks_count")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  planCourse PlanCourse     @relation(fields: [planCourseId], references: [id], onDelete: Cascade)
+  textbooks  PlanTextbook[]
+
+  @@unique([planCourseId, semester])
+  @@map("plan_course_semesters")
 }
 
 model Textbook {
@@ -89,14 +105,13 @@ model Textbook {
 
 model PlanTextbook {
   id           Int      @id @default(autoincrement())
-  planCourseId Int      @map("plan_course_id")
+  semesterId   Int      @map("semester_id")
   textbookId   Int      @map("textbook_id")
-  semester     Int
   isRequired   Boolean  @default(true) @map("is_required")
   createdAt    DateTime @default(now()) @map("created_at")
 
-  planCourse PlanCourse @relation(fields: [planCourseId], references: [id], onDelete: Cascade)
-  textbook   Textbook   @relation(fields: [textbookId], references: [id])
+  semester  PlanCourseSemester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
+  textbook  Textbook           @relation(fields: [textbookId], references: [id])
 
   @@map("plan_textbooks")
 }

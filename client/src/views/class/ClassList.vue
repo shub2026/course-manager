@@ -2,10 +2,10 @@
   <div>
     <el-card>
       <template #header>
-        <div style="display: flex; justify-content: space-between; align-items: center">
+        <div class="card-header">
           <span>班级管理</span>
-          <div style="display: flex; gap: 8px">
-            <el-select v-model="filterMajor" clearable placeholder="按专业筛选" @change="load" style="width: 160px">
+          <div class="card-header-actions">
+            <el-select v-model="filterMajor" clearable placeholder="按专业筛选" @change="load" class="filter-select">
               <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />
             </el-select>
             <el-button @click="downloadTemplate">下载模板</el-button>
@@ -18,7 +18,7 @@
           </div>
         </div>
       </template>
-      <el-table :data="list" stripe>
+      <el-table :data="list" stripe v-loading="loading">
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="name" label="班级名称" min-width="140" />
         <el-table-column label="专业" min-width="120">
@@ -69,7 +69,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="专业类别" required>
-              <el-select v-model="form.majorId" style="width: 100%">
+              <el-select v-model="form.majorId" class="full-width">
                 <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />
               </el-select>
             </el-form-item>
@@ -78,24 +78,24 @@
         <el-row :gutter="20">
           <el-col :span="8">
             <el-form-item label="入学年份" required>
-              <el-input-number v-model="form.enrollmentYear" :min="2000" :max="2099" style="width: 100%" />
+              <el-input-number v-model="form.enrollmentYear" :min="2000" :max="2099" class="full-width" />
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="学制(年)" required>
-              <el-input-number v-model="form.durationYears" :min="1" :max="6" style="width: 100%" />
+              <el-input-number v-model="form.durationYears" :min="1" :max="6" class="full-width" />
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="班级人数">
-              <el-input-number v-model="form.studentCount" :min="0" style="width: 100%" />
+              <el-input-number v-model="form.studentCount" :min="0" class="full-width" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item label="状态">
-              <el-select v-model="form.status" style="width: 100%">
+              <el-select v-model="form.status" class="full-width">
                 <el-option label="在读" value="active" />
                 <el-option label="已毕业" value="graduated" />
               </el-select>
@@ -103,7 +103,7 @@
           </el-col>
           <el-col :span="12">
             <el-form-item label="特殊方案">
-              <el-select v-model="form.customPlanId" clearable placeholder="默认使用专业方案" style="width: 100%">
+              <el-select v-model="form.customPlanId" clearable placeholder="默认使用专业方案" class="full-width">
                 <el-option v-for="p in plans" :key="p.id" :label="p.name" :value="p.id" />
               </el-select>
             </el-form-item>
@@ -128,6 +128,7 @@ import { useSettingsStore } from '../../stores/settings'
 
 const settingsStore = useSettingsStore()
 const list = ref([])
+const loading = ref(false)
 const majors = ref([])
 const plans = ref([])
 const dialogVisible = ref(false)
@@ -147,9 +148,14 @@ function calcGrade(cls) {
 }
 
 async function load() {
-  const params = filterMajor.value ? { majorId: filterMajor.value } : {}
-  const res = await getClasses(params)
-  list.value = res.data || []
+  loading.value = true
+  try {
+    const params = filterMajor.value ? { majorId: filterMajor.value } : {}
+    const res = await getClasses(params)
+    list.value = res.data || []
+  } finally {
+    loading.value = false
+  }
 }
 
 async function loadMeta() {
@@ -204,3 +210,21 @@ onMounted(async () => {
   load()
 })
 </script>
+
+<style scoped>
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.card-header-actions {
+  display: flex;
+  gap: 12px;
+}
+.filter-select {
+  width: 160px;
+}
+.full-width {
+  width: 100%;
+}
+</style>

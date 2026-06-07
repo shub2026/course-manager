@@ -1,40 +1,40 @@
 <template>
   <div>
-    <el-row :gutter="20" style="margin-bottom: 20px">
-      <el-col :span="6">
+    <el-row :gutter="20" class="stat-row">
+      <el-col :span="8">
         <el-card shadow="hover">
           <el-statistic title="专业类别" :value="stats.majors" />
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :span="8">
         <el-card shadow="hover">
           <el-statistic title="课程数量" :value="stats.courses" />
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :span="8">
         <el-card shadow="hover">
           <el-statistic title="班级数量" :value="stats.classes" />
         </el-card>
       </el-col>
-      <el-col :span="6">
+    </el-row>
+    <el-row :gutter="20" class="stat-row">
+      <el-col :span="8">
         <el-card shadow="hover">
           <el-statistic title="教材数量" :value="stats.textbooks" />
         </el-card>
       </el-col>
-    </el-row>
-    <el-row :gutter="20">
-      <el-col :span="6">
+      <el-col :span="8">
         <el-card shadow="hover">
           <el-statistic title="培养方案" :value="stats.plans" />
         </el-card>
       </el-col>
-      <el-col :span="6">
+      <el-col :span="8">
         <el-card shadow="hover">
           <el-statistic title="在读学生" :value="stats.totalStudents" />
         </el-card>
       </el-col>
     </el-row>
-    <el-card style="margin-top: 20px" v-if="semesterLabel">
+    <el-card v-if="semesterLabel">
       <template #header>当前学期</template>
       <el-tag size="large" type="primary">{{ semesterLabel }}</el-tag>
     </el-card>
@@ -68,3 +68,9 @@ onMounted(async () => {
   } catch (e) { console.error(e) }
 })
 </script>
+
+<style scoped>
+.stat-row {
+  margin-bottom: 20px;
+}
+</style>

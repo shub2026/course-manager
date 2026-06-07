@@ -2,9 +2,9 @@
   <div>
     <el-card>
       <template #header>
-        <div style="display: flex; justify-content: space-between; align-items: center">
+        <div class="card-header">
           <span>教材管理</span>
-          <div style="display: flex; gap: 8px">
+          <div class="card-header-actions">
             <el-button @click="downloadTemplate">下载模板</el-button>
             <el-upload :show-file-list="false" accept=".xlsx,.xls" action="/api/import/textbooks" name="file" :on-success="onImportSuccess" :on-error="onImportError">
               <el-button>导入Excel</el-button>
@@ -15,7 +15,7 @@
           </div>
         </div>
       </template>
-      <el-table :data="list" stripe>
+      <el-table :data="list" stripe v-loading="loading">
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="title" label="书名" min-width="180" />
         <el-table-column prop="isbn" label="书号" width="180" />
@@ -99,14 +99,20 @@ import { ElMessage } from 'element-plus'
 import { getTextbooks, createTextbook, updateTextbook, deleteTextbook } from '../../api/textbook'
 
 const list = ref([])
+const loading = ref(false)
 const dialogVisible = ref(false)
 const saving = ref(false)
 const defaultForm = { id: null, title: '', isbn: '', publisher: '', author: '', edition: '', publishDate: '', price: null, description: '' }
 const form = ref({ ...defaultForm })
 
 async function load() {
-  const res = await getTextbooks()
-  list.value = res.data || []
+  loading.value = true
+  try {
+    const res = await getTextbooks()
+    list.value = res.data || []
+  } finally {
+    loading.value = false
+  }
 }
 
 function openDialog(row) {
@@ -152,3 +158,15 @@ function onImportError() {
 
 onMounted(load)
 </script>
+
+<style scoped>
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.card-header-actions {
+  display: flex;
+  gap: 12px;
+}
+</style>

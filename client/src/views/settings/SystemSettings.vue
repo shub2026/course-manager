@@ -2,15 +2,15 @@
   <div>
     <el-card>
       <template #header><span>系统设置</span></template>
-      <el-form :model="form" label-width="160px" style="max-width: 600px">
+      <el-form :model="form" label-width="160px" class="settings-form">
         <el-form-item label="当前学期">
           <el-input v-model="form.current_semester" placeholder="格式：2025-2026-2" />
-          <div style="color: #999; font-size: 12px; margin-top: 4px">
+          <div class="form-hint">
             格式：起始学年-结束学年-学期序号（1或2），如 2025-2026-2 表示2025-2026学年第2学期
           </div>
         </el-form-item>
         <el-form-item label="学期开学日期">
-          <el-date-picker v-model="form.semester_start_date" type="date" value-format="YYYY-MM-DD" placeholder="选择日期" style="width: 100%" />
+          <el-date-picker v-model="form.semester_start_date" type="date" value-format="YYYY-MM-DD" placeholder="选择日期" class="full-width" />
         </el-form-item>
         <el-form-item label="每学期默认周数">
           <el-input-number v-model="form.weeks_per_semester_default" :min="1" :max="30" />
@@ -56,3 +56,17 @@ async function handleSave() {
 
 onMounted(load)
 </script>
+
+<style scoped>
+.settings-form {
+  max-width: 600px;
+}
+.form-hint {
+  color: #999;
+  font-size: 12px;
+  margin-top: 4px;
+}
+.full-width {
+  width: 100%;
+}
+</style>

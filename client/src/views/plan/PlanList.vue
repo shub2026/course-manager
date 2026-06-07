@@ -2,14 +2,14 @@
   <div>
     <el-card>
       <template #header>
-        <div style="display: flex; justify-content: space-between; align-items: center">
+        <div class="card-header">
           <span>培养方案管理</span>
           <el-button type="primary" @click="openDialog()">
             <el-icon><Plus /></el-icon> 新增方案
           </el-button>
         </div>
       </template>
-      <el-table :data="list" stripe>
+      <el-table :data="list" stripe v-loading="loading">
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="name" label="方案名称" min-width="200" />
         <el-table-column label="专业" width="120">
@@ -42,7 +42,7 @@
           <el-input v-model="form.name" placeholder="如：2024级学前教育培养方案" />
         </el-form-item>
         <el-form-item label="专业类别" required>
-          <el-select v-model="form.majorId" style="width: 100%">
+          <el-select v-model="form.majorId" class="full-width">
             <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />
           </el-select>
         </el-form-item>
@@ -68,14 +68,20 @@ import { getPlans, createPlan, updatePlan, deletePlan } from '../../api/plan'
 import { getMajors } from '../../api/major'
 
 const list = ref([])
+const loading = ref(false)
 const majors = ref([])
 const dialogVisible = ref(false)
 const saving = ref(false)
 const form = ref({ id: null, name: '', majorId: null, version: '', description: '' })
 
 async function load() {
-  const res = await getPlans()
-  list.value = res.data || []
+  loading.value = true
+  try {
+    const res = await getPlans()
+    list.value = res.data || []
+  } finally {
+    loading.value = false
+  }
 }
 
 async function loadMajors() {
@@ -116,3 +122,14 @@ onMounted(async () => {
   load()
 })
 </script>
+
+<style scoped>
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.full-width {
+  width: 100%;
+}
+</style>

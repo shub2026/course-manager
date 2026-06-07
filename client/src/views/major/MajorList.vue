@@ -2,14 +2,14 @@
   <div>
     <el-card>
       <template #header>
-        <div style="display: flex; justify-content: space-between; align-items: center">
+        <div class="card-header">
           <span>专业类别管理</span>
           <el-button type="primary" @click="openDialog()">
             <el-icon><Plus /></el-icon> 新增专业
           </el-button>
         </div>
       </template>
-      <el-table :data="list" stripe>
+      <el-table :data="list" stripe v-loading="loading">
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="name" label="专业名称" />
         <el-table-column prop="code" label="编码" width="120" />
@@ -56,13 +56,19 @@ import { ElMessage } from 'element-plus'
 import { getMajors, createMajor, updateMajor, deleteMajor } from '../../api/major'
 
 const list = ref([])
+const loading = ref(false)
 const dialogVisible = ref(false)
 const saving = ref(false)
 const form = ref({ id: null, name: '', code: '', description: '' })
 
 async function load() {
-  const res = await getMajors()
-  list.value = res.data || []
+  loading.value = true
+  try {
+    const res = await getMajors()
+    list.value = res.data || []
+  } finally {
+    loading.value = false
+  }
 }
 
 function openDialog(row) {
@@ -95,3 +101,11 @@ async function handleDelete(id) {
 
 onMounted(load)
 </script>
+
+<style scoped>
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+</style>
