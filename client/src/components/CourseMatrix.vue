@@ -24,12 +24,13 @@
               第{{ s }}学期
             </th>
             <th class="matrix-total-header">总课时</th>
+            <th class="matrix-action-header">操作</th>
           </tr>
         </thead>
         <tbody v-for="group in groups" :key="group.type">
           <!-- 分组标题行 -->
           <tr class="matrix-group-row">
-            <td :colspan="maxSemester + 2" class="matrix-group-cell" :class="group.type">
+            <td :colspan="maxSemester + 3" class="matrix-group-cell" :class="group.type">
               <span class="group-label">{{ group.label }}</span>
               <span class="group-count">{{ group.courses.length }} 门</span>
             </td>
@@ -71,6 +72,12 @@
             <td class="matrix-cell matrix-total-cell">
               <strong>{{ calcTotalHours(course) }}</strong>
             </td>
+            <!-- 操作按钮 -->
+            <td class="matrix-cell matrix-action-cell">
+              <el-button size="small" @click="openSemesterSettings(course)">
+                <el-icon><Setting /></el-icon>
+              </el-button>
+            </td>
           </tr>
           <!-- 分组小计 -->
           <tr class="matrix-subtotal-row">
@@ -85,6 +92,7 @@
             <td class="matrix-cell matrix-subtotal-cell">
               <strong>{{ calcGroupTotal(group) }}</strong>
             </td>
+            <td></td>
           </tr>
         </tbody>
       </table>
@@ -101,8 +109,10 @@
           :max="30"
           size="small"
           controls-position="right"
-          @change="onGlobalWeeksChange"
         />
+        <el-button type="primary" size="small" @click="applyGlobalWeeks">
+          <el-icon><Check /></el-icon> 应用
+        </el-button>
         <span class="footer-hint">统一应用于所有学期</span>
       </div>
       <div class="footer-summary">
@@ -129,23 +139,12 @@
 
           <el-form label-width="80px" size="small">
             <el-form-item label="周课时">
-              <el-input-number
-                v-model="editingSemester.weeklyHours"
-                :min="0"
-                :max="40"
-                :step="0.5"
-                controls-position="right"
-                class="full-width"
-              />
-            </el-form-item>
-            <el-form-item label="学期周数">
-              <el-input-number
-                v-model="editingSemester.weeksCount"
-                :min="1"
-                :max="30"
-                controls-position="right"
-                class="full-width"
-              />
+              <el-radio-group v-model="editingSemester.weeklyHours" class="full-width">
+                <el-radio-button :value="2">2</el-radio-button>
+                <el-radio-button :value="4">4</el-radio-button>
+                <el-radio-button :value="6">6</el-radio-button>
+                <el-radio-button :value="8">8</el-radio-button>
+              </el-radio-group>
             </el-form-item>
             <el-form-item label="关联教材">
               <el-select
@@ -174,15 +173,54 @@
         </div>
       </template>
     </el-popover>
+
+    <!-- 开课学期设置对话框 -->
+    <el-dialog v-model="semesterDialogVisible" title="设置开课学期" width="450px">
+      <el-form label-width="100px">
+        <el-alert
+          :title="`课程：${editingCourseForSemester?.courseName || ''}`"
+          type="info"
+          :closable="false"
+          show-icon
+          style="margin-bottom: 16px"
+        />
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="起始学期" required>
+              <el-input-number v-model="semesterForm.startSemester" :min="1" :max="12" class="full-width" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="结束学期" required>
+              <el-input-number v-model="semesterForm.endSemester" :min="1" :max="12" class="full-width" />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-alert
+          title="提示：修改后将自动创建或删除对应的学期记录"
+          type="warning"
+          :closable="false"
+          show-icon
+        />
+      </el-form>
+      <template #footer>
+        <el-button @click="semesterDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="saveSemesterSettings" :loading="saving">
+          保存
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
   getPlanCourses,
+  createSemester,
   updateSemester,
+  updatePlanCourse,
   setSemesterTextbook,
   removeSemesterTextbook,
   getPlanSemesters,
@@ -209,11 +247,16 @@ const editingCourse = ref(null)
 const editingSemester = ref(null)
 const editingTextbookId = ref(null)
 
+// 开课学期设置状态
+const semesterDialogVisible = ref(false)
+const editingCourseForSemester = ref(null)
+const semesterForm = ref({ startSemester: 1, endSemester: 2 })
+
 // 计算最大学期数
 const maxSemester = computed(() => {
-  if (!rawCourses.value.length) return 6
+  if (!rawCourses.value.length) return 8
   const max = Math.max(...rawCourses.value.map(c => c.endSemester), 0)
-  return Math.max(max, 6)
+  return Math.max(max, 8)
 })
 
 // 构建学期周数数组（统一值）
@@ -284,8 +327,16 @@ function calcTotalHours(course) {
   let total = 0
   for (let s = course.startSemester; s <= course.endSemester; s++) {
     const sem = course.semesters.find(x => x.semester === s)
-    if (sem && sem.weeklyHours > 0) {
-      total += sem.weeklyHours * (sem.weeksCount || semesterWeeks.value[s - 1] || 18)
+    // 如果学期记录存在，使用记录的周课时和周数
+    if (sem) {
+      const hours = sem.weeklyHours || 0
+      const weeks = sem.weeksCount || semesterWeeks.value[s - 1] || 18
+      total += hours * weeks
+    } else {
+      // 如果学期记录不存在，使用课程默认的周课时
+      const hours = course.weeklyHours || 0
+      const weeks = course.weeksPerSemester || semesterWeeks.value[s - 1] || 18
+      total += hours * weeks
     }
   }
   return Math.round(total)
@@ -312,11 +363,43 @@ const totalAllHours = computed(() => {
 })
 
 // 打开编辑
-function openEdit(course, semester) {
-  if (!isInRange(course, semester)) return
+async function openEdit(course, semester) {
+  if (!isInRange(course, semester)) {
+    ElMessage.warning('该学期不在课程开课范围内')
+    return
+  }
 
   let sem = course.semesters.find(s => s.semester === semester)
-  if (!sem) return
+
+  // 如果学期记录不存在，自动创建
+  if (!sem) {
+    try {
+      // 使用课程的默认周课时和周数
+      const defaultWeeklyHours = course.weeklyHours || 4
+      const defaultWeeksCount = course.weeksPerSemester || globalWeeks.value || 18
+
+      await createSemester(props.planId, course.id, {
+        semester,
+        weeklyHours: defaultWeeklyHours,
+        weeksCount: defaultWeeksCount,
+      })
+
+      // 重新加载数据以获取最新的学期记录
+      await loadData()
+
+      // 找到新创建的学期记录
+      const updatedCourse = rawCourses.value.find(c => c.id === course.id)
+      sem = updatedCourse?.planCourseSemesters?.find(s => s.semester === semester)
+      if (!sem) {
+        ElMessage.error('创建学期记录失败')
+        return
+      }
+    } catch (e) {
+      console.error(e)
+      ElMessage.error('创建学期记录失败')
+      return
+    }
+  }
 
   editingCourse.value = course
   editingSemester.value = { ...sem }
@@ -331,7 +414,6 @@ async function saveEdit() {
   try {
     await updateSemester(editingSemester.value.id, {
       weeklyHours: editingSemester.value.weeklyHours,
-      weeksCount: editingSemester.value.weeksCount,
     })
 
     // 教材关联
@@ -348,23 +430,81 @@ async function saveEdit() {
     popoverVisible.value = false
     await loadData()
   } catch (e) {
+    console.error(e)
     ElMessage.error('保存失败')
   } finally {
     saving.value = false
   }
 }
 
-// 全局周数变更 — 更新所有学期记录
-async function onGlobalWeeksChange() {
+// 应用全局周数 — 批量更新所有学期记录
+async function applyGlobalWeeks() {
   const weeks = globalWeeks.value
   semesterWeeks.value = Array(maxSemester.value).fill(weeks)
-  try {
-    for (const course of rawCourses.value) {
-      for (const sem of (course.planCourseSemesters || [])) {
-        await updateSemester(sem.id, { weeksCount: weeks })
-      }
+
+  // 收集所有需要更新的学期记录ID
+  const semesterIds = []
+  rawCourses.value.forEach(course => {
+    (course.planCourseSemesters || []).forEach(sem => {
+      semesterIds.push(sem.id)
+    })
+  })
+
+  // 并行发送所有更新请求
+  if (semesterIds.length > 0) {
+    try {
+      await Promise.all(
+        semesterIds.map(id =>
+          updateSemester(id, { weeksCount: weeks }).catch(() => {})
+        )
+      )
+      // 重新加载数据以反映最新状态
+      await loadData()
+      ElMessage.success('已应用学期周数设置')
+    } catch (e) {
+      console.error('批量更新学期周数失败', e)
+      ElMessage.error('应用失败')
     }
-  } catch (e) { /* ignore */ }
+  } else {
+    ElMessage.info('暂无学期记录可更新')
+  }
+}
+
+// 打开开课学期设置对话框
+function openSemesterSettings(course) {
+  editingCourseForSemester.value = course
+  semesterForm.value = {
+    startSemester: course.startSemester,
+    endSemester: course.endSemester,
+  }
+  semesterDialogVisible.value = true
+}
+
+// 保存开课学期设置
+async function saveSemesterSettings() {
+  if (!editingCourseForSemester.value) return
+  
+  const { startSemester, endSemester } = semesterForm.value
+  if (startSemester > endSemester) {
+    return ElMessage.warning('起始学期不能大于结束学期')
+  }
+  
+  saving.value = true
+  try {
+    await updatePlanCourse(editingCourseForSemester.value.id, {
+      startSemester,
+      endSemester,
+    })
+    
+    ElMessage.success('保存成功')
+    semesterDialogVisible.value = false
+    await loadData()
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('保存失败')
+  } finally {
+    saving.value = false
+  }
 }
 
 // 加载数据
@@ -461,6 +601,12 @@ watch(() => props.planId, loadData)
   min-width: 70px;
   background: #ecf5ff !important;
   color: #409eff !important;
+}
+
+.matrix-action-header {
+  min-width: 60px;
+  text-align: center;
+  background: #f5f7fa !important;
 }
 
 /* 固定列 */
@@ -577,6 +723,16 @@ watch(() => props.planId, loadData)
 .matrix-total-cell {
   background: #ecf5ff !important;
   font-size: 14px;
+}
+
+/* 操作列 */
+.matrix-action-cell {
+  text-align: center;
+  cursor: default !important;
+}
+
+.matrix-action-cell .el-button {
+  padding: 4px 8px;
 }
 
 /* 小计行 */

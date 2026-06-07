@@ -15,14 +15,24 @@ router.get('/', async (req, res, next) => {
     });
 
     const plansWithCount = await Promise.all(plans.map(async (plan) => {
-      const classCount = await prisma.class.count({
+      // 1. 统计明确指定该方案为特殊方案的班级
+      const customClassCount = await prisma.class.count({
         where: { customPlanId: plan.id },
       });
+      
+      // 2. 统计通过专业默认匹配且未指定特殊方案的班级
+      const defaultClassCount = await prisma.class.count({
+        where: { 
+          majorId: plan.majorId,
+          customPlanId: null,
+        },
+      });
+      
       return {
         ...plan,
         _count: {
           planCourses: plan.planCourses.length,
-          classes: classCount,
+          classes: customClassCount + defaultClassCount,
         },
       };
     }));
@@ -107,55 +117,107 @@ router.post('/:id/courses', async (req, res, next) => {
       return fail(res, '课程、开课学期、周课时为必填项');
     }
     const weeks = weeksPerSemester ? Number(weeksPerSemester) : 18;
-    const pc = await prisma.planCourse.create({
-      data: {
-        planId: Number(id),
-        courseId: Number(courseId),
-        startSemester: Number(startSemester),
-        endSemester: Number(endSemester),
-        weeklyHours: Number(weeklyHours),
-        weeksPerSemester: weeks,
-      },
-      include: { course: true },
+    
+    // 使用事务确保数据一致性
+    const pc = await prisma.$transaction(async (tx) => {
+      // 1. 创建 PlanCourse
+      const created = await tx.planCourse.create({
+        data: {
+          planId: Number(id),
+          courseId: Number(courseId),
+          startSemester: Number(startSemester),
+          endSemester: Number(endSemester),
+          weeklyHours: Number(weeklyHours),
+          weeksPerSemester: weeks,
+        },
+        include: { course: true },
+      });
+
+      // 2. 自动创建学期记录
+      for (let s = Number(startSemester); s <= Number(endSemester); s++) {
+        await tx.planCourseSemester.create({
+          data: {
+            planCourseId: created.id,
+            semester: s,
+            weeklyHours: Number(weeklyHours),
+            weeksCount: weeks,
+          },
+        });
+      }
+
+      return created;
     });
 
-    // 自动创建学期记录
-    for (let s = Number(startSemester); s <= Number(endSemester); s++) {
-      await prisma.planCourseSemester.create({
-        data: {
-          planCourseId: pc.id,
-          semester: s,
-          weeklyHours: Number(weeklyHours),
-          weeksCount: weeks,
-        },
-      });
-    }
-
     success(res, pc, '添加成功');
-  } catch (e) { next(e); }
+  } catch (e) { 
+    // 如果是唯一约束冲突,返回友好提示
+    if (e.code === 'P2002') {
+      return fail(res, '该课程已在该方案中存在', 400);
+    }
+    next(e); 
+  }
 });
 
 router.put('/courses/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     const { startSemester, endSemester, weeklyHours, weeksPerSemester } = req.body;
-    try {
-      const pc = await prisma.planCourse.update({
+
+    // 先获取当前课程信息
+    const currentPc = await prisma.planCourse.findUnique({
+      where: { id: Number(id) },
+      include: { planCourseSemesters: true },
+    });
+
+    if (!currentPc) {
+      return fail(res, '方案课程不存在', 404);
+    }
+
+    // 确定新的学期范围
+    const newStart = startSemester !== undefined ? Number(startSemester) : currentPc.startSemester;
+    const newEnd = endSemester !== undefined ? Number(endSemester) : currentPc.endSemester;
+    const newWeeklyHours = weeklyHours !== undefined ? Number(weeklyHours) : currentPc.weeklyHours;
+    const newWeeksPerSemester = weeksPerSemester !== undefined ? Number(weeksPerSemester) : currentPc.weeksPerSemester;
+
+    // 使用事务确保数据一致性
+    const pc = await prisma.$transaction(async (tx) => {
+      // 1. 更新 PlanCourse
+      const updated = await tx.planCourse.update({
         where: { id: Number(id) },
         data: {
-          startSemester: startSemester !== undefined ? Number(startSemester) : undefined,
-          endSemester: endSemester !== undefined ? Number(endSemester) : undefined,
-          weeklyHours: weeklyHours !== undefined ? Number(weeklyHours) : undefined,
-          weeksPerSemester: weeksPerSemester !== undefined ? Number(weeksPerSemester) : undefined,
+          startSemester: newStart,
+          endSemester: newEnd,
+          weeklyHours: newWeeklyHours,
+          weeksPerSemester: newWeeksPerSemester,
         },
         include: { course: true },
       });
-      success(res, pc, '更新成功');
-    } catch (e) {
-      if (e.code === 'P2025') return fail(res, '方案课程不存在', 404);
-      throw e;
-    }
-  } catch (e) { next(e); }
+
+      // 2. 同步学期记录 - 先删除所有旧记录
+      await tx.planCourseSemester.deleteMany({
+        where: { planCourseId: Number(id) },
+      });
+
+      // 3. 重新创建所有学期记录
+      for (let s = newStart; s <= newEnd; s++) {
+        await tx.planCourseSemester.create({
+          data: {
+            planCourseId: Number(id),
+            semester: s,
+            weeklyHours: newWeeklyHours,
+            weeksCount: newWeeksPerSemester,
+          },
+        });
+      }
+
+      return updated;
+    });
+
+    success(res, pc, '更新成功');
+  } catch (e) {
+    if (e.code === 'P2025') return fail(res, '方案课程不存在', 404);
+    next(e);
+  }
 });
 
 router.delete('/courses/:id', async (req, res, next) => {
@@ -172,6 +234,53 @@ router.delete('/courses/:id', async (req, res, next) => {
 });
 
 // === 学期明细操作 ===
+router.post('/:planId/courses/:courseId/semesters', async (req, res, next) => {
+  try {
+    const { planId, courseId } = req.params;
+    const { semester, weeklyHours, weeksCount } = req.body;
+
+    if (!semester || !weeklyHours) {
+      return fail(res, '学期和周课时为必填项');
+    }
+
+    // 验证 PlanCourse 是否存在
+    const planCourse = await prisma.planCourse.findFirst({
+      where: {
+        id: Number(courseId),
+        planId: Number(planId),
+      },
+    });
+
+    if (!planCourse) {
+      return fail(res, '方案课程不存在', 404);
+    }
+
+    // 使用 upsert: 存在则更新,不存在则创建
+    const sem = await prisma.planCourseSemester.upsert({
+      where: {
+        planCourseId_semester: {
+          planCourseId: Number(courseId),
+          semester: Number(semester),
+        },
+      },
+      update: {
+        weeklyHours: Number(weeklyHours),
+        weeksCount: weeksCount ? Number(weeksCount) : planCourse.weeksPerSemester,
+      },
+      create: {
+        planCourseId: Number(courseId),
+        semester: Number(semester),
+        weeklyHours: Number(weeklyHours),
+        weeksCount: weeksCount ? Number(weeksCount) : planCourse.weeksPerSemester,
+      },
+    });
+
+    success(res, sem, '创建成功');
+  } catch (e) {
+    next(e);
+  }
+});
+
 router.put('/semesters/:id', async (req, res, next) => {
   try {
     const { id } = req.params;

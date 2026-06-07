@@ -10,6 +10,7 @@ export const updatePlanCourse = (id, data) => request.put(`/plans/courses/${id}`
 export const deletePlanCourse = (id) => request.delete(`/plans/courses/${id}`)
 
 // 学期明细
+export const createSemester = (planId, courseId, data) => request.post(`/plans/${planId}/courses/${courseId}/semesters`, data)
 export const updateSemester = (id, data) => request.put(`/plans/semesters/${id}`, data)
 export const getPlanSemesters = (id) => request.get(`/plans/${id}/semesters`)
 
