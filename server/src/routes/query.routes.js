@@ -31,8 +31,12 @@ router.get('/semester', async (req, res, next) => {
             planCourses: {
               include: {
                 course: { select: { id: true, name: true, type: true } },
-                planTextbooks: {
-                  include: { textbook: { select: { id: true, title: true, isbn: true, publisher: true } } },
+                planCourseSemesters: {
+                  include: {
+                    textbooks: {
+                      include: { textbook: { select: { id: true, title: true, isbn: true, publisher: true } } },
+                    },
+                  },
                 },
               },
             },
@@ -61,8 +65,12 @@ router.get('/semester', async (req, res, next) => {
         planCourses: {
           include: {
             course: { select: { id: true, name: true, type: true } },
-            planTextbooks: {
-              include: { textbook: { select: { id: true, title: true, isbn: true, publisher: true } } },
+            planCourseSemesters: {
+              include: {
+                textbooks: {
+                  include: { textbook: { select: { id: true, title: true, isbn: true, publisher: true } } },
+                },
+              },
             },
           },
         },
@@ -89,23 +97,24 @@ router.get('/semester', async (req, res, next) => {
         (pc) => pc.startSemester <= calc.currentSemesterNum && pc.endSemester >= calc.currentSemesterNum
       );
 
-      const courses = planCourses.map((pc) => ({
-        courseId: pc.course.id,
-        courseName: pc.course.name,
-        courseType: pc.course.type,
-        weeklyHours: pc.weeklyHours,
-        weeksPerSemester: pc.weeksPerSemester,
-        totalHoursThisSemester: pc.weeklyHours * pc.weeksPerSemester,
-        textbooks: pc.planTextbooks
-          .filter((pt) => pt.semester === calc.currentSemesterNum)
-          .map((pt) => ({
+      const courses = planCourses.map((pc) => {
+        const semRecord = pc.planCourseSemesters?.find(s => s.semester === calc.currentSemesterNum);
+        return {
+          courseId: pc.course.id,
+          courseName: pc.course.name,
+          courseType: pc.course.type,
+          weeklyHours: semRecord?.weeklyHours || pc.weeklyHours,
+          weeksPerSemester: semRecord?.weeksCount || pc.weeksPerSemester,
+          totalHoursThisSemester: (semRecord?.weeklyHours || pc.weeklyHours) * (semRecord?.weeksCount || pc.weeksPerSemester),
+          textbooks: (semRecord?.textbooks || []).map((pt) => ({
             id: pt.textbook.id,
             title: pt.textbook.title,
             isbn: pt.textbook.isbn,
             publisher: pt.textbook.publisher,
             isRequired: pt.isRequired,
           })),
-      }));
+        };
+      });
 
       results.push({
         classId: cls.id,
@@ -145,10 +154,14 @@ router.get('/textbook/:id', async (req, res, next) => {
       prisma.planTextbook.findMany({
         where: { textbookId: Number(id) },
         include: {
-          planCourse: {
+          semester: {
             include: {
-              plan: { include: { major: true } },
-              course: { select: { name: true } },
+              planCourse: {
+                include: {
+                  plan: { include: { major: true } },
+                  course: { select: { name: true } },
+                },
+              },
             },
           },
         },
@@ -162,10 +175,11 @@ router.get('/textbook/:id', async (req, res, next) => {
     const classResults = [];
 
     for (const pt of planTextbooks) {
-      const pc = pt.planCourse;
-      if (pt.semester < pc.startSemester || pt.semester > pc.endSemester) continue;
+      const sem = pt.semester;
+      const pc = sem.planCourse;
+      if (sem.semester < pc.startSemester || sem.semester > pc.endSemester) continue;
 
-      const gradeForThisSemester = Math.ceil(pt.semester / 2);
+      const gradeForThisSemester = Math.ceil(sem.semester / 2);
       const enrollmentYear = semesterInfo.startYear - gradeForThisSemester + 1;
 
       for (const cls of allClasses) {
@@ -174,7 +188,7 @@ router.get('/textbook/:id', async (req, res, next) => {
         const isCustomPlan = cls.customPlanId === pc.planId;
         if (!isDefaultPlan && !isCustomPlan) continue;
         const calc = calcClassSemester(cls, semesterInfo);
-        if (!calc || calc.currentSemesterNum !== pt.semester) continue;
+        if (!calc || calc.currentSemesterNum !== sem.semester) continue;
 
         classResults.push({
           classId: cls.id,
@@ -182,7 +196,7 @@ router.get('/textbook/:id', async (req, res, next) => {
           majorName: cls.major.name,
           studentCount: cls.studentCount,
           grade: calc.grade,
-          semester: pt.semester,
+          semester: sem.semester,
           courseName: pc.course.name,
           isRequired: pt.isRequired,
         });
@@ -220,10 +234,14 @@ router.get('/textbooks', async (req, res, next) => {
         include: {
           planTextbooks: {
             include: {
-              planCourse: {
+              semester: {
                 include: {
-                  plan: { include: { major: true } },
-                  course: { select: { name: true } },
+                  planCourse: {
+                    include: {
+                      plan: { include: { major: true } },
+                      course: { select: { name: true } },
+                    },
+                  },
                 },
               },
             },
@@ -241,10 +259,11 @@ router.get('/textbooks', async (req, res, next) => {
       const usedClasses = new Set();
 
       for (const pt of tb.planTextbooks) {
-        const pc = pt.planCourse;
-        if (pt.semester < pc.startSemester || pt.semester > pc.endSemester) continue;
+        const sem = pt.semester;
+        const pc = sem.planCourse;
+        if (sem.semester < pc.startSemester || sem.semester > pc.endSemester) continue;
 
-        const gradeForThisSemester = Math.ceil(pt.semester / 2);
+        const gradeForThisSemester = Math.ceil(sem.semester / 2);
         const enrollmentYear = semesterInfo.startYear - gradeForThisSemester + 1;
 
         for (const c of allClasses) {
