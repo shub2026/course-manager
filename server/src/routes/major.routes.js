@@ -8,7 +8,7 @@ router.get('/', async (req, res, next) => {
   try {
     const majors = await prisma.major.findMany({
       include: { _count: { select: { classes: true, trainingPlans: true } } },
-      orderBy: { id: 'asc' },
+      orderBy: { sortOrder: 'asc' },
     });
     success(res, majors);
   } catch (e) { next(e); }
@@ -16,9 +16,9 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    const { name, code, description } = req.body;
+    const { name, code, description, sortOrder } = req.body;
     if (!name) return fail(res, '专业名称不能为空');
-    const major = await prisma.major.create({ data: { name, code, description } });
+    const major = await prisma.major.create({ data: { name, code, description, sortOrder: sortOrder ?? 0 } });
     success(res, major, '创建成功');
   } catch (e) { next(e); }
 });
@@ -26,11 +26,11 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, code, description } = req.body;
+    const { name, code, description, sortOrder } = req.body;
     try {
       const major = await prisma.major.update({
         where: { id: Number(id) },
-        data: { name, code, description },
+        data: { name, code, description, sortOrder: sortOrder ?? 0 },
       });
       success(res, major, '更新成功');
     } catch (e) {

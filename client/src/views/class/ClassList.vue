@@ -5,8 +5,14 @@
         <div class="card-header">
           <span>班级管理</span>
           <div class="card-header-actions">
+            <el-select v-model="filterCollege" clearable placeholder="按学院筛选" @change="load" class="filter-select">
+              <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
+            </el-select>
             <el-select v-model="filterMajor" clearable placeholder="按专业筛选" @change="load" class="filter-select">
               <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />
+            </el-select>
+            <el-select v-model="filterLevel" clearable placeholder="按层次筛选" @change="load" class="filter-select">
+              <el-option v-for="level in trainingLevels" :key="level.id" :label="level.name" :value="level.id" />
             </el-select>
             <el-button @click="downloadTemplate">下载模板</el-button>
             <el-upload :show-file-list="false" accept=".xlsx,.xls" action="/api/import/classes" name="file" :on-success="onImportSuccess" :on-error="onImportError">
@@ -159,7 +165,9 @@ const trainingLevels = ref([])
 const colleges = ref([])
 const dialogVisible = ref(false)
 const saving = ref(false)
+const filterCollege = ref(null)
 const filterMajor = ref(null)
+const filterLevel = ref(null)
 
 const defaultForm = { id: null, name: '', majorId: null, enrollmentYear: new Date().getFullYear(), durationYears: 3, collegeId: null, trainingLevelId: null, studentCount: 0, status: 'active', customPlanId: null }
 const form = ref({ ...defaultForm })
@@ -176,7 +184,10 @@ function calcGrade(cls) {
 async function load() {
   loading.value = true
   try {
-    const params = filterMajor.value ? { majorId: filterMajor.value } : {}
+    const params = {}
+    if (filterCollege.value) params.collegeId = filterCollege.value
+    if (filterMajor.value) params.majorId = filterMajor.value
+    if (filterLevel.value) params.trainingLevelId = filterLevel.value
     const res = await getClasses(params)
     list.value = res.data || []
   } finally {

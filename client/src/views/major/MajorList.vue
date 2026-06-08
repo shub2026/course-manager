@@ -11,13 +11,35 @@
       </template>
       <el-table :data="list" stripe v-loading="loading">
         <el-table-column prop="id" label="ID" width="60" />
-        <el-table-column prop="name" label="专业名称" />
+        <el-table-column prop="name" label="专业名称" min-width="150" />
         <el-table-column prop="code" label="编码" width="120" />
-        <el-table-column prop="description" label="描述" />
+        <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
         <el-table-column label="班级数" width="80">
           <template #default="{ row }">{{ row._count?.classes || 0 }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="150">
+        <el-table-column label="排序" width="120" align="center">
+          <template #default="{ row, $index }">
+            <div class="sort-buttons">
+              <el-button 
+                size="small" 
+                :icon="ArrowUp" 
+                :disabled="$index === 0"
+                @click="handleMoveUp(row, $index)"
+                circle
+                title="上移"
+              />
+              <el-button 
+                size="small" 
+                :icon="ArrowDown" 
+                :disabled="$index === list.length - 1"
+                @click="handleMoveDown(row, $index)"
+                circle
+                title="下移"
+              />
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="openDialog(row)">编辑</el-button>
             <el-popconfirm title="确定删除？" @confirm="handleDelete(row.id)">
@@ -33,13 +55,13 @@
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑专业' : '新增专业'" width="500px">
       <el-form :model="form" label-width="80px">
         <el-form-item label="专业名称" required>
-          <el-input v-model="form.name" placeholder="如：学前教育" />
+          <el-input v-model="form.name" placeholder="请输入专业名称" />
         </el-form-item>
         <el-form-item label="编码">
-          <el-input v-model="form.code" placeholder="可选" />
+          <el-input v-model="form.code" placeholder="请输入编码（可选）" />
         </el-form-item>
         <el-form-item label="描述">
-          <el-input v-model="form.description" type="textarea" />
+          <el-input v-model="form.description" type="textarea" placeholder="请输入描述信息（可选）" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -53,6 +75,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { getMajors, createMajor, updateMajor, deleteMajor } from '../../api/major'
 
 const list = ref([])
@@ -99,7 +122,59 @@ async function handleDelete(id) {
   load()
 }
 
-onMounted(load)
+async function handleMoveUp(row, index) {
+  if (index === 0) return
+  
+  const newList = [...list.value]
+  // 交换当前项和上一项的 sortOrder
+  const tempSortOrder = newList[index].sortOrder
+  newList[index].sortOrder = newList[index - 1].sortOrder
+  newList[index - 1].sortOrder = tempSortOrder
+  
+  // 交换数组位置
+  ;[newList[index], newList[index - 1]] = [newList[index - 1], newList[index]]
+  
+  try {
+    await Promise.all([
+      updateMajor(newList[index].id, { sortOrder: newList[index].sortOrder }),
+      updateMajor(newList[index - 1].id, { sortOrder: newList[index - 1].sortOrder })
+    ])
+    ElMessage.success('排序已更新')
+    list.value = newList
+  } catch (e) {
+    console.error('排序更新失败:', e)
+    ElMessage.error('排序更新失败')
+  }
+}
+
+async function handleMoveDown(row, index) {
+  if (index === list.value.length - 1) return
+  
+  const newList = [...list.value]
+  // 交换当前项和下一项的 sortOrder
+  const tempSortOrder = newList[index].sortOrder
+  newList[index].sortOrder = newList[index + 1].sortOrder
+  newList[index + 1].sortOrder = tempSortOrder
+  
+  // 交换数组位置
+  ;[newList[index], newList[index + 1]] = [newList[index + 1], newList[index]]
+  
+  try {
+    await Promise.all([
+      updateMajor(newList[index].id, { sortOrder: newList[index].sortOrder }),
+      updateMajor(newList[index + 1].id, { sortOrder: newList[index + 1].sortOrder })
+    ])
+    ElMessage.success('排序已更新')
+    list.value = newList
+  } catch (e) {
+    console.error('排序更新失败:', e)
+    ElMessage.error('排序更新失败')
+  }
+}
+
+onMounted(() => {
+  load()
+})
 </script>
 
 <style scoped>
@@ -107,5 +182,17 @@ onMounted(load)
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+.full-width {
+  width: 100%;
+}
+.sort-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+.sort-buttons .el-button.is-disabled {
+  opacity: 0.3;
 }
 </style>

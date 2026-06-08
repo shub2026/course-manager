@@ -6,9 +6,10 @@ const router = Router();
 
 router.get('/', async (req, res, next) => {
   try {
-    const { majorId, status } = req.query;
+    const { majorId, collegeId, status } = req.query;
     const where = {};
     if (majorId) where.majorId = Number(majorId);
+    if (collegeId) where.collegeId = Number(collegeId);
     if (status) where.status = status;
     const classes = await prisma.class.findMany({
       where,

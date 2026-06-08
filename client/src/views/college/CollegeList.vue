@@ -11,14 +11,35 @@
       </template>
       <el-table :data="list" stripe v-loading="loading">
         <el-table-column prop="id" label="ID" width="60" />
-        <el-table-column prop="name" label="学院名称" />
+        <el-table-column prop="name" label="学院名称" min-width="150" />
         <el-table-column prop="code" label="编码" width="120" />
-        <el-table-column prop="description" label="描述" />
-        <el-table-column prop="sortOrder" label="排序" width="80" />
+        <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
         <el-table-column label="班级数" width="80">
           <template #default="{ row }">{{ row._count?.classes || 0 }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="150">
+        <el-table-column label="排序" width="120" align="center">
+          <template #default="{ row, $index }">
+            <div class="sort-buttons">
+              <el-button 
+                size="small" 
+                :icon="ArrowUp" 
+                :disabled="$index === 0"
+                @click="handleMoveUp(row, $index)"
+                circle
+                title="上移"
+              />
+              <el-button 
+                size="small" 
+                :icon="ArrowDown" 
+                :disabled="$index === list.length - 1"
+                @click="handleMoveDown(row, $index)"
+                circle
+                title="下移"
+              />
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <el-button size="small" @click="openDialog(row)">编辑</el-button>
             <el-popconfirm title="确定删除？" @confirm="handleDelete(row.id)">
@@ -34,16 +55,13 @@
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑学院' : '新增学院'" width="500px">
       <el-form :model="form" label-width="80px">
         <el-form-item label="学院名称" required>
-          <el-input v-model="form.name" placeholder="如：现代农学院" />
+          <el-input v-model="form.name" placeholder="请输入学院名称" />
         </el-form-item>
         <el-form-item label="编码">
-          <el-input v-model="form.code" placeholder="可选" />
-        </el-form-item>
-        <el-form-item label="排序">
-          <el-input-number v-model="form.sortOrder" :min="0" class="full-width" />
+          <el-input v-model="form.code" placeholder="请输入编码（可选）" />
         </el-form-item>
         <el-form-item label="描述">
-          <el-input v-model="form.description" type="textarea" />
+          <el-input v-model="form.description" type="textarea" placeholder="请输入描述信息（可选）" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -57,13 +75,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { getColleges, createCollege, updateCollege, deleteCollege } from '../../api/college'
 
 const list = ref([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const saving = ref(false)
-const form = ref({ id: null, name: '', code: '', description: '', sortOrder: 0 })
+const form = ref({ id: null, name: '', code: '', description: '' })
 
 async function load() {
   loading.value = true
@@ -76,7 +95,7 @@ async function load() {
 }
 
 function openDialog(row) {
-  form.value = row ? { ...row } : { id: null, name: '', code: '', description: '', sortOrder: 0 }
+  form.value = row ? { ...row } : { id: null, name: '', code: '', description: '' }
   dialogVisible.value = true
 }
 
@@ -103,7 +122,55 @@ async function handleDelete(id) {
   load()
 }
 
-onMounted(load)
+async function handleMoveUp(row, index) {
+  if (index === 0) return
+  
+  const newList = [...list.value]
+  const tempSortOrder = newList[index].sortOrder
+  newList[index].sortOrder = newList[index - 1].sortOrder
+  newList[index - 1].sortOrder = tempSortOrder
+  
+  ;[newList[index], newList[index - 1]] = [newList[index - 1], newList[index]]
+  
+  try {
+    await Promise.all([
+      updateCollege(newList[index].id, { sortOrder: newList[index].sortOrder }),
+      updateCollege(newList[index - 1].id, { sortOrder: newList[index - 1].sortOrder })
+    ])
+    ElMessage.success('排序已更新')
+    list.value = newList
+  } catch (e) {
+    console.error('排序更新失败:', e)
+    ElMessage.error('排序更新失败')
+  }
+}
+
+async function handleMoveDown(row, index) {
+  if (index === list.value.length - 1) return
+  
+  const newList = [...list.value]
+  const tempSortOrder = newList[index].sortOrder
+  newList[index].sortOrder = newList[index + 1].sortOrder
+  newList[index + 1].sortOrder = tempSortOrder
+  
+  ;[newList[index], newList[index + 1]] = [newList[index + 1], newList[index]]
+  
+  try {
+    await Promise.all([
+      updateCollege(newList[index].id, { sortOrder: newList[index].sortOrder }),
+      updateCollege(newList[index + 1].id, { sortOrder: newList[index + 1].sortOrder })
+    ])
+    ElMessage.success('排序已更新')
+    list.value = newList
+  } catch (e) {
+    console.error('排序更新失败:', e)
+    ElMessage.error('排序更新失败')
+  }
+}
+
+onMounted(() => {
+  load()
+})
 </script>
 
 <style scoped>
@@ -114,5 +181,14 @@ onMounted(load)
 }
 .full-width {
   width: 100%;
+}
+.sort-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+.sort-buttons .el-button.is-disabled {
+  opacity: 0.3;
 }
 </style>

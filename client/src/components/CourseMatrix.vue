@@ -298,8 +298,14 @@ const groups = computed(() => {
       startSemester: c.startSemester,
       endSemester: c.endSemester,
       semesters: c.planCourseSemesters || [],
+      sortOrder: c.course?.sortOrder ?? 0, // 保存课程的排序值
     })
   })
+  
+  // 在每个分组内按 sortOrder 排序
+  map.public.sort((a, b) => a.sortOrder - b.sortOrder)
+  map.professional.sort((a, b) => a.sortOrder - b.sortOrder)
+  
   return [
     { type: 'public', label: '公共基础课', courses: map.public },
     { type: 'professional', label: '专业课', courses: map.professional },

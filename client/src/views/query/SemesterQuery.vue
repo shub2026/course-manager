@@ -5,8 +5,14 @@
         <div class="card-header">
           <span>当前学期开课查询</span>
           <div class="card-header-actions">
+            <el-select v-model="filterCollege" clearable placeholder="按学院筛选" @change="load" class="filter-select">
+              <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
+            </el-select>
             <el-select v-model="filterMajor" clearable placeholder="按专业筛选" @change="load" class="filter-select">
               <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />
+            </el-select>
+            <el-select v-model="filterLevel" clearable placeholder="按层次筛选" @change="load" class="filter-select">
+              <el-option v-for="l in levels" :key="l.id" :label="l.name" :value="l.id" />
             </el-select>
             <el-button type="success" @click="exportExcel">
               <el-icon><Download /></el-icon> 导出Excel
@@ -47,7 +53,9 @@
           </template>
         </el-table-column>
         <el-table-column prop="className" label="班级" min-width="180" />
-        <el-table-column prop="majorName" label="专业" width="120" />
+        <el-table-column prop="collegeName" label="二级学院" min-width="120" />
+        <el-table-column prop="majorName" label="专业" min-width="150" />
+        <el-table-column prop="trainingLevelName" label="培养层次" width="100" />
         <el-table-column label="年级" width="80">
           <template #default="{ row }">{{ row.grade }}年级</template>
         </el-table-column>
@@ -71,18 +79,27 @@
 import { ref, onMounted } from 'vue'
 import { getSemesterQuery } from '../../api/query'
 import { getMajors } from '../../api/major'
+import { getTrainingLevels } from '../../api/trainingLevel'
+import { getColleges } from '../../api/college'
 
 const data = ref([])
 const loading = ref(false)
 const majors = ref([])
+const levels = ref([])
+const colleges = ref([])
+const filterCollege = ref(null)
 const filterMajor = ref(null)
+const filterLevel = ref(null)
 const semesterLabel = ref('')
 const totalClasses = ref(0)
 
 async function load() {
   loading.value = true
   try {
-    const params = filterMajor.value ? { majorId: filterMajor.value } : {}
+    const params = {}
+    if (filterCollege.value) params.collegeId = filterCollege.value
+    if (filterMajor.value) params.majorId = filterMajor.value
+    if (filterLevel.value) params.trainingLevelId = filterLevel.value
     const res = await getSemesterQuery(params)
     data.value = res.data?.data || []
     semesterLabel.value = res.data?.semesterInfo?.label || ''
@@ -96,8 +113,14 @@ function exportExcel() {
 }
 
 onMounted(async () => {
-  const res = await getMajors()
-  majors.value = res.data || []
+  const [levelRes, majorRes, collegeRes] = await Promise.all([
+    getTrainingLevels(),
+    getMajors(),
+    getColleges()
+  ])
+  levels.value = levelRes.data || []
+  majors.value = majorRes.data || []
+  colleges.value = collegeRes.data || []
   load()
 })
 </script>

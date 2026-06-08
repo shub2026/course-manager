@@ -2,8 +2,8 @@
   <el-container class="layout-container">
     <el-aside :width="isCollapse ? '64px' : '220px'" class="layout-aside">
       <div class="layout-logo">
-        <span v-if="!isCollapse">课程管理系统</span>
-        <span v-else>课</span>
+        <span v-if="!isCollapse">KEC课程管理平台</span>
+        <span v-else>KEC</span>
       </div>
       <el-menu
         :default-active="activeMenu"

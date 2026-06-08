@@ -18,7 +18,7 @@
             <el-tag v-else-if="row.trainingLevelId" type="info" size="small">按层次</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="专业" width="120">
+        <el-table-column label="专业" min-width="150">
           <template #default="{ row }">{{ row.major?.name || '-' }}</template>
         </el-table-column>
         <el-table-column label="培养层次" width="100">

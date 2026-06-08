@@ -26,12 +26,13 @@
         <el-alert :title="`共 ${detail.totalClasses} 个班级使用，合计 ${detail.totalStudents} 名学生`" type="success" :closable="false" class="alert-success" />
 
         <el-table :data="detail.classes" stripe v-loading="loadingDetail">
-          <el-table-column prop="className" label="班级" min-width="180" />
-          <el-table-column prop="majorName" label="专业" width="120" />
+          <el-table-column prop="className" label="班级" min-width="160" />
+          <el-table-column prop="majorName" label="专业" min-width="150" />
+          <el-table-column prop="trainingLevelName" label="培养层次" width="100" />
           <el-table-column label="年级" width="80">
             <template #default="{ row }">{{ row.grade }}年级</template>
           </el-table-column>
-          <el-table-column prop="courseName" label="对应课程" width="150" />
+          <el-table-column prop="courseName" label="对应课程" min-width="150" />
           <el-table-column prop="studentCount" label="学生人数" width="90" />
           <el-table-column label="使用学期" width="100">
             <template #default="{ row }">第{{ row.semester }}学期</template>

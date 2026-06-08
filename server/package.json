@@ -1,7 +1,7 @@
 {
   "name": "course-management-server",
   "version": "1.0.0",
-  "description": "课程管理系统后端",
+  "description": "KEC课程管理平台后端",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
