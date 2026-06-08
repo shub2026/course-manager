@@ -59,7 +59,7 @@
         <el-table-column label="年级" width="80">
           <template #default="{ row }">{{ row.grade }}年级</template>
         </el-table-column>
-        <el-table-column label="当前学期" width="90">
+        <el-table-column label="在读学期" width="100">
           <template #default="{ row }">第{{ row.currentSemester }}学期</template>
         </el-table-column>
         <el-table-column prop="studentCount" label="人数" width="70" />

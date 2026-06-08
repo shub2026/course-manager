@@ -90,13 +90,24 @@ router.get('/semester', async (req, res, next) => {
       orderBy: { enrollmentYear: 'desc' },
     });
 
-    const majorIds = new Set();
+    // 收集需要查询的方案ID：按专业匹配的和按层次匹配的
+    const majorPlanIds = new Set();
+    const levelPlanIds = new Set();
     for (const cls of classes) {
-      if (!cls.customPlanId) majorIds.add(cls.majorId);
+      if (!cls.customPlanId) {
+        if (cls.majorId) majorPlanIds.add(cls.majorId);
+        if (cls.trainingLevelId) levelPlanIds.add(cls.trainingLevelId);
+      }
     }
 
-    const majorPlans = await prisma.trainingPlan.findMany({
-      where: { majorId: { in: [...majorIds] } },
+    // 查询所有可能匹配的培养方案（包括按专业和按层次）
+    const matchingPlans = await prisma.trainingPlan.findMany({
+      where: {
+        OR: [
+          { majorId: { in: [...majorPlanIds] } },
+          { trainingLevelId: { in: [...levelPlanIds] } },
+        ],
+      },
       include: {
         planCourses: {
           include: {
@@ -111,9 +122,30 @@ router.get('/semester', async (req, res, next) => {
       },
     });
 
-    const majorToPlan = new Map();
-    for (const plan of majorPlans) {
-      if (!majorToPlan.has(plan.majorId)) majorToPlan.set(plan.majorId, plan);
+    // 为每个班级找到匹配的培养方案
+    // 优先级：1.自定义方案 > 2.根据培养方案的关联类型进行匹配
+    function findBestMatchPlan(cls) {
+      // 1. 自定义方案优先
+      if (cls.customPlanId) {
+        return cls.customPlan;
+      }
+
+      // 2. 遍历所有方案，根据方案的关联类型来匹配
+      // 如果方案是按专业关联的，则检查班级的majorId是否匹配
+      // 如果方案是按层次关联的，则检查班级的trainingLevelId是否匹配
+      for (const plan of matchingPlans) {
+        // 方案按专业关联：检查班级的专业是否匹配
+        if (plan.majorId && plan.majorId === cls.majorId) {
+          return plan;
+        }
+        
+        // 方案按层次关联：检查班级的层次是否匹配
+        if (plan.trainingLevelId && plan.trainingLevelId === cls.trainingLevelId) {
+          return plan;
+        }
+      }
+
+      return null;
     }
 
     const rows = [];
@@ -123,7 +155,7 @@ router.get('/semester', async (req, res, next) => {
       if (grade < 1 || grade > cls.durationYears) continue;
       const currentSemesterNum = (grade - 1) * 2 + semesterInfo.semesterIndex;
 
-      const plan = cls.customPlanId ? cls.customPlan : majorToPlan.get(cls.majorId);
+      const plan = findBestMatchPlan(cls);
       if (!plan) continue;
 
       const planCourses = plan.planCourses.filter(
@@ -174,7 +206,7 @@ router.get('/semester', async (req, res, next) => {
 
     const workbook = await createWorkbook(headers, rows);
     const buffer = await workbookToBuffer(workbook);
-    const filename = `开课情况_${semesterInfo.startYear}-${semesterInfo.endYear}学年第${semesterInfo.semesterIndex}学期.xlsx`;
+    const filename = `开课情况_${semesterInfo.label}.xlsx`;
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
     res.send(buffer);
@@ -198,7 +230,7 @@ router.get('/textbook/:id', async (req, res, next) => {
                 include: {
                   planCourse: { 
                     include: { 
-                      plan: { include: { major: true } }, 
+                      plan: { include: { major: true, trainingLevel: true } }, 
                       course: true 
                     } 
                   },
@@ -210,32 +242,45 @@ router.get('/textbook/:id', async (req, res, next) => {
       }),
       prisma.class.findMany({
         where: { status: 'active' },
-        include: { major: true },
+        include: { major: true, trainingLevel: true },
       }),
     ]);
 
     if (!textbook) return res.status(404).json({ success: false, message: '教材不存在' });
+
+    // 判断班级是否匹配培养方案（支持按专业和按层次两种方式）
+    function isClassMatchPlan(cls, plan) {
+      // 1. 自定义方案
+      if (cls.customPlanId === plan.id) return true;
+      
+      // 2. 按专业匹配（仅当班级未指定自定义方案时）
+      if (!cls.customPlanId && cls.majorId === plan.majorId) return true;
+      
+      // 3. 按层次匹配（仅当班级未指定自定义方案时）
+      if (!cls.customPlanId && cls.trainingLevelId === plan.trainingLevelId) return true;
+      
+      return false;
+    }
 
     const rows = [];
 
     for (const pt of textbook.planTextbooks) {
       const sem = pt.semester;
       const pc = sem.planCourse;
+      const plan = pc.plan;
 
       for (const cls of allClasses) {
         const grade = semesterInfo.startYear - cls.enrollmentYear + 1;
         const currentSemesterNum = (grade - 1) * 2 + semesterInfo.semesterIndex;
         if (currentSemesterNum !== sem.semester) continue;
 
-        const isDefault = cls.majorId === pc.plan.majorId && !cls.customPlanId;
-        const isCustom = cls.customPlanId === pc.planId;
-        if (!isDefault && !isCustom) continue;
+        if (!isClassMatchPlan(cls, plan)) continue;
 
         rows.push({
           '教材名称': textbook.title, '书号': textbook.isbn || '-',
           '课程': pc.course.name, '使用班级': cls.name,
-          '专业': cls.major.name, '年级': grade,
-          '学生人数': cls.studentCount,
+          '专业': cls.major.name, '培养层次': cls.trainingLevel?.name || '-',
+          '年级': grade, '学生人数': cls.studentCount,
           '使用学期': `第${sem.semester}学期`,
           '是否必订': pt.isRequired ? '是' : '否',
         });
@@ -245,8 +290,8 @@ router.get('/textbook/:id', async (req, res, next) => {
     const totalStudents = rows.reduce((sum, r) => sum + r['学生人数'], 0);
     rows.push({
       '教材名称': '合计', '书号': '', '课程': '',
-      '使用班级': `${rows.length}个班级`, '专业': '', '年级': '',
-      '学生人数': totalStudents, '使用学期': '', '是否必订': '',
+      '使用班级': `${rows.length}个班级`, '专业': '', '培养层次': '',
+      '年级': '', '学生人数': totalStudents, '使用学期': '', '是否必订': '',
     });
 
     const headers = [
@@ -255,6 +300,7 @@ router.get('/textbook/:id', async (req, res, next) => {
       { label: '课程', key: '课程', width: 20 },
       { label: '使用班级', key: '使用班级', width: 25 },
       { label: '专业', key: '专业', width: 15 },
+      { label: '培养层次', key: '培养层次', width: 15 },
       { label: '年级', key: '年级', width: 8 },
       { label: '学生人数', key: '学生人数', width: 10 },
       { label: '使用学期', key: '使用学期', width: 12 },

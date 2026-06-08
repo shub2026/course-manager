@@ -21,13 +21,22 @@ router.get('/', async (req, res, next) => {
         where: { customPlanId: plan.id },
       });
       
-      // 2. 统计通过专业默认匹配且未指定特殊方案的班级
-      // 只有当方案关联了专业时才统计
+      // 2. 统计通过默认匹配且未指定特殊方案的班级
       let defaultClassCount = 0;
+      
       if (plan.majorId) {
+        // 按专业匹配：统计该专业且未指定特殊方案的班级
         defaultClassCount = await prisma.class.count({
           where: { 
             majorId: plan.majorId,
+            customPlanId: null,
+          },
+        });
+      } else if (plan.trainingLevelId) {
+        // 按培养层次匹配：统计该层次且未指定特殊方案的班级
+        defaultClassCount = await prisma.class.count({
+          where: { 
+            trainingLevelId: plan.trainingLevelId,
             customPlanId: null,
           },
         });

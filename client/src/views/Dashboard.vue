@@ -62,9 +62,12 @@ onMounted(async () => {
     stats.value.majors = majorsRes.data?.length || 0
     stats.value.courses = coursesRes.data?.length || 0
     stats.value.textbooks = textbooksRes.data?.length || 0
-    stats.value.classes = classesRes.data?.length || 0
+    
+    // 班级API可能返回分页格式 { items: [], total: 0 } 或直接数组
+    const classesData = classesRes.data?.items || classesRes.data || []
+    stats.value.classes = classesData.length || 0
     stats.value.plans = plansRes.data?.length || 0
-    stats.value.totalStudents = (classesRes.data || []).reduce((s, c) => s + (c.studentCount || 0), 0)
+    stats.value.totalStudents = classesData.reduce((s, c) => s + (c.studentCount || 0), 0)
   } catch (e) { console.error(e) }
 })
 </script>

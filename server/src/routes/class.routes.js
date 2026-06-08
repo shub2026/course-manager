@@ -6,11 +6,60 @@ const router = Router();
 
 router.get('/', async (req, res, next) => {
   try {
-    const { majorId, collegeId, status } = req.query;
+    const { majorId, collegeId, status, trainingLevelId, planId, page, pageSize } = req.query;
+    const pageNum = page ? Number(page) : 1;
+    const pageSizeNum = pageSize ? Number(pageSize) : 20;
+    
     const where = {};
     if (majorId) where.majorId = Number(majorId);
     if (collegeId) where.collegeId = Number(collegeId);
     if (status) where.status = status;
+    if (trainingLevelId) where.trainingLevelId = Number(trainingLevelId);
+    
+    // 如果指定了培养方案ID，需要特殊处理
+    if (planId) {
+      const planIdNum = Number(planId);
+      
+      // 获取该方案的信息，确定关联方式
+      const plan = await prisma.trainingPlan.findUnique({
+        where: { id: planIdNum },
+        select: { majorId: true, trainingLevelId: true },
+      });
+      
+      if (plan) {
+        // 筛选条件（优先级从高到低）：
+        // 1. customPlanId = planId（明确指定该方案为特殊方案）
+        const conditions = [
+          { customPlanId: planIdNum },
+        ];
+        
+        // 2. 如果方案按专业关联，匹配该专业且未指定特殊方案的班级
+        if (plan.majorId) {
+          conditions.push({
+            majorId: plan.majorId,
+            customPlanId: null,
+          });
+        }
+        
+        // 3. 如果方案按培养层次关联，匹配该层次且未指定特殊方案的班级
+        if (plan.trainingLevelId) {
+          conditions.push({
+            trainingLevelId: plan.trainingLevelId,
+            customPlanId: null,
+          });
+        }
+        
+        where.OR = conditions;
+      } else {
+        // 如果方案不存在，返回空结果
+        return success(res, { items: [], total: 0 });
+      }
+    }
+    
+    // 获取总数
+    const total = await prisma.class.count({ where });
+    
+    // 获取分页数据
     const classes = await prisma.class.findMany({
       where,
       include: {
@@ -20,8 +69,11 @@ router.get('/', async (req, res, next) => {
         customPlan: { select: { id: true, name: true } },
       },
       orderBy: { id: 'asc' },
+      skip: (pageNum - 1) * pageSizeNum,
+      take: pageSizeNum,
     });
-    success(res, classes);
+    
+    success(res, { items: classes, total });
   } catch (e) { next(e); }
 });
 

@@ -2,8 +2,8 @@
   <el-container class="layout-container">
     <el-aside :width="isCollapse ? '64px' : '220px'" class="layout-aside">
       <div class="layout-logo">
+        <img src="/icons.svg" alt="Logo" class="logo-icon" />
         <span v-if="!isCollapse">KEC课程管理平台</span>
-        <span v-else>KEC</span>
       </div>
       <el-menu
         :default-active="activeMenu"
@@ -88,11 +88,16 @@ onMounted(() => {
 <style scoped>
 .layout-container {
   height: 100vh;
+  overflow: hidden;
+  display: flex;
 }
 
 .layout-aside {
   transition: width 0.3s;
   background: #304156;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex-shrink: 0;
 }
 
 .layout-logo {
@@ -100,10 +105,18 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   color: #fff;
   font-size: 16px;
   font-weight: bold;
   border-bottom: 1px solid #3d4c5c;
+  flex-shrink: 0;
+}
+
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
 }
 
 .layout-header {
@@ -112,6 +125,8 @@ onMounted(() => {
   justify-content: space-between;
   border-bottom: 1px solid #e6e6e6;
   background: #fff;
+  flex-shrink: 0;
+  height: 60px;
 }
 
 .layout-header-left {
@@ -139,5 +154,9 @@ onMounted(() => {
 .layout-main {
   background: #f5f7fa;
   padding: 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  min-height: 0;
 }
 </style>

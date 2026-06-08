@@ -5,14 +5,17 @@
         <div class="card-header">
           <span>班级管理</span>
           <div class="card-header-actions">
-            <el-select v-model="filterCollege" clearable placeholder="按学院筛选" @change="load" class="filter-select">
+            <el-select v-model="filterCollege" clearable placeholder="按学院筛选" @change="resetPaginationAndLoad" class="filter-select">
               <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
-            <el-select v-model="filterMajor" clearable placeholder="按专业筛选" @change="load" class="filter-select">
+            <el-select v-model="filterMajor" clearable placeholder="按专业筛选" @change="resetPaginationAndLoad" class="filter-select">
               <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />
             </el-select>
-            <el-select v-model="filterLevel" clearable placeholder="按层次筛选" @change="load" class="filter-select">
+            <el-select v-model="filterLevel" clearable placeholder="按层次筛选" @change="resetPaginationAndLoad" class="filter-select">
               <el-option v-for="level in trainingLevels" :key="level.id" :label="level.name" :value="level.id" />
+            </el-select>
+            <el-select v-model="filterPlan" clearable placeholder="按培养方案筛选" @change="resetPaginationAndLoad" class="filter-select">
+              <el-option v-for="p in plans" :key="p.id" :label="p.name" :value="p.id" />
             </el-select>
             <el-button @click="downloadTemplate">下载模板</el-button>
             <el-upload :show-file-list="false" accept=".xlsx,.xls" action="/api/import/classes" name="file" :on-success="onImportSuccess" :on-error="onImportError">
@@ -52,10 +55,11 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="特殊方案" min-width="130">
+        <el-table-column label="当前方案" min-width="130">
           <template #default="{ row }">
-            <el-tag v-if="row.customPlan" type="warning" size="small">{{ row.customPlan.name }}</el-tag>
-            <span v-else>-</span>
+            <el-tag :type="row.customPlan ? 'warning' : 'success'" size="small">
+              {{ getCurrentPlanName(row) }}
+            </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="160" fixed="right">
@@ -69,6 +73,19 @@
           </template>
         </el-table-column>
       </el-table>
+      
+      <!-- 分页 -->
+      <div class="pagination-container">
+        <el-pagination
+          v-model:current-page="pagination.page"
+          v-model:page-size="pagination.pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="pagination.total"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handlePageChange"
+        />
+      </div>
     </el-card>
 
     <el-dialog v-model="dialogVisible" :title="form.id ? '编辑班级' : '新增班级'" width="800px">
@@ -130,10 +147,11 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="特殊方案">
+            <el-form-item label="培养方案">
               <el-select v-model="form.customPlanId" clearable placeholder="默认使用专业方案" class="full-width">
                 <el-option v-for="p in plans" :key="p.id" :label="p.name" :value="p.id" />
               </el-select>
+              <div class="form-hint">不设置则使用该专业的默认培养方案</div>
             </el-form-item>
           </el-col>
         </el-row>
@@ -168,10 +186,55 @@ const saving = ref(false)
 const filterCollege = ref(null)
 const filterMajor = ref(null)
 const filterLevel = ref(null)
+const filterPlan = ref(null)
+
+// 分页状态
+const pagination = ref({
+  page: 1,
+  pageSize: 20,
+  total: 0,
+})
 
 const defaultForm = { id: null, name: '', majorId: null, enrollmentYear: new Date().getFullYear(), durationYears: 3, collegeId: null, trainingLevelId: null, studentCount: 0, status: 'active', customPlanId: null }
 const form = ref({ ...defaultForm })
 
+// 获取班级匹配的培养方案名称（支持按专业和按层次两种方式）
+// 优先级：1.自定义方案 > 2.根据培养方案的关联类型进行匹配
+function getCurrentPlanName(row) {
+  // 1. 优先显示自定义方案
+  if (row.customPlan) {
+    return row.customPlan.name
+  }
+  
+  // 2. 遍历所有方案，根据方案的关联类型来匹配
+  // 如果方案是按专业关联的，则检查班级的majorId是否匹配
+  // 如果方案是按层次关联的，则检查班级的trainingLevelId是否匹配
+  for (const plan of plans.value) {
+    // 方案按专业关联：检查班级的专业是否匹配
+    if (plan.majorId && plan.majorId === row.major?.id) {
+      return plan.name
+    }
+    
+    // 方案按层次关联：检查班级的层次是否匹配
+    if (plan.trainingLevelId && plan.trainingLevelId === row.trainingLevel?.id) {
+      return plan.name
+    }
+  }
+  
+  return '-'
+}
+
+/**
+ * 计算班级当前年级
+ * 
+ * 示例：当前全局学期为 2025-2026学年（startYear=2025）
+ * - 2025年入学: 2025 - 2025 + 1 = 1年级
+ * - 2024年入学: 2025 - 2024 + 1 = 2年级
+ * - 2023年入学: 2025 - 2023 + 1 = 3年级
+ * 
+ * @param {Object} cls - 班级对象
+ * @returns {number|null} 年级序号或null（超出学制）
+ */
 function calcGrade(cls) {
   const cs = settingsStore.settings.current_semester
   if (!cs) return null
@@ -184,15 +247,38 @@ function calcGrade(cls) {
 async function load() {
   loading.value = true
   try {
-    const params = {}
+    const params = {
+      page: pagination.value.page,
+      pageSize: pagination.value.pageSize,
+    }
     if (filterCollege.value) params.collegeId = filterCollege.value
     if (filterMajor.value) params.majorId = filterMajor.value
     if (filterLevel.value) params.trainingLevelId = filterLevel.value
+    if (filterPlan.value) params.planId = filterPlan.value
     const res = await getClasses(params)
-    list.value = res.data || []
+    list.value = res.data?.items || []
+    pagination.value.total = res.data?.total || 0
   } finally {
     loading.value = false
   }
+}
+
+// 分页处理函数
+function handlePageChange(page) {
+  pagination.value.page = page
+  load()
+}
+
+function handleSizeChange(size) {
+  pagination.value.pageSize = size
+  pagination.value.page = 1 // 重置到第一页
+  load()
+}
+
+// 筛选条件变化时重置页码
+function resetPaginationAndLoad() {
+  pagination.value.page = 1
+  load()
 }
 
 async function loadMeta() {
@@ -265,5 +351,16 @@ onMounted(async () => {
 }
 .full-width {
   width: 100%;
+}
+.form-hint {
+  color: #909399;
+  font-size: 12px;
+  margin-top: 4px;
+}
+.pagination-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding: 12px 0;
 }
 </style>
