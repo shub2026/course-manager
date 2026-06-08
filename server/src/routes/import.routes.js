@@ -35,12 +35,22 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
     const majorMap = {};
     majors.forEach((m) => { majorMap[m.name] = m.id; });
 
+    const levels = await prisma.trainingLevel.findMany();
+    const levelMap = {};
+    levels.forEach((l) => { levelMap[l.name] = l.id; });
+
+    const colleges = await prisma.college.findMany();
+    const collegeMap = {};
+    colleges.forEach((c) => { collegeMap[c.name] = c.id; });
+
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const name = row['班级名称'];
       const enrollmentYear = row['入学年份'];
       const durationYears = row['学制(年)'];
       const majorName = row['专业类别'];
+      const collegeName = row['二级学院'];
+      const trainingLevelName = row['培养层次'];
       const studentCount = row['班级人数'];
 
       if (!name || !enrollmentYear || !durationYears || !majorName) {
@@ -54,6 +64,9 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
         continue;
       }
 
+      const collegeId = collegeName ? collegeMap[collegeName] : null;
+      const trainingLevelId = trainingLevelName ? levelMap[trainingLevelName] : null;
+
       try {
         await prisma.class.create({
           data: {
@@ -61,7 +74,10 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
             enrollmentYear: Number(enrollmentYear),
             durationYears: Number(durationYears),
             majorId,
+            collegeId,
+            trainingLevelId,
             studentCount: Number(studentCount) || 0,
+            status: 'active', // 显式设置默认状态
           },
         });
         imported++;

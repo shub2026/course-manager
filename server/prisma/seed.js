@@ -20,6 +20,27 @@ async function main() {
     create: { key: 'weeks_per_semester_default', value: '18', description: '每学期默认周数' },
   });
 
+  // 培养层次
+  const levels = await Promise.all([
+    prisma.trainingLevel.create({ data: { name: '中专', code: 'ZZ', sortOrder: 1 } }),
+    prisma.trainingLevel.create({ data: { name: '3+2大专', code: '32DZ', sortOrder: 2 } }),
+    prisma.trainingLevel.create({ data: { name: '中技工', code: 'ZJG', sortOrder: 3 } }),
+    prisma.trainingLevel.create({ data: { name: '高技工', code: 'GJG', sortOrder: 4 } }),
+    prisma.trainingLevel.create({ data: { name: '5年制大专', code: '5NDZ', sortOrder: 5 } }),
+    prisma.trainingLevel.create({ data: { name: '高职', code: 'GZ', sortOrder: 6 } }),
+  ]);
+
+  // 学院
+  const colleges = await Promise.all([
+    prisma.college.create({ data: { name: '现代农学院', code: 'XDNY', sortOrder: 1 } }),
+    prisma.college.create({ data: { name: '数据信息学院', code: 'SJXX', sortOrder: 2 } }),
+    prisma.college.create({ data: { name: '智能工程学院', code: 'ZN GC', sortOrder: 3 } }),
+    prisma.college.create({ data: { name: '人文管理学院', code: 'RWGL', sortOrder: 4 } }),
+    prisma.college.create({ data: { name: '城市服务学院', code: 'CSFW', sortOrder: 5 } }),
+    prisma.college.create({ data: { name: '体育学院', code: 'TY', sortOrder: 6 } }),
+    prisma.college.create({ data: { name: '职教高考部', code: 'ZCGK', sortOrder: 7 } }),
+  ]);
+
   // 专业类别
   const majors = await Promise.all([
     prisma.major.create({ data: { name: '学前教育', code: 'EDU' } }),
@@ -150,12 +171,12 @@ async function main() {
 
   // 班级
   await Promise.all([
-    prisma.class.create({ data: { name: '2024级学前1班', enrollmentYear: 2024, durationYears: 3, majorId: majors[0].id, studentCount: 45 } }),
-    prisma.class.create({ data: { name: '2024级学前2班', enrollmentYear: 2024, durationYears: 3, majorId: majors[0].id, studentCount: 42 } }),
-    prisma.class.create({ data: { name: '2024级计算机1班', enrollmentYear: 2024, durationYears: 3, majorId: majors[1].id, studentCount: 50 } }),
-    prisma.class.create({ data: { name: '2024级会计1班', enrollmentYear: 2024, durationYears: 3, majorId: majors[2].id, studentCount: 38 } }),
-    prisma.class.create({ data: { name: '2025级学前1班', enrollmentYear: 2025, durationYears: 3, majorId: majors[0].id, studentCount: 48 } }),
-    prisma.class.create({ data: { name: '2025级计算机1班', enrollmentYear: 2025, durationYears: 3, majorId: majors[1].id, studentCount: 52 } }),
+    prisma.class.create({ data: { name: '2024级学前1班', enrollmentYear: 2024, durationYears: 3, majorId: majors[0].id, collegeId: colleges[3].id, trainingLevelId: levels[5].id, studentCount: 45 } }),
+    prisma.class.create({ data: { name: '2024级学前2班', enrollmentYear: 2024, durationYears: 3, majorId: majors[0].id, collegeId: colleges[3].id, trainingLevelId: levels[5].id, studentCount: 42 } }),
+    prisma.class.create({ data: { name: '2024级计算机1班', enrollmentYear: 2024, durationYears: 3, majorId: majors[1].id, collegeId: colleges[1].id, trainingLevelId: levels[5].id, studentCount: 50 } }),
+    prisma.class.create({ data: { name: '2024级会计1班', enrollmentYear: 2024, durationYears: 3, majorId: majors[2].id, collegeId: colleges[3].id, trainingLevelId: levels[5].id, studentCount: 38 } }),
+    prisma.class.create({ data: { name: '2025级学前1班', enrollmentYear: 2025, durationYears: 3, majorId: majors[0].id, collegeId: colleges[3].id, trainingLevelId: levels[5].id, studentCount: 48 } }),
+    prisma.class.create({ data: { name: '2025级计算机1班', enrollmentYear: 2025, durationYears: 3, majorId: majors[1].id, collegeId: colleges[1].id, trainingLevelId: levels[5].id, studentCount: 52 } }),
   ]);
 
   console.log('Seed data created successfully');

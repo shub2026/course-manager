@@ -25,9 +25,19 @@
         <el-table-column label="定价" width="80">
           <template #default="{ row }">{{ row.price ? '¥' + row.price : '-' }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="150">
+        <el-table-column label="状态" width="80">
+          <template #default="{ row }">
+            <el-tag :type="row.isActive ? 'success' : 'info'" size="small">
+              {{ row.isActive ? '启用' : '停用' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="200">
           <template #default="{ row }">
             <el-button size="small" @click="openDialog(row)">编辑</el-button>
+            <el-button size="small" :type="row.isActive ? 'warning' : 'success'" @click="handleToggleStatus(row)">
+              {{ row.isActive ? '停用' : '启用' }}
+            </el-button>
             <el-popconfirm title="确定删除？" @confirm="handleDelete(row.id)">
               <template #reference>
                 <el-button size="small" type="danger">删除</el-button>
@@ -96,13 +106,13 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { getTextbooks, createTextbook, updateTextbook, deleteTextbook } from '../../api/textbook'
+import { getTextbooks, createTextbook, updateTextbook, deleteTextbook, toggleTextbookStatus } from '../../api/textbook'
 
 const list = ref([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const saving = ref(false)
-const defaultForm = { id: null, title: '', isbn: '', publisher: '', author: '', edition: '', publishDate: '', price: null, description: '' }
+const defaultForm = { id: null, title: '', isbn: '', publisher: '', author: '', edition: '', publishDate: '', price: null, description: '', isActive: true }
 const form = ref({ ...defaultForm })
 
 async function load() {
@@ -141,6 +151,16 @@ async function handleDelete(id) {
   await deleteTextbook(id)
   ElMessage.success('删除成功')
   load()
+}
+
+async function handleToggleStatus(row) {
+  try {
+    await toggleTextbookStatus(row.id)
+    ElMessage.success(row.isActive ? '已停用' : '已启用')
+    load()
+  } catch (e) {
+    ElMessage.error('操作失败')
+  }
 }
 
 function downloadTemplate() {

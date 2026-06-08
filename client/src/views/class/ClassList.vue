@@ -24,6 +24,12 @@
         <el-table-column label="专业" min-width="120">
           <template #default="{ row }">{{ row.major?.name }}</template>
         </el-table-column>
+        <el-table-column label="二级学院" min-width="120">
+          <template #default="{ row }">{{ row.college?.name || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="培养层次" width="100">
+          <template #default="{ row }">{{ row.trainingLevel?.name || '-' }}</template>
+        </el-table-column>
         <el-table-column prop="enrollmentYear" label="入学年份" width="100" />
         <el-table-column prop="durationYears" label="学制" width="80" />
         <el-table-column prop="studentCount" label="人数" width="80" />
@@ -59,7 +65,7 @@
       </el-table>
     </el-card>
 
-    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑班级' : '新增班级'" width="750px">
+    <el-dialog v-model="dialogVisible" :title="form.id ? '编辑班级' : '新增班级'" width="800px">
       <el-form :model="form" label-width="100px">
         <el-row :gutter="20">
           <el-col :span="12">
@@ -71,6 +77,22 @@
             <el-form-item label="专业类别" required>
               <el-select v-model="form.majorId" class="full-width">
                 <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="二级学院">
+              <el-select v-model="form.collegeId" clearable placeholder="请选择" class="full-width">
+                <el-option v-for="college in colleges" :key="college.id" :label="college.name" :value="college.id" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="培养层次">
+              <el-select v-model="form.trainingLevelId" clearable placeholder="请选择" class="full-width">
+                <el-option v-for="level in trainingLevels" :key="level.id" :label="level.name" :value="level.id" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -124,6 +146,8 @@ import { ElMessage } from 'element-plus'
 import { getClasses, createClass, updateClass, deleteClass } from '../../api/class'
 import { getMajors } from '../../api/major'
 import { getPlans } from '../../api/plan'
+import { getTrainingLevels } from '../../api/trainingLevel'
+import { getColleges } from '../../api/college'
 import { useSettingsStore } from '../../stores/settings'
 
 const settingsStore = useSettingsStore()
@@ -131,11 +155,13 @@ const list = ref([])
 const loading = ref(false)
 const majors = ref([])
 const plans = ref([])
+const trainingLevels = ref([])
+const colleges = ref([])
 const dialogVisible = ref(false)
 const saving = ref(false)
 const filterMajor = ref(null)
 
-const defaultForm = { id: null, name: '', majorId: null, enrollmentYear: new Date().getFullYear(), durationYears: 3, studentCount: 0, status: 'active', customPlanId: null }
+const defaultForm = { id: null, name: '', majorId: null, enrollmentYear: new Date().getFullYear(), durationYears: 3, collegeId: null, trainingLevelId: null, studentCount: 0, status: 'active', customPlanId: null }
 const form = ref({ ...defaultForm })
 
 function calcGrade(cls) {
@@ -159,13 +185,15 @@ async function load() {
 }
 
 async function loadMeta() {
-  const [majorsRes, plansRes] = await Promise.all([getMajors(), getPlans()])
+  const [majorsRes, plansRes, levelsRes, collegesRes] = await Promise.all([getMajors(), getPlans(), getTrainingLevels(), getColleges()])
   majors.value = majorsRes.data || []
   plans.value = plansRes.data || []
+  trainingLevels.value = levelsRes.data || []
+  colleges.value = collegesRes.data || []
 }
 
 function openDialog(row) {
-  form.value = row ? { ...row, customPlanId: row.customPlan?.id || null } : { ...defaultForm }
+  form.value = row ? { ...row, customPlanId: row.customPlan?.id || null, trainingLevelId: row.trainingLevel?.id || null, collegeId: row.college?.id || null } : { ...defaultForm }
   dialogVisible.value = true
 }
 

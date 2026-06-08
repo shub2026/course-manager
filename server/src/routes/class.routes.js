@@ -14,6 +14,8 @@ router.get('/', async (req, res, next) => {
       where,
       include: {
         major: { select: { id: true, name: true } },
+        college: { select: { id: true, name: true } },
+        trainingLevel: { select: { id: true, name: true } },
         customPlan: { select: { id: true, name: true } },
       },
       orderBy: { id: 'asc' },
@@ -24,7 +26,7 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    const { name, enrollmentYear, durationYears, majorId, studentCount, customPlanId } = req.body;
+    const { name, enrollmentYear, durationYears, majorId, collegeId, trainingLevelId, studentCount, customPlanId } = req.body;
     if (!name || !enrollmentYear || !durationYears || !majorId) {
       return fail(res, '班级名称、入学年份、学制、专业为必填项');
     }
@@ -34,10 +36,12 @@ router.post('/', async (req, res, next) => {
         enrollmentYear: Number(enrollmentYear),
         durationYears: Number(durationYears),
         majorId: Number(majorId),
+        collegeId: collegeId ? Number(collegeId) : null,
+        trainingLevelId: trainingLevelId ? Number(trainingLevelId) : null,
         studentCount: Number(studentCount) || 0,
         customPlanId: customPlanId ? Number(customPlanId) : null,
       },
-      include: { major: true, customPlan: true },
+      include: { major: true, college: true, trainingLevel: true, customPlan: true },
     });
     success(res, cls, '创建成功');
   } catch (e) { next(e); }
@@ -46,7 +50,7 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, enrollmentYear, durationYears, majorId, studentCount, customPlanId, status } = req.body;
+    const { name, enrollmentYear, durationYears, majorId, collegeId, trainingLevelId, studentCount, customPlanId, status } = req.body;
     try {
       const cls = await prisma.class.update({
         where: { id: Number(id) },
@@ -55,11 +59,13 @@ router.put('/:id', async (req, res, next) => {
           enrollmentYear: enrollmentYear ? Number(enrollmentYear) : undefined,
           durationYears: durationYears ? Number(durationYears) : undefined,
           majorId: majorId ? Number(majorId) : undefined,
+          collegeId: collegeId !== undefined ? (collegeId ? Number(collegeId) : null) : undefined,
+          trainingLevelId: trainingLevelId !== undefined ? (trainingLevelId ? Number(trainingLevelId) : null) : undefined,
           studentCount: studentCount !== undefined ? Number(studentCount) : undefined,
           customPlanId: customPlanId !== undefined && customPlanId !== null ? Number(customPlanId) : null,
           status,
         },
-        include: { major: true, customPlan: true },
+        include: { major: true, college: true, trainingLevel: true, customPlan: true },
       });
       success(res, cls, '更新成功');
     } catch (e) {

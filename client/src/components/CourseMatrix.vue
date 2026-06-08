@@ -12,7 +12,7 @@
 
     <!-- 矩阵表 -->
     <div class="matrix-scroll" v-loading="loading">
-      <table class="matrix-table" v-if="groups.length">
+      <table class="matrix-table" v-if="rawCourses.length > 0">
         <thead>
           <tr>
             <th class="matrix-fixed-col matrix-course-header">课程名称</th>
@@ -74,9 +74,16 @@
             </td>
             <!-- 操作按钮 -->
             <td class="matrix-cell matrix-action-cell">
-              <el-button size="small" @click="openSemesterSettings(course)">
+              <el-button size="small" @click="openSemesterSettings(course)" title="设置学期">
                 <el-icon><Setting /></el-icon>
               </el-button>
+              <el-popconfirm title="确定删除该课程？" @confirm="$emit('delete-course', course)">
+                <template #reference>
+                  <el-button size="small" type="danger" title="删除课程">
+                    <el-icon><Delete /></el-icon>
+                  </el-button>
+                </template>
+              </el-popconfirm>
             </td>
           </tr>
           <!-- 分组小计 -->
@@ -140,6 +147,7 @@
           <el-form label-width="80px" size="small">
             <el-form-item label="周课时">
               <el-radio-group v-model="editingSemester.weeklyHours" class="full-width">
+                <el-radio-button :value="0">0</el-radio-button>
                 <el-radio-button :value="2">2</el-radio-button>
                 <el-radio-button :value="4">4</el-radio-button>
                 <el-radio-button :value="6">6</el-radio-button>
@@ -153,6 +161,7 @@
                 clearable
                 placeholder="选择教材（可选）"
                 class="full-width"
+                :disabled="editingSemester.weeklyHours === 0"
               >
                 <el-option
                   v-for="t in allTextbooks"
@@ -161,6 +170,9 @@
                   :value="t.id"
                 />
               </el-select>
+              <div v-if="editingSemester.weeklyHours === 0" class="textbook-disabled-tip">
+                周课时为0时不可选择教材
+              </div>
             </el-form-item>
           </el-form>
 
@@ -232,7 +244,7 @@ const props = defineProps({
   allTextbooks: { type: Array, default: () => [] },
 })
 
-defineEmits(['add-course'])
+defineEmits(['add-course', 'delete-course'])
 
 // 状态
 const loading = ref(false)
@@ -410,6 +422,13 @@ async function openEdit(course, semester) {
 // 保存编辑
 async function saveEdit() {
   if (!editingSemester.value) return
+  
+  // 验证：周课时为0时不允许选择教材
+  if (editingSemester.value.weeklyHours === 0 && editingTextbookId.value) {
+    ElMessage.warning('周课时为0时不能选择教材')
+    return
+  }
+  
   saving.value = true
   try {
     await updateSemester(editingSemester.value.id, {
@@ -509,6 +528,11 @@ async function saveSemesterSettings() {
 
 // 加载数据
 async function loadData() {
+  if (!props.planId) {
+    console.warn('CourseMatrix: planId is not provided')
+    return
+  }
+  
   loading.value = true
   try {
     const [coursesRes, semestersRes] = await Promise.all([
@@ -517,17 +541,33 @@ async function loadData() {
     ])
     rawCourses.value = coursesRes.data || []
     semesterWeeks.value = buildSemesterWeeks(semestersRes.data || [], rawCourses.value)
+    console.log('CourseMatrix loaded:', rawCourses.value.length, 'courses')
   } catch (e) {
-    console.error(e)
+    console.error('CourseMatrix load error:', e)
   } finally {
     loading.value = false
   }
 }
 
+// 暴露刷新方法
+defineExpose({
+  refresh: loadData,
+})
+
 onMounted(loadData)
 
 // 当 planId 变化时重新加载
 watch(() => props.planId, loadData)
+
+// 监听周课时变化，当为0时自动清除教材选择
+watch(
+  () => editingSemester.value?.weeklyHours,
+  (newHours) => {
+    if (newHours === 0 && editingTextbookId.value) {
+      editingTextbookId.value = null
+    }
+  }
+)
 </script>
 
 <style scoped>
@@ -811,6 +851,12 @@ watch(() => props.planId, loadData)
   margin-top: 12px;
   padding-top: 8px;
   border-top: 1px solid #e4e7ed;
+}
+
+.textbook-disabled-tip {
+  font-size: 12px;
+  color: #f56c6c;
+  margin-top: 4px;
 }
 
 .full-width {

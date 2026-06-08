@@ -9,6 +9,8 @@ import queryRoutes from './routes/query.routes.js';
 import importRoutes from './routes/import.routes.js';
 import exportRoutes from './routes/export.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
+import trainingLevelRoutes from './routes/trainingLevel.routes.js';
+import collegeRoutes from './routes/college.routes.js';
 import { errorHandler } from './middleware/error.js';
 
 const app = express();
@@ -25,6 +27,8 @@ app.use('/api/query', queryRoutes);
 app.use('/api/import', importRoutes);
 app.use('/api/export', exportRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/training-levels', trainingLevelRoutes);
+app.use('/api/colleges', collegeRoutes);
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

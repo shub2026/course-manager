@@ -9,6 +9,7 @@ router.get('/', async (req, res, next) => {
     const plans = await prisma.trainingPlan.findMany({
       include: {
         major: { select: { id: true, name: true } },
+        trainingLevel: { select: { id: true, name: true } },
         planCourses: { select: { id: true } },
       },
       orderBy: { id: 'asc' },
@@ -21,12 +22,16 @@ router.get('/', async (req, res, next) => {
       });
       
       // 2. 统计通过专业默认匹配且未指定特殊方案的班级
-      const defaultClassCount = await prisma.class.count({
-        where: { 
-          majorId: plan.majorId,
-          customPlanId: null,
-        },
-      });
+      // 只有当方案关联了专业时才统计
+      let defaultClassCount = 0;
+      if (plan.majorId) {
+        defaultClassCount = await prisma.class.count({
+          where: { 
+            majorId: plan.majorId,
+            customPlanId: null,
+          },
+        });
+      }
       
       return {
         ...plan,
@@ -43,11 +48,29 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    const { name, majorId, version, description } = req.body;
-    if (!name || !majorId) return fail(res, '方案名称和专业为必填项');
+    const { name, majorId, trainingLevelId, version, description } = req.body;
+    if (!name) return fail(res, '方案名称为必填项');
+    
+    // 验证：专业类别和培养层次只能选择一项（二选一）
+    if (majorId && trainingLevelId) {
+      return fail(res, '专业类别和培养层次只能选择一项');
+    }
+    if (!majorId && !trainingLevelId) {
+      return fail(res, '请选择专业类别或培养层次');
+    }
+    
     const plan = await prisma.trainingPlan.create({
-      data: { name, majorId: Number(majorId), version, description },
-      include: { major: true },
+      data: { 
+        name, 
+        majorId: majorId ? Number(majorId) : null,
+        trainingLevelId: trainingLevelId ? Number(trainingLevelId) : null,
+        version, 
+        description 
+      },
+      include: { 
+        major: true,
+        trainingLevel: true,
+      },
     });
     success(res, plan, '创建成功');
   } catch (e) { next(e); }
@@ -56,12 +79,30 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, majorId, version, description } = req.body;
+    const { name, majorId, trainingLevelId, version, description } = req.body;
+    
+    // 验证：专业类别和培养层次只能选择一项（二选一）
+    if (majorId && trainingLevelId) {
+      return fail(res, '专业类别和培养层次只能选择一项');
+    }
+    if (!majorId && !trainingLevelId) {
+      return fail(res, '请选择专业类别或培养层次');
+    }
+    
     try {
       const plan = await prisma.trainingPlan.update({
         where: { id: Number(id) },
-        data: { name, majorId: majorId ? Number(majorId) : undefined, version, description },
-        include: { major: true },
+        data: { 
+          name, 
+          majorId: majorId ? Number(majorId) : null,
+          trainingLevelId: trainingLevelId ? Number(trainingLevelId) : null,
+          version, 
+          description 
+        },
+        include: { 
+          major: true,
+          trainingLevel: true,
+        },
       });
       success(res, plan, '更新成功');
     } catch (e) {

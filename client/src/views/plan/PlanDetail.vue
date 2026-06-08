@@ -11,15 +11,18 @@
       <template #content>
         <span>{{ plan?.name || '方案明细' }}</span>
         <el-tag v-if="plan?.major" class="plan-tag">{{ plan.major.name }}</el-tag>
+        <el-tag v-if="plan?.trainingLevel" type="warning" class="plan-tag">{{ plan.trainingLevel.name }}</el-tag>
       </template>
     </el-page-header>
 
     <!-- 矩阵视图 -->
     <CourseMatrix
+      ref="courseMatrixRef"
       :plan-id="planId"
       :all-courses="allCourses"
       :all-textbooks="allTextbooks"
       @add-course="showSemesterDialog = true"
+      @delete-course="handleDeleteCourse"
     />
 
     <!-- 开课学期设置对话框 -->
@@ -42,8 +45,11 @@
             </el-form-item>
           </el-col>
         </el-row>
+        <el-form-item label="默认周课时" required>
+          <el-input-number v-model="semesterForm.weeklyHours" :min="1" :max="20" class="full-width" />
+        </el-form-item>
         <el-alert
-          title="提示：周课时请在矩阵图中点击单元格设置，学期周数请在底部统一设置"
+          title="提示：学期周数请在底部统一设置"
           type="info"
           :closable="false"
           show-icon
@@ -60,25 +66,32 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { getPlans, addPlanCourse } from '../../api/plan'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getPlans, addPlanCourse, deletePlanCourse } from '../../api/plan'
 import { getCourses } from '../../api/course'
 import { getTextbooks } from '../../api/textbook'
 import CourseMatrix from '../../components/CourseMatrix.vue'
 
 const route = useRoute()
 const planId = Number(route.params.id)
+const courseMatrixRef = ref(null)
 const plan = ref(null)
 const allCourses = ref([])
 const allTextbooks = ref([])
 const saving = ref(false)
 
 const showSemesterDialog = ref(false)
-const semesterForm = ref({ courseId: null, startSemester: 1, endSemester: 2 })
+const semesterForm = ref({ courseId: null, startSemester: 1, endSemester: 2, weeklyHours: 4 })
 
 async function loadPlan() {
   const res = await getPlans()
   plan.value = (res.data || []).find((p) => p.id === planId)
+}
+
+async function refreshMatrix() {
+  if (courseMatrixRef.value) {
+    await courseMatrixRef.value.refresh()
+  }
 }
 
 async function saveSemester() {
@@ -86,13 +99,18 @@ async function saveSemester() {
   if (semesterForm.value.startSemester > semesterForm.value.endSemester) {
     return ElMessage.warning('起始学期不能大于结束学期')
   }
+  if (!semesterForm.value.weeklyHours) {
+    return ElMessage.warning('请填写周课时')
+  }
   
   saving.value = true
   try {
     await addPlanCourse(planId, semesterForm.value)
     ElMessage.success('添加成功')
     showSemesterDialog.value = false
-    semesterForm.value = { courseId: null, startSemester: 1, endSemester: 2 }
+    semesterForm.value = { courseId: null, startSemester: 1, endSemester: 2, weeklyHours: 4 }
+    // 刷新矩阵数据
+    await refreshMatrix()
   } catch (e) {
     console.error(e)
     ElMessage.error('添加失败')
@@ -101,10 +119,31 @@ async function saveSemester() {
   }
 }
 
+async function handleDeleteCourse(course) {
+  try {
+    await ElMessageBox.confirm(`确定删除课程"${course.courseName}"？`, '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+    })
+    
+    await deletePlanCourse(course.id)
+    ElMessage.success('删除成功')
+    // 刷新矩阵数据
+    await refreshMatrix()
+  } catch (e) {
+    if (e !== 'cancel') {
+      console.error(e)
+      ElMessage.error('删除失败')
+    }
+  }
+}
+
 onMounted(async () => {
   const [coursesRes, textbooksRes] = await Promise.all([getCourses(), getTextbooks()])
   allCourses.value = coursesRes.data || []
-  allTextbooks.value = textbooksRes.data || []
+  // 只显示启用的教材
+  allTextbooks.value = (textbooksRes.data || []).filter(t => t.isActive)
   await loadPlan()
 })
 </script>

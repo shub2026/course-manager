@@ -77,7 +77,8 @@ function exportExcel() {
 
 onMounted(async () => {
   const res = await getTextbooks()
-  textbooks.value = res.data || []
+  // 只显示启用的教材
+  textbooks.value = (res.data || []).filter(t => t.isActive)
 })
 </script>
 

@@ -21,6 +21,36 @@ model Major {
   @@map("majors")
 }
 
+model TrainingLevel {
+  id             Int            @id @default(autoincrement())
+  name           String         @unique
+  code           String?
+  description    String?
+  sortOrder      Int            @default(0) @map("sort_order")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  classes        Class[]
+  trainingPlans  TrainingPlan[]
+
+  @@map("training_levels")
+}
+
+model College {
+  id             Int            @id @default(autoincrement())
+  name           String         @unique
+  code           String?
+  description    String?
+  sortOrder      Int            @default(0) @map("sort_order")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  classes        Class[]
+  trainingPlans  TrainingPlan[]
+
+  @@map("colleges")
+}
+
 model Course {
   id          Int      @id @default(autoincrement())
   name        String
@@ -36,17 +66,21 @@ model Course {
 }
 
 model TrainingPlan {
-  id          Int      @id @default(autoincrement())
-  name        String
-  majorId     Int      @map("major_id")
-  version     String?
-  description String?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id               Int      @id @default(autoincrement())
+  name             String
+  majorId          Int?     @map("major_id")
+  collegeId        Int?     @map("college_id")
+  trainingLevelId  Int?     @map("training_level_id")
+  version          String?
+  description      String?
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
-  major       Major        @relation(fields: [majorId], references: [id])
-  planCourses PlanCourse[]
-  classes     Class[]      @relation("CustomPlanClasses")
+  major           Major?         @relation(fields: [majorId], references: [id])
+  college         College?       @relation(fields: [collegeId], references: [id])
+  trainingLevel   TrainingLevel? @relation(fields: [trainingLevelId], references: [id])
+  planCourses     PlanCourse[]
+  classes         Class[]        @relation("CustomPlanClasses")
 
   @@map("training_plans")
 }
@@ -95,6 +129,7 @@ model Textbook {
   publishDate String?  @map("publish_date")
   price       Float?
   description String?
+  isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -117,19 +152,23 @@ model PlanTextbook {
 }
 
 model Class {
-  id             Int      @id @default(autoincrement())
-  name           String
-  enrollmentYear Int      @map("enrollment_year")
-  durationYears  Int      @map("duration_years")
-  majorId        Int      @map("major_id")
-  studentCount   Int      @map("student_count")
-  customPlanId   Int?     @map("custom_plan_id")
-  status         String   @default("active")
-  createdAt      DateTime @default(now()) @map("created_at")
-  updatedAt      DateTime @updatedAt @map("updated_at")
+  id               Int      @id @default(autoincrement())
+  name             String
+  enrollmentYear   Int      @map("enrollment_year")
+  durationYears    Int      @map("duration_years")
+  majorId          Int      @map("major_id")
+  collegeId        Int?     @map("college_id")
+  trainingLevelId  Int?     @map("training_level_id")
+  studentCount     Int      @map("student_count")
+  customPlanId     Int?     @map("custom_plan_id")
+  status           String   @default("active")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
-  major      Major          @relation(fields: [majorId], references: [id])
-  customPlan TrainingPlan?  @relation("CustomPlanClasses", fields: [customPlanId], references: [id])
+  major         Major          @relation(fields: [majorId], references: [id])
+  college       College?       @relation(fields: [collegeId], references: [id])
+  trainingLevel TrainingLevel? @relation(fields: [trainingLevelId], references: [id])
+  customPlan    TrainingPlan?  @relation("CustomPlanClasses", fields: [customPlanId], references: [id])
 
   @@map("classes")
 }

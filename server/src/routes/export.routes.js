@@ -20,9 +20,11 @@ router.get('/template/:type', async (req, res, next) => {
           { label: '入学年份', key: 'year', width: 12 },
           { label: '学制(年)', key: 'duration', width: 10 },
           { label: '专业类别', key: 'major', width: 20 },
+          { label: '二级学院', key: 'college', width: 20 },
+          { label: '培养层次', key: 'trainingLevel', width: 15 },
           { label: '班级人数', key: 'count', width: 10 },
         ];
-        sample = { '班级名称': '2024级学前1班', '入学年份': 2024, '学制(年)': 3, '专业类别': '学前教育', '班级人数': 45 };
+        sample = { '班级名称': '2024级学前1班', '入学年份': 2024, '学制(年)': 3, '专业类别': '学前教育', '二级学院': '教育学院', '培养层次': '大专', '班级人数': 45 };
         filename = '班级导入模板.xlsx';
         break;
       case 'courses':
@@ -73,8 +75,12 @@ router.get('/semester', async (req, res, next) => {
             planCourses: {
               include: {
                 course: true,
-                planTextbooks: {
-                  include: { textbook: true },
+                planCourseSemesters: {
+                  include: {
+                    textbooks: {
+                      include: { textbook: true },
+                    },
+                  },
                 },
               },
             },
@@ -95,7 +101,11 @@ router.get('/semester', async (req, res, next) => {
         planCourses: {
           include: {
             course: true,
-            planTextbooks: { include: { textbook: true } },
+            planCourseSemesters: {
+              include: {
+                textbooks: { include: { textbook: true } },
+              },
+            },
           },
         },
       },
@@ -128,13 +138,20 @@ router.get('/semester', async (req, res, next) => {
         });
       } else {
         for (const pc of planCourses) {
-          const textbooks = pc.planTextbooks.filter((pt) => pt.semester === currentSemesterNum);
+          // 先找到对应学期的记录，再获取其教材
+          const semRecord = pc.planCourseSemesters?.find(s => s.semester === currentSemesterNum);
+          const textbooks = semRecord?.textbooks || [];
+          
+          // 使用学期记录的周课时和周数，如果没有则使用课程默认值
+          const weeklyHours = semRecord?.weeklyHours || pc.weeklyHours;
+          const weeksCount = semRecord?.weeksCount || pc.weeksPerSemester;
+          
           rows.push({
             '班级名称': cls.name, '专业': cls.major.name, '年级': grade,
             '学生人数': cls.studentCount, '课程': pc.course.name,
             '课程类型': pc.course.type === 'public' ? '公共基础课' : '专业课',
-            '周课时': pc.weeklyHours,
-            '学期总课时': pc.weeklyHours * pc.weeksPerSemester,
+            '周课时': weeklyHours,
+            '学期总课时': weeklyHours * weeksCount,
             '使用教材': textbooks.map((pt) => pt.textbook.title).join('、') || '未指定',
             '书号': textbooks.map((pt) => pt.textbook.isbn || '-').join('、') || '-',
           });
@@ -177,7 +194,16 @@ router.get('/textbook/:id', async (req, res, next) => {
         include: {
           planTextbooks: {
             include: {
-              planCourse: { include: { plan: { include: { major: true } }, course: true } },
+              semester: {
+                include: {
+                  planCourse: { 
+                    include: { 
+                      plan: { include: { major: true } }, 
+                      course: true 
+                    } 
+                  },
+                },
+              },
             },
           },
         },
@@ -193,12 +219,13 @@ router.get('/textbook/:id', async (req, res, next) => {
     const rows = [];
 
     for (const pt of textbook.planTextbooks) {
-      const pc = pt.planCourse;
+      const sem = pt.semester;
+      const pc = sem.planCourse;
 
       for (const cls of allClasses) {
         const grade = semesterInfo.startYear - cls.enrollmentYear + 1;
         const currentSemesterNum = (grade - 1) * 2 + semesterInfo.semesterIndex;
-        if (currentSemesterNum !== pt.semester) continue;
+        if (currentSemesterNum !== sem.semester) continue;
 
         const isDefault = cls.majorId === pc.plan.majorId && !cls.customPlanId;
         const isCustom = cls.customPlanId === pc.planId;
@@ -209,7 +236,7 @@ router.get('/textbook/:id', async (req, res, next) => {
           '课程': pc.course.name, '使用班级': cls.name,
           '专业': cls.major.name, '年级': grade,
           '学生人数': cls.studentCount,
-          '使用学期': `第${pt.semester}学期`,
+          '使用学期': `第${sem.semester}学期`,
           '是否必订': pt.isRequired ? '是' : '否',
         });
       }

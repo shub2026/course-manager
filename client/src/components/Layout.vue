@@ -23,6 +23,8 @@
             <span>基础数据</span>
           </template>
           <el-menu-item index="/majors">专业管理</el-menu-item>
+          <el-menu-item index="/colleges">学院管理</el-menu-item>
+          <el-menu-item index="/training-levels">培养层次</el-menu-item>
           <el-menu-item index="/courses">课程管理</el-menu-item>
           <el-menu-item index="/textbooks">教材管理</el-menu-item>
           <el-menu-item index="/classes">班级管理</el-menu-item>
