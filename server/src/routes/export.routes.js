@@ -23,8 +23,9 @@ router.get('/template/:type', async (req, res, next) => {
           { label: '二级学院', key: 'college', width: 20 },
           { label: '培养层次', key: 'trainingLevel', width: 15 },
           { label: '班级人数', key: 'count', width: 10 },
+          { label: '状态', key: 'status', width: 10 },
         ];
-        sample = { '班级名称': '2024级学前1班', '入学年份': 2024, '学制(年)': 3, '专业类别': '学前教育', '二级学院': '教育学院', '培养层次': '大专', '班级人数': 45 };
+        sample = { '班级名称': '2024级学前1班', '入学年份': 2024, '学制(年)': 3, '专业类别': '学前教育', '二级学院': '教育学院', '培养层次': '大专', '班级人数': 45, '状态': '在读' };
         filename = '班级导入模板.xlsx';
         break;
       case 'courses':
@@ -44,8 +45,9 @@ router.get('/template/:type', async (req, res, next) => {
           { label: '作者', key: 'author', width: 15 },
           { label: '版次', key: 'edition', width: 10 },
           { label: '定价', key: 'price', width: 10 },
+          { label: '类别', key: 'category', width: 10 },
         ];
-        sample = { '书名': '大学语文', '书号': '978-7-04-012345-6', '出版社': '高等教育出版社', '作者': '张三', '版次': '第3版', '定价': 45.00 };
+        sample = { '书名': '大学语文', '书号': '978-7-04-012345-6', '出版社': '高等教育出版社', '作者': '张三', '版次': '第3版', '定价': 45.00, '类别': '技工' };
         filename = '教材导入模板.xlsx';
         break;
       default:

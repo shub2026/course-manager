@@ -20,17 +20,9 @@ async function main() {
 
   // ==================== 1. 系统设置 ====================
   console.log('创建系统设置...');
-  await Promise.all([
-    prisma.systemSetting.create({
-      data: { key: 'current_semester', value: '2025-2026-2', description: '当前学期' },
-    }),
-    prisma.systemSetting.create({
-      data: { key: 'semester_start_date', value: '2026-02-24', description: '当前学期开学日期' },
-    }),
-    prisma.systemSetting.create({
-      data: { key: 'weeks_per_semester_default', value: '18', description: '每学期默认周数' },
-    }),
-  ]);
+  await prisma.systemSetting.create({
+    data: { key: 'current_semester', value: '2025-2026-2', description: '当前学期' },
+  });
 
   // ==================== 2. 基础信息 - 培养层次（5个）====================
   console.log('创建培养层次...');

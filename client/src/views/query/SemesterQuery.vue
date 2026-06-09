@@ -59,8 +59,8 @@
           </template>
         </el-table-column>
         <el-table-column prop="className" label="班级" min-width="180" />
-        <el-table-column prop="collegeName" label="二级学院" min-width="120" />
-        <el-table-column prop="majorName" label="专业" min-width="150" />
+        <el-table-column prop="collegeName" label="二级学院" width="115" />
+        <el-table-column prop="majorName" label="专业" width="150" />
         <el-table-column prop="trainingLevelName" label="培养层次" width="100" />
         <el-table-column label="入学年份" width="90">
           <template #default="{ row }">{{ row.enrollmentYear }}年</template>

@@ -5,23 +5,41 @@
         <div class="card-header">
           <span>班级管理</span>
           <div class="card-header-actions">
-            <el-select v-model="filterYear" clearable placeholder="按入学年份筛选" @change="resetPaginationAndLoad" class="filter-select">
-              <el-option v-for="year in enrollmentYears" :key="year" :label="year + '年'" :value="year" />
-            </el-select>
-            <el-select v-model="filterCollege" clearable placeholder="按学院筛选" @change="resetPaginationAndLoad" class="filter-select">
+            <el-input v-model="filterName" clearable placeholder="按班级名称筛选" @input="resetPaginationAndLoad" class="filter-name" />
+            <el-select v-model="filterCollege" clearable placeholder="选择学院" @change="resetPaginationAndLoad" class="filter-medium">
+              <el-option label="空值" value="null" />
               <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
-            <el-select v-model="filterMajor" clearable placeholder="按专业筛选" @change="resetPaginationAndLoad" class="filter-select">
+            <el-select v-model="filterMajor" clearable placeholder="选择专业" @change="resetPaginationAndLoad" class="filter-medium">
+              <el-option label="空值" value="null" />
               <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />
             </el-select>
-            <el-select v-model="filterLevel" clearable placeholder="按层次筛选" @change="resetPaginationAndLoad" class="filter-select">
+            <el-select v-model="filterLevel" clearable placeholder="培养层次" @change="resetPaginationAndLoad" class="filter-narrow">
+              <el-option label="空值" value="null" />
               <el-option v-for="level in trainingLevels" :key="level.id" :label="level.name" :value="level.id" />
             </el-select>
-            <el-select v-model="filterPlan" clearable placeholder="按培养方案筛选" @change="resetPaginationAndLoad" class="filter-select">
+            <el-select v-model="filterYear" clearable placeholder="入学年份" @change="resetPaginationAndLoad" class="filter-narrow">
+              <el-option v-for="year in enrollmentYears" :key="year" :label="year + '年'" :value="year" />
+            </el-select>
+            <el-select v-model="filterStatus" clearable placeholder="状态" @change="resetPaginationAndLoad" class="filter-small">
+              <el-option label="在读" value="active" />
+              <el-option label="已毕业" value="graduated" />
+            </el-select>
+            <el-select v-model="filterPlan" clearable placeholder="培养方案" @change="resetPaginationAndLoad" class="filter-medium">
+              <el-option label="未关联" value="none" />
               <el-option v-for="p in plans" :key="p.id" :label="p.name" :value="p.id" />
             </el-select>
             <el-button @click="downloadTemplate">下载模板</el-button>
-            <el-upload :show-file-list="false" accept=".xlsx,.xls" action="/api/import/classes" name="file" :on-success="onImportSuccess" :on-error="onImportError">
+            <el-upload 
+              :show-file-list="false" 
+              accept=".xlsx,.xls" 
+              action="/api/import/classes" 
+              name="file" 
+              :data="{ onDuplicate: importMode }"
+              :on-success="onImportSuccess" 
+              :on-error="onImportError"
+              :before-upload="beforeImport"
+            >
               <el-button>导入Excel</el-button>
             </el-upload>
             <el-button type="primary" @click="openDialog()">
@@ -33,12 +51,12 @@
       <el-table :data="list" stripe v-loading="loading" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="45" />
         <el-table-column type="index" label="序号" width="60" />
-        <el-table-column prop="name" label="班级名称" min-width="120" />
-        <el-table-column label="专业" min-width="120">
-          <template #default="{ row }">{{ row.major?.name }}</template>
-        </el-table-column>
-        <el-table-column label="二级学院" min-width="120">
+        <el-table-column prop="name" label="班级名称" min-width="180" />
+        <el-table-column label="二级学院" width="115">
           <template #default="{ row }">{{ row.college?.name || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="专业" width="150">
+          <template #default="{ row }">{{ row.major?.name }}</template>
         </el-table-column>
         <el-table-column label="培养层次" width="100">
           <template #default="{ row }">{{ row.trainingLevel?.name || '-' }}</template>
@@ -127,8 +145,8 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="专业类别" required>
-              <el-select v-model="form.majorId" class="full-width">
+            <el-form-item label="专业类别">
+              <el-select v-model="form.majorId" clearable placeholder="请选择" class="full-width">
                 <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />
               </el-select>
             </el-form-item>
@@ -143,8 +161,8 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="培养层次">
-              <el-select v-model="form.trainingLevelId" clearable placeholder="请选择" class="full-width">
+            <el-form-item label="培养层次" required>
+              <el-select v-model="form.trainingLevelId" placeholder="请选择" class="full-width">
                 <el-option v-for="level in trainingLevels" :key="level.id" :label="level.name" :value="level.id" />
               </el-select>
             </el-form-item>
@@ -228,6 +246,26 @@
         <el-button type="primary" @click="handleBatchSet" :loading="batchSaving">确定</el-button>
       </template>
     </el-dialog>
+
+    <!-- 导入选项对话框 -->
+    <el-dialog v-model="importDialogVisible" title="导入选项" width="400px">
+      <el-form label-width="100px">
+        <el-form-item label="重复数据处理">
+          <el-radio-group v-model="importMode">
+            <el-radio value="skip">跳过重复</el-radio>
+            <el-radio value="overwrite">覆盖更新</el-radio>
+          </el-radio-group>
+          <div class="form-hint">
+            跳过重复：如果数据库中已存在则跳过不导入<br>
+            覆盖更新：如果数据库中已存在则更新该条数据
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="importDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmImport">确认导入</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -252,10 +290,12 @@ const colleges = ref([])
 const allEnrollmentYears = ref([])
 const dialogVisible = ref(false)
 const saving = ref(false)
+const filterName = ref('')
 const filterYear = ref(null)
 const filterCollege = ref(null)
 const filterMajor = ref(null)
 const filterLevel = ref(null)
+const filterStatus = ref(null)
 const filterPlan = ref(null)
 
 // 批量操作相关状态
@@ -282,6 +322,11 @@ const pagination = ref({
 
 const defaultForm = { id: null, name: '', majorId: null, enrollmentYear: new Date().getFullYear(), durationYears: 3, collegeId: null, trainingLevelId: null, studentCount: 0, status: 'active', customPlanId: null }
 const form = ref({ ...defaultForm })
+
+// 导入相关状态
+const importDialogVisible = ref(false)
+const importMode = ref('skip') // 'skip' | 'overwrite'
+const pendingFile = ref(null)
 
 // 入学年份选项（降序）
 const enrollmentYears = computed(() => {
@@ -341,17 +386,19 @@ async function load() {
       page: pagination.value.page,
       pageSize: pagination.value.pageSize,
     }
+    if (filterName.value) params.name = filterName.value
     if (filterYear.value) params.enrollmentYear = filterYear.value
     if (filterCollege.value) params.collegeId = filterCollege.value
     if (filterMajor.value) params.majorId = filterMajor.value
     if (filterLevel.value) params.trainingLevelId = filterLevel.value
+    if (filterStatus.value) params.status = filterStatus.value
     if (filterPlan.value) params.planId = filterPlan.value
     const res = await getClasses(params)
     list.value = res.data?.items || []
     pagination.value.total = res.data?.total || 0
     
     // 如果是首次加载或没有筛选条件，获取所有入学年份
-    if (!filterYear.value && !filterCollege.value && !filterMajor.value && !filterLevel.value && !filterPlan.value) {
+    if (!filterName.value && !filterYear.value && !filterCollege.value && !filterMajor.value && !filterLevel.value && !filterStatus.value && !filterPlan.value) {
       const allRes = await getClasses({ pageSize: 1000 })
       const years = new Set()
       ;(allRes.data?.items || []).forEach(cls => {
@@ -398,7 +445,7 @@ function openDialog(row) {
 }
 
 async function handleSave() {
-  if (!form.value.name || !form.value.majorId) return ElMessage.warning('请填写班级名称和专业类别')
+  if (!form.value.name || !form.value.trainingLevelId) return ElMessage.warning('请填写班级名称和培养层次')
   saving.value = true
   try {
     if (form.value.id) {
@@ -532,13 +579,65 @@ function downloadTemplate() {
   window.open('/api/export/template/classes', '_blank')
 }
 
+// 导入前拦截，显示选项对话框
+function beforeImport(file) {
+  pendingFile.value = file
+  importMode.value = 'skip' // 默认跳过重复
+  importDialogVisible.value = true
+  return false // 阻止自动上传
+}
+
+// 确认导入
+function confirmImport() {
+  importDialogVisible.value = false
+  
+  // 创建 FormData 并手动上传
+  const formData = new FormData()
+  formData.append('file', pendingFile.value)
+  formData.append('onDuplicate', importMode.value)
+  
+  fetch('/api/import/classes', {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+  })
+    .then(res => res.json())
+    .then(data => {
+      onImportSuccess(data)
+    })
+    .catch(err => {
+      onImportError(err)
+    })
+  
+  pendingFile.value = null
+}
+
 function onImportSuccess(res) {
-  ElMessage.success(res.message || '导入成功')
+  const data = res.data || {}
+  const message = res.message || '导入完成'
+  
+  // 构建详细消息
+  let detailMsg = message
+  if (data.errors && data.errors.length > 0) {
+    detailMsg += '\n\n失败详情：\n' + data.errors.join('\n')
+  }
+  
+  if (data.failed && data.failed > 0) {
+    ElMessage({
+      message: detailMsg,
+      type: 'warning',
+      duration: 8000,
+      showClose: true,
+    })
+  } else {
+    ElMessage.success(message)
+  }
   load()
 }
 
-function onImportError() {
-  ElMessage.error('导入失败')
+function onImportError(err) {
+  console.error('导入错误:', err)
+  ElMessage.error('导入失败，请检查文件格式或联系管理员')
 }
 
 onMounted(async () => {
@@ -555,9 +654,20 @@ onMounted(async () => {
 }
 .card-header-actions {
   display: flex;
-  gap: 12px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
-.filter-select {
+/* 筛选器宽度分类 */
+.filter-name {
+  width: 180px;
+}
+.filter-small {
+  width: 100px;
+}
+.filter-narrow {
+  width: 130px;
+}
+.filter-medium {
   width: 160px;
 }
 .full-width {

@@ -131,6 +131,7 @@ model Textbook {
   edition     String?
   publishDate String?  @map("publish_date")
   price       Float?
+  category    String?
   description String?
   isActive    Boolean  @default(true) @map("is_active")
   sortOrder   Int      @default(0) @map("sort_order")

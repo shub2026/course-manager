@@ -6,7 +6,16 @@
           <span>课程管理</span>
           <div class="card-header-actions">
             <el-button @click="downloadTemplate">下载模板</el-button>
-            <el-upload :show-file-list="false" accept=".xlsx,.xls" action="/api/import/courses" name="file" :on-success="onImportSuccess" :on-error="onImportError" :before-upload="beforeUpload">
+            <el-upload 
+              :show-file-list="false" 
+              accept=".xlsx,.xls" 
+              action="/api/import/courses" 
+              name="file" 
+              :data="{ onDuplicate: importMode }"
+              :on-success="onImportSuccess" 
+              :on-error="onImportError"
+              :before-upload="beforeImport"
+            >
               <el-button>导入Excel</el-button>
             </el-upload>
             <el-button type="primary" @click="openDialog()">
@@ -85,6 +94,26 @@
         <el-button type="primary" @click="handleSave" :loading="saving">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 导入选项对话框 -->
+    <el-dialog v-model="importDialogVisible" title="导入选项" width="400px">
+      <el-form label-width="100px">
+        <el-form-item label="重复数据处理">
+          <el-radio-group v-model="importMode">
+            <el-radio value="skip">跳过重复</el-radio>
+            <el-radio value="overwrite">覆盖更新</el-radio>
+          </el-radio-group>
+          <div class="form-hint">
+            跳过重复：如果数据库中已存在则跳过不导入<br>
+            覆盖更新：如果数据库中已存在则更新该条数据
+          </div>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="importDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmImport">确认导入</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -99,6 +128,11 @@ const loading = ref(false)
 const dialogVisible = ref(false)
 const saving = ref(false)
 const form = ref({ id: null, name: '', code: '', type: 'public', description: '' })
+
+// 导入相关状态
+const importDialogVisible = ref(false)
+const importMode = ref('skip') // 'skip' | 'overwrite'
+const pendingFile = ref(null)
 
 async function load() {
   loading.value = true
@@ -142,19 +176,70 @@ function downloadTemplate() {
   window.open('/api/export/template/courses', '_blank')
 }
 
-function beforeUpload(file) {
+// 导入前拦截，显示选项对话框
+function beforeImport(file) {
   const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
-  if (!isExcel) ElMessage.error('请上传Excel文件')
-  return isExcel
+  if (!isExcel) {
+    ElMessage.error('请上传Excel文件')
+    return false
+  }
+  pendingFile.value = file
+  importMode.value = 'skip' // 默认跳过重复
+  importDialogVisible.value = true
+  return false // 阻止自动上传
+}
+
+// 确认导入
+function confirmImport() {
+  importDialogVisible.value = false
+  
+  // 创建 FormData 并手动上传
+  const formData = new FormData()
+  formData.append('file', pendingFile.value)
+  formData.append('onDuplicate', importMode.value)
+  
+  fetch('/api/import/courses', {
+    method: 'POST',
+    body: formData,
+    credentials: 'include',
+  })
+    .then(res => res.json())
+    .then(data => {
+      onImportSuccess(data)
+    })
+    .catch(err => {
+      onImportError(err)
+    })
+  
+  pendingFile.value = null
 }
 
 function onImportSuccess(res) {
-  ElMessage.success(res.message || '导入成功')
+  const data = res.data || {}
+  const message = res.message || '导入完成'
+  
+  // 构建详细消息
+  let detailMsg = message
+  if (data.errors && data.errors.length > 0) {
+    detailMsg += '\n\n失败详情：\n' + data.errors.join('\n')
+  }
+  
+  if (data.failed && data.failed > 0) {
+    ElMessage({
+      message: detailMsg,
+      type: 'warning',
+      duration: 8000,
+      showClose: true,
+    })
+  } else {
+    ElMessage.success(message)
+  }
   load()
 }
 
-function onImportError() {
-  ElMessage.error('导入失败')
+function onImportError(err) {
+  console.error('导入错误:', err)
+  ElMessage.error('导入失败，请检查文件格式或联系管理员')
 }
 
 async function handleMoveUp(row, index) {
@@ -229,5 +314,11 @@ onMounted(() => {
 }
 .sort-buttons .el-button.is-disabled {
   opacity: 0.3;
+}
+.form-hint {
+  color: #909399;
+  font-size: 12px;
+  margin-top: 4px;
+  line-height: 1.5;
 }
 </style>

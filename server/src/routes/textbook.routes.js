@@ -13,10 +13,10 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    const { title, isbn, publisher, author, edition, publishDate, price, description, isActive, sortOrder } = req.body;
+    const { title, isbn, publisher, author, edition, publishDate, price, category, description, isActive, sortOrder } = req.body;
     if (!title) return fail(res, '书名不能为空');
     const textbook = await prisma.textbook.create({
-      data: { title, isbn, publisher, author, edition, publishDate, price: price ? Number(price) : null, description, isActive: isActive !== undefined ? isActive : true, sortOrder: sortOrder ?? 0 },
+      data: { title, isbn, publisher, author, edition, publishDate, price: price ? Number(price) : null, category: category || null, description, isActive: isActive !== undefined ? isActive : true, sortOrder: sortOrder ?? 0 },
     });
     success(res, textbook, '创建成功');
   } catch (e) { next(e); }
@@ -25,11 +25,11 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { title, isbn, publisher, author, edition, publishDate, price, description, isActive, sortOrder } = req.body;
+    const { title, isbn, publisher, author, edition, publishDate, price, category, description, isActive, sortOrder } = req.body;
     try {
       const textbook = await prisma.textbook.update({
         where: { id: Number(id) },
-        data: { title, isbn, publisher, author, edition, publishDate, price: price ? Number(price) : null, description, isActive, sortOrder: sortOrder ?? 0 },
+        data: { title, isbn, publisher, author, edition, publishDate, price: price ? Number(price) : null, category, description, isActive, sortOrder: sortOrder ?? 0 },
       });
       success(res, textbook, '更新成功');
     } catch (e) {
