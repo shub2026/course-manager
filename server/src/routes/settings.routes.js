@@ -166,4 +166,12 @@ router.post('/reset/settings', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// POST /api/settings/reset/audit-logs - 清空操作日志（需要super_admin权限）
+router.post('/reset/audit-logs', roleMiddleware('super_admin'), async (req, res, next) => {
+  try {
+    await prisma.auditLog.deleteMany();
+    success(res, null, '操作日志已清空');
+  } catch (e) { next(e); }
+});
+
 export default router;
