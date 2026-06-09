@@ -708,8 +708,8 @@ function onImportSuccess(res) {
   const data = res.data || {}
   const message = res.message || '导入完成'
   
-  // 构建详细消息
-  let detailMsg = message
+  // 构建简要消息（不显示详细错误）
+  let summaryMsg = message
   
   // 添加自动创建统计信息
   if (data.autoCreated) {
@@ -719,45 +719,73 @@ function onImportSuccess(res) {
     if (majors > 0) autoCreatedParts.push(`${majors}个专业`)
     if (colleges > 0) autoCreatedParts.push(`${colleges}个学院`)
     if (autoCreatedParts.length > 0) {
-      detailMsg += `\n\n✅ 自动创建基础数据：${autoCreatedParts.join('、')}`
+      summaryMsg += `\n\n✅ 自动创建基础数据：${autoCreatedParts.join('、')}`
     }
-  }
-  
-  // 添加失败详情
-  if (data.errors && data.errors.length > 0) {
-    detailMsg += '\n\n❌ 失败详情：'
-    data.errors.forEach((error, index) => {
-      detailMsg += `\n${index + 1}. ${error}`
-    })
   }
   
   // 根据结果显示不同类型的消息
   if (data.failed && data.failed > 0) {
-    // 有失败记录，显示警告消息
+    // 有失败记录，显示警告消息 + 查看详情的按钮
+    ElMessageBox.confirm(
+      `${summaryMsg}\n\n共有 ${data.failed} 条记录导入失败，是否查看详细错误？`,
+      '导入结果',
+      {
+        confirmButtonText: '查看详情',
+        cancelButtonText: '关闭',
+        type: 'warning',
+        draggable: true,
+      }
+    ).then(() => {
+      // 用户点击"查看详情"，显示错误对话框
+      showErrorsDialog(data.errors)
+    }).catch(() => {
+      // 用户点击"关闭"，不做任何操作
+    })
+    
+    // 同时显示一个简短的提示消息
     ElMessage({
-      message: detailMsg,
+      message: summaryMsg,
       type: 'warning',
-      duration: 10000,
+      duration: 5000,
       showClose: true,
     })
   } else if (data.imported > 0 || data.overwritten > 0) {
-    // 成功导入，显示成功消息（带详细信息）
+    // 成功导入，显示成功消息
     ElMessage({
-      message: detailMsg,
+      message: summaryMsg,
       type: 'success',
-      duration: 8000,
+      duration: 5000,
       showClose: true,
     })
   } else {
     // 其他情况
     ElMessage({
-      message: detailMsg,
+      message: summaryMsg,
       type: 'info',
-      duration: 6000,
+      duration: 4000,
       showClose: true,
     })
   }
   load()
+}
+
+// 显示错误详情对话框
+function showErrorsDialog(errors) {
+  const errorListHtml = errors.map((error, index) => 
+    `<div style="margin-bottom: 8px; padding: 8px; background: #fef0f0; border-left: 3px solid #f56c6c; border-radius: 4px;">
+      <strong style="color: #f56c6c;">${index + 1}.</strong> ${error}
+    </div>`
+  ).join('')
+  
+  ElMessageBox.alert(
+    `<div style="max-height: 400px; overflow-y: auto; text-align: left;">${errorListHtml}</div>`,
+    `导入失败详情（共${errors.length}条）`,
+    {
+      dangerouslyUseHTMLString: true,
+      confirmButtonText: '关闭',
+      customStyle: { maxWidth: '700px' },
+    }
+  )
 }
 
 function onImportError(err) {

@@ -161,7 +161,7 @@ model Class {
   name             String
   enrollmentYear   Int      @map("enrollment_year")
   durationYears    Int      @map("duration_years")
-  majorId          Int      @map("major_id")
+  majorId          Int?     @map("major_id")
   collegeId        Int?     @map("college_id")
   trainingLevelId  Int?     @map("training_level_id")
   studentCount     Int      @map("student_count")
@@ -170,7 +170,7 @@ model Class {
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
 
-  major         Major          @relation(fields: [majorId], references: [id])
+  major         Major?         @relation(fields: [majorId], references: [id])
   college       College?       @relation(fields: [collegeId], references: [id])
   trainingLevel TrainingLevel? @relation(fields: [trainingLevelId], references: [id])
   customPlan    TrainingPlan?  @relation("CustomPlanClasses", fields: [customPlanId], references: [id])
