@@ -1,8 +1,8 @@
 <template>
   <div class="settings-container">
     <!-- 左侧功能模块 -->
-    <div class="left-panel">
-      <!-- 系统设置模块 -->
+    <div class="left-column">
+      <!-- 左上：系统设置 -->
       <el-card class="settings-card">
         <template #header>
           <div class="card-header-with-action">
@@ -37,7 +37,7 @@
         </el-form>
       </el-card>
 
-      <!-- 重置系统模块 -->
+      <!-- 左下：重置系统 -->
       <el-card class="reset-card">
         <template #header>
           <span class="danger-header"><el-icon><WarningFilled /></el-icon> 重置系统</span>
@@ -104,14 +104,14 @@
     </div>
 
     <!-- 右侧操作指南 -->
-    <div class="right-panel">
-      <el-card class="guide-card">
+    <div class="right-column">
+      <!-- 右上：系统设置说明 -->
+      <el-card class="guide-card semester-guide">
         <template #header>
-          <span class="guide-header"><el-icon><Reading /></el-icon> 操作指南</span>
+          <span class="guide-header"><el-icon><Reading /></el-icon> 系统设置说明</span>
         </template>
 
         <div class="guide-content">
-          <!-- 当前学期设置说明 - 置顶 -->
           <div class="tip-item tip-primary">
             <div class="tip-icon">📅</div>
             <div class="tip-content">
@@ -125,9 +125,16 @@
               <p class="highlight-tip">建议每学期开始时更新此设置，确保数据准确。</p>
             </div>
           </div>
+        </div>
+      </el-card>
 
-          <el-divider />
+      <!-- 右下：重置系统说明 -->
+      <el-card class="guide-card reset-guide">
+        <template #header>
+          <span class="guide-header"><el-icon><Reading /></el-icon> 重置系统说明</span>
+        </template>
 
+        <div class="guide-content">
           <div class="tip-item tip-warning">
             <div class="tip-icon">⚠️</div>
             <div class="tip-content">
@@ -370,26 +377,26 @@ onMounted(load)
 </script>
 
 <style scoped>
-/* 主容器：左右布局 */
+/* 主容器：田字格布局 */
 .settings-container {
-  display: flex;
+  display: grid;
+  grid-template-columns: 60% 40%;
   gap: 20px;
-  align-items: flex-start;
+  align-items: start;
 }
 
-/* 左侧面板：包含两个卡片 */
-.left-panel {
-  flex: 0 0 60%;
-  min-width: 0;
+/* 左侧列 */
+.left-column {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
-/* 右侧面板：操作指南 */
-.right-panel {
-  flex: 0 0 40%;
-  min-width: 0;
+/* 右侧列 */
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 /* 卡片头部带操作按钮 */
@@ -451,10 +458,19 @@ onMounted(load)
   flex-wrap: wrap;
 }
 
-/* 右侧操作指南卡片 */
+/* 右侧指南卡片 */
 .guide-card {
-  position: sticky;
-  top: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.guide-card.semester-guide {
+  min-height: 280px;
+}
+
+.guide-card.reset-guide {
+  min-height: 500px;
 }
 
 .guide-header {
@@ -466,7 +482,7 @@ onMounted(load)
 }
 
 .guide-content {
-  max-height: calc(100vh - 200px);
+  flex: 1;
   overflow-y: auto;
 }
 
@@ -636,19 +652,12 @@ onMounted(load)
 /* 响应式布局 */
 @media (max-width: 1200px) {
   .settings-container {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
   
-  .right-panel {
+  .left-column,
+  .right-column {
     width: 100%;
-  }
-  
-  .guide-card {
-    position: static;
-  }
-  
-  .guide-content {
-    max-height: none;
   }
 }
 </style>
