@@ -4,6 +4,7 @@ import fs from 'fs';
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { readWorkbook } from '../utils/excel.js';
+import { getCurrentSemesterInfo } from '../services/settings.service.js';
 
 const router = Router();
 const upload = multer({
@@ -180,8 +181,9 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
         // 如果状态值无效，使用自动计算的状态
       } else {
         // 如果未提供状态，根据入学年份和学制自动计算
-        const graduationYear = Number(enrollmentYear) + Number(durationYears);
-        status = new Date().getFullYear() < graduationYear ? 'active' : 'graduated';
+        const semesterInfo = await getCurrentSemesterInfo();
+        const grade = semesterInfo ? (semesterInfo.startYear - Number(enrollmentYear) + 1) : null;
+        status = grade !== null && grade <= Number(durationYears) ? 'active' : 'graduated';
       }
 
       try {

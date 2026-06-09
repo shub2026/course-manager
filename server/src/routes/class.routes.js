@@ -1,19 +1,57 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
+import { getCurrentSemesterInfo } from '../services/settings.service.js';
 
 const router = Router();
 
 /**
  * 根据入学年份和学制自动判断班级状态
+ * 
+ * 计算规则：
+ * - 学生于入学年份的9月入学，每个学年包含2个学期（秋季、春季）
+ * - 在读学期总数 = 学制年数 × 2
+ * - 班级在校条件：当前相对学期序号 <= 学制 × 2
+ * 
+ * 示例（2023年入学，3年制，当前为2025-2026学年第2学期）：
+ * - 2023级：年级 = 2025 - 2023 + 1 = 3年级，当前学期 = (3-1)×2 + 2 = 第6学期
+ * - 总学期数 = 3 × 2 = 6学期
+ * - 第6学期 <= 6学期 → 在校（还未毕业）
+ * - 到下一学期（2026-2027学年第1学期，即第7学期）才变为已毕业
+ * 
  * @param {number} enrollmentYear - 入学年份
  * @param {number} durationYears - 学制（年）
+ * @param {object} semesterInfo - 当前学期信息（可选），格式：{ value: "YYYY-YYYY-N" }
  * @returns {string} 'active' 或 'graduated'
  */
-function calculateClassStatus(enrollmentYear, durationYears) {
-  const currentYear = new Date().getFullYear();
-  const graduationYear = enrollmentYear + durationYears;
-  return currentYear < graduationYear ? 'active' : 'graduated';
+function calculateClassStatus(enrollmentYear, durationYears, semesterInfo = null) {
+  // 如果没有提供学期信息，使用系统设置中的当前学期
+  let startYear;
+  
+  if (semesterInfo && semesterInfo.value) {
+    // 从学期配置中提取起始学年，如 "2025-2026-2" → 2025
+    startYear = Number(semesterInfo.value.split('-')[0]);
+  } else {
+    // 降级方案：使用当前年份估算
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // 1-12
+    // 如果是9月之后，认为是新学年的开始
+    startYear = currentMonth >= 9 ? currentYear : currentYear - 1;
+  }
+  
+  // 计算当前年级
+  const grade = startYear - enrollmentYear + 1;
+  
+  // 计算当前是该班级的第几个学期
+  // 注意：这里我们只需要知道是否超过最大学期数即可
+  // 实际学期序号需要加上semesterIndex，但判断毕业只需比较年级
+  
+  // 如果年级已经超过学制，说明已毕业
+  // 如果年级等于学制，还在最后一年（包括最后两年的两个学期）
+  // 如果年级小于学制，说明还在读
+  
+  return grade <= durationYears ? 'active' : 'graduated';
 }
 
 router.get('/', async (req, res, next) => {
@@ -159,7 +197,11 @@ router.post('/', async (req, res, next) => {
     }
     
     // 如果未提供状态，则根据入学年份和学制自动计算
-    const autoStatus = status || calculateClassStatus(Number(enrollmentYear), Number(durationYears));
+    let autoStatus = status;
+    if (!autoStatus) {
+      const semesterInfo = await getCurrentSemesterInfo();
+      autoStatus = calculateClassStatus(Number(enrollmentYear), Number(durationYears), semesterInfo);
+    }
     
     const cls = await prisma.class.create({
       data: {
@@ -188,13 +230,12 @@ router.put('/:id', async (req, res, next) => {
       const currentClass = await prisma.class.findUnique({ where: { id: Number(id) } });
       if (!currentClass) return fail(res, '班级不存在', 404);
       
-      // 如果未提供状态，但提供了入学年份或学制，则自动计算状态
-      let finalStatus = status;
-      if (!finalStatus && (enrollmentYear || durationYears)) {
-        const calcEnrollmentYear = enrollmentYear ? Number(enrollmentYear) : currentClass.enrollmentYear;
-        const calcDurationYears = durationYears ? Number(durationYears) : currentClass.durationYears;
-        finalStatus = calculateClassStatus(calcEnrollmentYear, calcDurationYears);
-      }
+      // 始终根据入学年份和学制自动计算状态，忽略前端传来的status
+      // 这样可以确保状态始终与当前的学期配置保持一致
+      const calcEnrollmentYear = enrollmentYear ? Number(enrollmentYear) : currentClass.enrollmentYear;
+      const calcDurationYears = durationYears ? Number(durationYears) : currentClass.durationYears;
+      const semesterInfo = await getCurrentSemesterInfo();
+      const autoStatus = calculateClassStatus(calcEnrollmentYear, calcDurationYears, semesterInfo);
       
       const cls = await prisma.class.update({
         where: { id: Number(id) },
@@ -207,7 +248,7 @@ router.put('/:id', async (req, res, next) => {
           trainingLevelId: trainingLevelId !== undefined ? (trainingLevelId ? Number(trainingLevelId) : null) : undefined,
           studentCount: studentCount !== undefined ? Number(studentCount) : undefined,
           customPlanId: customPlanId !== undefined && customPlanId !== null ? Number(customPlanId) : null,
-          status: finalStatus,
+          status: autoStatus,
         },
         include: { major: true, college: true, trainingLevel: true, customPlan: true },
       });

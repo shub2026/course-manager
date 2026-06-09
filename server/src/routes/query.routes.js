@@ -169,7 +169,7 @@ router.get('/semester', async (req, res, next) => {
         classId: cls.id,
         className: cls.name,
         collegeName: cls.college?.name || null,
-        majorName: cls.major.name,
+        majorName: cls.major?.name || null,
         trainingLevelName: cls.trainingLevel?.name || null,
         enrollmentYear: cls.enrollmentYear,
         grade: calc.grade,
@@ -260,7 +260,7 @@ router.get('/textbook/:id', async (req, res, next) => {
         classResults.push({
           classId: cls.id,
           className: cls.name,
-          majorName: cls.major.name,
+          majorName: cls.major?.name || null,
           trainingLevelName: cls.trainingLevel?.name || null,
           studentCount: cls.studentCount,
           grade: calc.grade,
