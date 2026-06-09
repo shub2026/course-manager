@@ -20,6 +20,7 @@ const routes = [
       { path: 'query/plan', name: 'PlanQuery', component: () => import('../views/query/PlanQuery.vue'), meta: { title: '培养方案查询' } },
       { path: 'query/textbook', name: 'TextbookQuery', component: () => import('../views/query/TextbookQuery.vue'), meta: { title: '教材使用查询' } },
       { path: 'settings', name: 'Settings', component: () => import('../views/settings/SystemSettings.vue'), meta: { title: '系统设置' } },
+      { path: 'audit-logs', name: 'AuditLogs', component: () => import('../views/system/AuditLog.vue'), meta: { title: '操作日志' } },
     ],
   },
 ]

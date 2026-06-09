@@ -177,3 +177,17 @@ model SystemSetting {
 
   @@map("system_settings")
 }
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  action    String   // 操作类型：import, export, create, update, delete
+  module    String   // 模块：class, course, textbook, major, college, trainingPlan, system
+  operator  String?  // 操作人（预留字段）
+  ip        String?  // IP地址（预留字段）
+  details   String?  // 操作详情（JSON格式）
+  result    String   // 结果：success, failed
+  message   String?  // 消息
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("audit_logs")
+}

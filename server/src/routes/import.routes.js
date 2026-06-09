@@ -5,6 +5,7 @@ import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { readWorkbook } from '../utils/excel.js';
 import { getCurrentSemesterInfo } from '../services/settings.service.js';
+import { createAuditLog } from '../services/audit.service.js';
 
 const router = Router();
 const upload = multer({
@@ -262,9 +263,38 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
 
     console.log('[班级导入] 结果:', result);
 
+    // 记录操作日志
+    await createAuditLog({
+      action: 'import',
+      module: 'class',
+      details: {
+        total: rows.length,
+        imported,
+        skipped,
+        overwritten,
+        failed: errors.length,
+        autoCreated: {
+          trainingLevels: autoCreatedLevels,
+          majors: autoCreatedMajors,
+          colleges: autoCreatedColleges,
+        },
+      },
+      result: errors.length > 0 ? 'failed' : 'success',
+      message: `导入完成：新增${imported}条，跳过${skipped}条，覆盖${overwritten}条，失败${errors.length}条`,
+    });
+
     success(res, result, message);
   } catch (e) {
     if (req.file) cleanupFile(req.file.path);
+    
+    // 记录错误日志
+    await createAuditLog({
+      action: 'import',
+      module: 'class',
+      result: 'failed',
+      message: `班级导入失败: ${e.message}`,
+    });
+    
     next(e);
   }
 });
@@ -356,9 +386,33 @@ router.post('/courses', upload.single('file'), async (req, res, next) => {
 
     console.log('[课程导入] 结果:', result);
 
+    // 记录操作日志
+    await createAuditLog({
+      action: 'import',
+      module: 'course',
+      details: {
+        total: rows.length,
+        imported,
+        skipped,
+        overwritten,
+        failed: errors.length,
+      },
+      result: errors.length > 0 ? 'failed' : 'success',
+      message: `导入完成：新增${imported}条，跳过${skipped}条，覆盖${overwritten}条，失败${errors.length}条`,
+    });
+
     success(res, result, message);
   } catch (e) {
     if (req.file) cleanupFile(req.file.path);
+    
+    // 记录错误日志
+    await createAuditLog({
+      action: 'import',
+      module: 'course',
+      result: 'failed',
+      message: `课程导入失败: ${e.message}`,
+    });
+    
     next(e);
   }
 });
@@ -468,9 +522,33 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
 
     console.log('[教材导入] 结果:', result);
 
+    // 记录操作日志
+    await createAuditLog({
+      action: 'import',
+      module: 'textbook',
+      details: {
+        total: rows.length,
+        imported,
+        skipped,
+        overwritten,
+        failed: errors.length,
+      },
+      result: errors.length > 0 ? 'failed' : 'success',
+      message: `导入完成：新增${imported}条，跳过${skipped}条，覆盖${overwritten}条，失败${errors.length}条`,
+    });
+
     success(res, result, message);
   } catch (e) {
     if (req.file) cleanupFile(req.file.path);
+    
+    // 记录错误日志
+    await createAuditLog({
+      action: 'import',
+      module: 'textbook',
+      result: 'failed',
+      message: `教材导入失败: ${e.message}`,
+    });
+    
     next(e);
   }
 });

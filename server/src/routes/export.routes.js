@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { createWorkbook, workbookToBuffer, createTemplateWorkbook } from '../utils/excel.js';
 import { getCurrentSemesterInfo } from '../services/settings.service.js';
+import { createAuditLog } from '../services/audit.service.js';
 
 const router = Router();
 
@@ -56,10 +57,30 @@ router.get('/template/:type', async (req, res, next) => {
 
     const workbook = createTemplateWorkbook(headers, [sample]);
     const buffer = await workbookToBuffer(workbook);
+    
+    // 记录操作日志
+    await createAuditLog({
+      action: 'export',
+      module: 'system',
+      details: { type },
+      result: 'success',
+      message: `下载${type}导入模板`,
+    });
+    
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
     res.send(buffer);
-  } catch (e) { next(e); }
+  } catch (e) {
+    // 记录错误日志
+    await createAuditLog({
+      action: 'export',
+      module: 'system',
+      details: { type },
+      result: 'failed',
+      message: `下载模板失败: ${e.message}`,
+    });
+    next(e);
+  }
 });
 
 // GET /api/export/semester - 导出当前学期开课情况
@@ -230,10 +251,29 @@ router.get('/semester', async (req, res, next) => {
     const workbook = await createWorkbook(headers, rows);
     const buffer = await workbookToBuffer(workbook);
     const filename = `开课情况_${semesterInfo.label}.xlsx`;
+    
+    // 记录操作日志
+    await createAuditLog({
+      action: 'export',
+      module: 'system',
+      details: { semester: semesterInfo.label, rowCount: rows.length },
+      result: 'success',
+      message: `导出${semesterInfo.label}开课情况，共${rows.length}条记录`,
+    });
+    
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
     res.send(buffer);
-  } catch (e) { next(e); }
+  } catch (e) {
+    // 记录错误日志
+    await createAuditLog({
+      action: 'export',
+      module: 'system',
+      result: 'failed',
+      message: `导出开课情况失败: ${e.message}`,
+    });
+    next(e);
+  }
 });
 
 // GET /api/export/textbook/:id - 导出教材使用情况
@@ -333,10 +373,30 @@ router.get('/textbook/:id', async (req, res, next) => {
     const workbook = await createWorkbook(headers, rows);
     const buffer = await workbookToBuffer(workbook);
     const filename = `教材使用_${textbook.title}.xlsx`;
+    
+    // 记录操作日志
+    await createAuditLog({
+      action: 'export',
+      module: 'textbook',
+      details: { textbookId: Number(id), textbookTitle: textbook.title, rowCount: rows.length },
+      result: 'success',
+      message: `导出教材"${textbook.title}"使用情况，共${rows.length}条记录`,
+    });
+    
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
     res.send(buffer);
-  } catch (e) { next(e); }
+  } catch (e) {
+    // 记录错误日志
+    await createAuditLog({
+      action: 'export',
+      module: 'textbook',
+      details: { textbookId: Number(req.params.id) },
+      result: 'failed',
+      message: `导出教材使用情况失败: ${e.message}`,
+    });
+    next(e);
+  }
 });
 
 export default router;

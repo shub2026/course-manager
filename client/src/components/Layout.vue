@@ -46,6 +46,10 @@
           <el-icon><Setting /></el-icon>
           <template #title>系统设置</template>
         </el-menu-item>
+        <el-menu-item index="/audit-logs">
+          <el-icon><DocumentChecked /></el-icon>
+          <template #title>操作日志</template>
+        </el-menu-item>
       </el-menu>
     </el-aside>
     <el-container>

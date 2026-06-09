@@ -1,7 +1,16 @@
 <template>
   <div>
     <el-card>
-      <template #header><span>系统设置</span></template>
+      <template #header>
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span>系统设置</span>
+          <router-link to="/audit-logs">
+            <el-button type="primary" size="small">
+              <el-icon><Document /></el-icon> 查看操作日志
+            </el-button>
+          </router-link>
+        </div>
+      </template>
       <el-form :model="form" label-width="160px" class="settings-form">
         <el-form-item label="当前学期">
           <el-select v-model="form.current_semester" placeholder="请选择当前学期" class="full-width">
