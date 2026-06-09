@@ -32,7 +32,8 @@
           </div>
         </div>
       </template>
-      <el-table :data="filteredlist" stripe v-loading="loading">
+      <el-table :data="filteredlist" stripe v-loading="loading" @selection-change="handleSelectionChange">
+        <el-table-column type="selection" width="45" />
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="title" label="书名" min-width="180" show-overflow-tooltip />
         <el-table-column prop="isbn" label="书号" min-width="120" show-overflow-tooltip />
@@ -95,7 +96,43 @@
           </template>
         </el-table-column>
       </el-table>
+      
+      <!-- 批量操作栏 -->
+      <div v-if="selectedTextbooks.length > 0" class="batch-operations">
+        <span class="selected-count">已选择 {{ selectedTextbooks.length }} 个教材</span>
+        <el-button size="small" @click="openBatchSetDialog('publisher')">
+          <el-icon><Edit /></el-icon> 批量设置出版社
+        </el-button>
+        <el-button size="small" @click="openBatchSetDialog('author')">
+          <el-icon><Edit /></el-icon> 批量设置作者
+        </el-button>
+        <el-button size="small" @click="openBatchSetDialog('category')">
+          <el-icon><Edit /></el-icon> 批量设置类别
+        </el-button>
+      </div>
     </el-card>
+
+    <!-- 批量设置对话框 -->
+    <el-dialog v-model="batchDialogVisible" :title="batchDialogTitle" width="500px">
+      <el-form label-width="100px">
+        <el-form-item v-if="batchFormType === 'publisher'" label="出版社">
+          <el-input v-model="batchForm.publisher" placeholder="请输入出版社名称" />
+        </el-form-item>
+        <el-form-item v-else-if="batchFormType === 'author'" label="作者">
+          <el-input v-model="batchForm.author" placeholder="请输入作者姓名" />
+        </el-form-item>
+        <el-form-item v-else-if="batchFormType === 'category'" label="类别">
+          <el-select v-model="batchForm.category" placeholder="请选择类别" style="width: 100%">
+            <el-option label="技工" value="技工" />
+            <el-option label="非技工" value="非技工" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="batchDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleBatchSet" :loading="batchSaving">确定</el-button>
+      </template>
+    </el-dialog>
 
     <!-- 导入选项对话框 -->
     <el-dialog v-model="importDialogVisible" title="导入选项" width="400px">
@@ -198,6 +235,18 @@ const filterPublisher = ref('')
 const defaultForm = { id: null, title: '', isbn: '', publisher: '', author: '', edition: '', publishDate: '', price: null, category: '', description: '', isActive: true }
 const form = ref({ ...defaultForm })
 
+// 批量操作相关状态
+const selectedTextbooks = ref([])
+const batchDialogVisible = ref(false)
+const batchSaving = ref(false)
+const batchFormType = ref('') // publisher, author, category
+const batchDialogTitle = ref('')
+const batchForm = ref({
+  publisher: '',
+  author: '',
+  category: '',
+})
+
 // 导入相关状态
 const importDialogVisible = ref(false)
 const importMode = ref('skip') // 'skip' | 'overwrite'
@@ -277,6 +326,77 @@ async function handleToggleStatus(row) {
     load()
   } catch (e) {
     ElMessage.error('操作失败')
+  }
+}
+
+// ==================== 批量操作函数 ====================
+
+// 选择变化处理
+function handleSelectionChange(selection) {
+  selectedTextbooks.value = selection
+}
+
+// 打开批量设置对话框
+function openBatchSetDialog(type) {
+  batchFormType.value = type
+  batchDialogTitle.value = {
+    publisher: '批量设置出版社',
+    author: '批量设置作者',
+    category: '批量设置类别',
+  }[type]
+  
+  // 重置表单
+  batchForm.value = {
+    publisher: '',
+    author: '',
+    category: '',
+  }
+  
+  batchDialogVisible.value = true
+}
+
+// 执行批量设置
+async function handleBatchSet() {
+  const type = batchFormType.value
+  
+  // 验证
+  if (type === 'publisher' && !batchForm.value.publisher) {
+    return ElMessage.warning('请输入出版社名称')
+  }
+  if (type === 'author' && !batchForm.value.author) {
+    return ElMessage.warning('请输入作者姓名')
+  }
+  if (type === 'category' && !batchForm.value.category) {
+    return ElMessage.warning('请选择类别')
+  }
+  
+  batchSaving.value = true
+  try {
+    const ids = selectedTextbooks.value.map(t => t.id)
+    const updateData = {}
+    
+    switch (type) {
+      case 'publisher':
+        updateData.publisher = batchForm.value.publisher
+        break
+      case 'author':
+        updateData.author = batchForm.value.author
+        break
+      case 'category':
+        updateData.category = batchForm.value.category
+        break
+    }
+    
+    await Promise.all(ids.map(id => updateTextbook(id, updateData)))
+    ElMessage.success(`已成功更新 ${ids.length} 个教材`)
+    batchDialogVisible.value = false
+    selectedTextbooks.value = []
+    load()
+  } catch (e) {
+    console.error('批量更新失败:', e)
+    ElMessage.error('批量更新失败')
+  } finally {
+    batchSaving.value = false
   }
 }
 
@@ -450,5 +570,20 @@ onMounted(() => {
   font-size: 12px;
   margin-top: 4px;
   line-height: 1.5;
+}
+.batch-operations {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-top: 16px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  flex-wrap: wrap;
+}
+.selected-count {
+  color: #409eff;
+  font-weight: 500;
+  margin-right: auto;
 }
 </style>
