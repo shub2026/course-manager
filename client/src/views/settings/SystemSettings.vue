@@ -382,7 +382,6 @@ onMounted(load)
   display: grid;
   grid-template-columns: 60% 40%;
   gap: 20px;
-  align-items: start;
 }
 
 /* 左侧列 */
@@ -397,6 +396,19 @@ onMounted(load)
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+/* 卡片高度一致 */
+.settings-card,
+.semester-guide {
+  height: auto;
+  min-height: 200px;
+}
+
+.reset-card,
+.reset-guide {
+  height: auto;
+  min-height: 500px;
 }
 
 /* 卡片头部带操作按钮 */
@@ -460,17 +472,8 @@ onMounted(load)
 
 /* 右侧指南卡片 */
 .guide-card {
-  height: 100%;
   display: flex;
   flex-direction: column;
-}
-
-.guide-card.semester-guide {
-  min-height: 280px;
-}
-
-.guide-card.reset-guide {
-  min-height: 500px;
 }
 
 .guide-header {
