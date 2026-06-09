@@ -220,19 +220,40 @@ function onImportSuccess(res) {
   
   // 构建详细消息
   let detailMsg = message
+  
+  // 添加失败详情，每条一行
   if (data.errors && data.errors.length > 0) {
-    detailMsg += '\n\n失败详情：\n' + data.errors.join('\n')
+    detailMsg += '\n\n❌ 失败详情：'
+    data.errors.forEach((error, index) => {
+      detailMsg += `\n${index + 1}. ${error}`
+    })
   }
   
+  // 根据结果显示不同类型的消息
   if (data.failed && data.failed > 0) {
+    // 有失败记录，显示警告消息
     ElMessage({
       message: detailMsg,
       type: 'warning',
+      duration: 10000,
+      showClose: true,
+    })
+  } else if (data.imported > 0 || data.overwritten > 0) {
+    // 成功导入，显示成功消息（带详细信息）
+    ElMessage({
+      message: detailMsg,
+      type: 'success',
       duration: 8000,
       showClose: true,
     })
   } else {
-    ElMessage.success(message)
+    // 其他情况
+    ElMessage({
+      message: detailMsg,
+      type: 'info',
+      duration: 6000,
+      showClose: true,
+    })
   }
   load()
 }

@@ -618,19 +618,52 @@ function onImportSuccess(res) {
   
   // 构建详细消息
   let detailMsg = message
-  if (data.errors && data.errors.length > 0) {
-    detailMsg += '\n\n失败详情：\n' + data.errors.join('\n')
+  
+  // 添加自动创建统计信息
+  if (data.autoCreated) {
+    const { trainingLevels, majors, colleges } = data.autoCreated
+    const autoCreatedParts = []
+    if (trainingLevels > 0) autoCreatedParts.push(`${trainingLevels}个层次`)
+    if (majors > 0) autoCreatedParts.push(`${majors}个专业`)
+    if (colleges > 0) autoCreatedParts.push(`${colleges}个学院`)
+    if (autoCreatedParts.length > 0) {
+      detailMsg += `\n\n✅ 自动创建基础数据：${autoCreatedParts.join('、')}`
+    }
   }
   
+  // 添加失败详情
+  if (data.errors && data.errors.length > 0) {
+    detailMsg += '\n\n❌ 失败详情：'
+    data.errors.forEach((error, index) => {
+      detailMsg += `\n${index + 1}. ${error}`
+    })
+  }
+  
+  // 根据结果显示不同类型的消息
   if (data.failed && data.failed > 0) {
+    // 有失败记录，显示警告消息
     ElMessage({
       message: detailMsg,
       type: 'warning',
+      duration: 10000,
+      showClose: true,
+    })
+  } else if (data.imported > 0 || data.overwritten > 0) {
+    // 成功导入，显示成功消息（带详细信息）
+    ElMessage({
+      message: detailMsg,
+      type: 'success',
       duration: 8000,
       showClose: true,
     })
   } else {
-    ElMessage.success(message)
+    // 其他情况
+    ElMessage({
+      message: detailMsg,
+      type: 'info',
+      duration: 6000,
+      showClose: true,
+    })
   }
   load()
 }
