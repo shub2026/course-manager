@@ -1,102 +1,116 @@
 <template>
-  <div>
-    <el-card>
-      <template #header>
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span>系统设置</span>
-          <router-link to="/audit-logs">
-            <el-button type="primary" size="small">
-              <el-icon><Document /></el-icon> 查看操作日志
+  <div class="settings-container">
+    <!-- 左侧功能模块 -->
+    <div class="left-panel">
+      <!-- 系统设置模块 -->
+      <el-card class="settings-card">
+        <template #header>
+          <div class="card-header-with-action">
+            <span><el-icon><Setting /></el-icon> 系统设置</span>
+            <router-link to="/audit-logs">
+              <el-button type="primary" size="small">
+                <el-icon><DocumentChecked /></el-icon> 查看操作日志
+              </el-button>
+            </router-link>
+          </div>
+        </template>
+        <el-form :model="form" label-width="140px" class="settings-form">
+          <el-form-item label="当前学期">
+            <el-select v-model="form.current_semester" placeholder="请选择当前学期" class="full-width">
+              <el-option 
+                v-for="sem in availableSemesters" 
+                :key="sem.value" 
+                :label="sem.label" 
+                :value="sem.value" 
+              />
+            </el-select>
+            <div class="form-hint">
+              <el-icon><InfoFilled /></el-icon>
+              用于计算班级年级和查询当前学期开课情况
+            </div>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" @click="handleSave" :loading="saving">
+              <el-icon><Check /></el-icon> 保存设置
             </el-button>
-          </router-link>
+          </el-form-item>
+        </el-form>
+      </el-card>
+
+      <!-- 重置系统模块 -->
+      <el-card class="reset-card">
+        <template #header>
+          <span class="danger-header"><el-icon><WarningFilled /></el-icon> 重置系统</span>
+        </template>
+        
+        <div class="reset-warning">
+          <el-alert
+            title="警告：以下操作将永久删除数据，操作前请确保已备份重要数据！"
+            type="error"
+            :closable="false"
+            show-icon
+          />
         </div>
-      </template>
-      <el-form :model="form" label-width="160px" class="settings-form">
-        <el-form-item label="当前学期">
-          <el-select v-model="form.current_semester" placeholder="请选择当前学期" class="full-width">
-            <el-option 
-              v-for="sem in availableSemesters" 
-              :key="sem.value" 
-              :label="sem.label" 
-              :value="sem.value" 
-            />
-          </el-select>
-          <div class="form-hint">
-            用于计算班级年级和查询当前学期开课情况
-          </div>
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="handleSave" :loading="saving">保存设置</el-button>
-        </el-form-item>
-      </el-form>
-    </el-card>
 
-    <el-card class="reset-section">
-      <template #header>
-        <span class="danger-header">⚠️ 重置系统</span>
-      </template>
-      
-      <div class="reset-container">
-        <!-- 左侧操作区域 -->
-        <div class="reset-operations">
-          <div class="reset-warning">
-            <p><strong>警告：</strong>以下操作将永久删除数据，操作前请确保已备份重要数据！</p>
-          </div>
-
-          <!-- 基础数据清空区域 -->
-          <div class="reset-group">
-            <h4 class="reset-group-title">清空基础数据</h4>
-            <div class="reset-buttons">
-              <el-button type="danger" plain @click="showResetDialog('classes')" :loading="resetting" class="btn-class">
-                清空班级
-              </el-button>
-              <el-button type="warning" plain @click="showResetDialog('courses')" :loading="resetting" class="btn-course">
-                清空课程
-              </el-button>
-              <el-button type="warning" plain @click="showResetDialog('textbooks')" :loading="resetting" class="btn-textbook">
-                清空教材
-              </el-button>
-              <el-button type="info" plain @click="showResetDialog('majors')" :loading="resetting" class="btn-major">
-                清空专业
-              </el-button>
-              <el-button type="info" plain @click="showResetDialog('colleges')" :loading="resetting" class="btn-college">
-                清空学院
-              </el-button>
-              <el-button type="info" plain @click="showResetDialog('levels')" :loading="resetting" class="btn-level">
-                清空层次
-              </el-button>
-            </div>
-          </div>
-
-          <el-divider />
-
-          <!-- 培养方案清空 -->
-          <div class="reset-group">
-            <h4 class="reset-group-title">清空培养方案</h4>
-            <div class="reset-buttons">
-              <el-button type="danger" plain @click="showResetDialog('plans')" :loading="resetting">
-                清空培养方案
-              </el-button>
-            </div>
-          </div>
-
-          <el-divider />
-
-          <!-- 系统设置清空 -->
-          <div class="reset-group">
-            <h4 class="reset-group-title">清空系统设置</h4>
-            <div class="reset-buttons">
-              <el-button type="danger" plain @click="showResetDialog('settings')" :loading="resetting">
-                清空系统设置
-              </el-button>
-            </div>
+        <!-- 基础数据清空区域 -->
+        <div class="reset-group">
+          <h4 class="reset-group-title">清空基础数据</h4>
+          <div class="reset-buttons">
+            <el-button type="danger" plain @click="showResetDialog('classes')" :loading="resetting">
+              <el-icon><Delete /></el-icon> 清空班级
+            </el-button>
+            <el-button type="warning" plain @click="showResetDialog('courses')" :loading="resetting">
+              <el-icon><Delete /></el-icon> 清空课程
+            </el-button>
+            <el-button type="warning" plain @click="showResetDialog('textbooks')" :loading="resetting">
+              <el-icon><Delete /></el-icon> 清空教材
+            </el-button>
+            <el-button type="info" plain @click="showResetDialog('majors')" :loading="resetting">
+              <el-icon><Delete /></el-icon> 清空专业
+            </el-button>
+            <el-button type="info" plain @click="showResetDialog('colleges')" :loading="resetting">
+              <el-icon><Delete /></el-icon> 清空学院
+            </el-button>
+            <el-button type="info" plain @click="showResetDialog('levels')" :loading="resetting">
+              <el-icon><Delete /></el-icon> 清空层次
+            </el-button>
           </div>
         </div>
 
-        <!-- 右侧提示和注意事项 -->
-        <div class="reset-tips">
-          <h4 class="tips-title">📌 操作指南</h4>
-          
+        <el-divider />
+
+        <!-- 培养方案清空 -->
+        <div class="reset-group">
+          <h4 class="reset-group-title">清空培养方案</h4>
+          <div class="reset-buttons">
+            <el-button type="danger" plain @click="showResetDialog('plans')" :loading="resetting">
+              <el-icon><Delete /></el-icon> 清空培养方案
+            </el-button>
+          </div>
+        </div>
+
+        <el-divider />
+
+        <!-- 系统设置清空 -->
+        <div class="reset-group">
+          <h4 class="reset-group-title">清空系统设置</h4>
+          <div class="reset-buttons">
+            <el-button type="danger" plain @click="showResetDialog('settings')" :loading="resetting">
+              <el-icon><Delete /></el-icon> 清空系统设置
+            </el-button>
+          </div>
+        </div>
+      </el-card>
+    </div>
+
+    <!-- 右侧操作指南 -->
+    <div class="right-panel">
+      <el-card class="guide-card">
+        <template #header>
+          <span class="guide-header"><el-icon><Reading /></el-icon> 操作指南</span>
+        </template>
+
+        <div class="guide-content">
           <div class="tip-item tip-warning">
             <div class="tip-icon">⚠️</div>
             <div class="tip-content">
@@ -145,55 +159,63 @@
               <p>清空课程时会同时清空培养方案中的课程安排；清空教材时会清空培养方案中的教材关联。</p>
             </div>
           </div>
-        </div>
-      </div>
-    </el-card>
 
-    <!-- 二次确认对话框 -->
-    <el-dialog
-      v-model="dialogVisible"
-      title="确认重置操作"
-      width="500px"
-      :close-on-click-modal="false"
-    >
-      <div class="dialog-content">
-        <el-alert
-          title="此操作不可恢复！"
-          type="error"
-          :closable="false"
-          show-icon
-        />
-        <p class="confirm-text">{{ confirmText }}</p>
-        
-        <!-- 级联影响提示 -->
-        <el-alert
-          v-if="cascadeInfo"
-          :title="cascadeInfo"
-          type="warning"
-          :closable="false"
-          show-icon
-          class="cascade-alert"
-        />
-        
-        <el-input
-          v-model="confirmInput"
-          placeholder="请输入确认文字"
-          class="confirm-input"
-        />
-      </div>
-      <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button 
-          type="danger" 
-          @click="handleReset"
-          :loading="resetting"
-          :disabled="!canConfirm"
-        >
-          确认重置
-        </el-button>
-      </template>
-    </el-dialog>
+          <div class="tip-item tip-success">
+            <div class="tip-icon">✅</div>
+            <div class="tip-content">
+              <strong>操作日志</strong>
+              <p>所有重置操作都会记录在操作日志中，可在<router-link to="/audit-logs">操作日志</router-link>页面查看历史记录。</p>
+            </div>
+          </div>
+        </div>
+      </el-card>
+    </div>
   </div>
+
+  <!-- 二次确认对话框 -->
+  <el-dialog
+    v-model="dialogVisible"
+    title="确认重置操作"
+    width="500px"
+    :close-on-click-modal="false"
+  >
+    <div class="dialog-content">
+      <el-alert
+        title="此操作不可恢复！"
+        type="error"
+        :closable="false"
+        show-icon
+      />
+      <p class="confirm-text">{{ confirmText }}</p>
+      
+      <!-- 级联影响提示 -->
+      <el-alert
+        v-if="cascadeInfo"
+        :title="cascadeInfo"
+        type="warning"
+        :closable="false"
+        show-icon
+        class="cascade-alert"
+      />
+      
+      <el-input
+        v-model="confirmInput"
+        placeholder="请输入确认文字"
+        class="confirm-input"
+      />
+    </div>
+    <template #footer>
+      <el-button @click="dialogVisible = false">取消</el-button>
+      <el-button 
+        type="danger" 
+        @click="handleReset"
+        :loading="resetting"
+        :disabled="!canConfirm"
+      >
+        确认重置
+      </el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
@@ -331,63 +353,68 @@ onMounted(load)
 </script>
 
 <style scoped>
+/* 主容器：左右布局 */
+.settings-container {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+/* 左侧面板：包含两个卡片 */
+.left-panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 右侧面板：操作指南 */
+.right-panel {
+  width: 400px;
+  flex-shrink: 0;
+}
+
+/* 卡片头部带操作按钮 */
+.card-header-with-action {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+}
+
+/* 系统设置表单 */
 .settings-form {
-  max-width: 600px;
+  max-width: 100%;
 }
+
 .form-hint {
-  color: #999;
-  font-size: 12px;
-  margin-top: 4px;
+  color: #909399;
+  font-size: 13px;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
+
 .full-width {
   width: 100%;
 }
 
-/* 重置系统区域样式 */
-.reset-section {
-  margin-top: 20px;
+/* 重置系统警告 */
+.reset-warning {
+  margin-bottom: 20px;
 }
 
 .danger-header {
   color: #f56c6c;
-  font-weight: bold;
-}
-
-/* 左右分栏容器 */
-.reset-container {
+  font-weight: 600;
   display: flex;
-  gap: 24px;
-  align-items: flex-start;
+  align-items: center;
+  gap: 6px;
 }
 
-/* 左侧操作区域 */
-.reset-operations {
-  flex: 0 0 calc(50% - 12px);
-  min-width: 0;
-}
-
-/* 右侧提示面板 */
-.reset-tips {
-  flex: 0 0 calc(50% - 12px);
-  background: linear-gradient(135deg, #fafafa 0%, #f5f7fa 100%);
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
-  padding: 20px;
-}
-
-.reset-warning {
-  background-color: #fef0f0;
-  border: 1px solid #fbc4c4;
-  border-radius: 4px;
-  padding: 12px 16px;
-  margin-bottom: 20px;
-}
-
-.reset-warning p {
-  margin: 0;
-  color: #f56c6c;
-}
-
+/* 重置分组 */
 .reset-group {
   margin: 16px 0;
 }
@@ -397,28 +424,39 @@ onMounted(load)
   font-weight: 600;
   color: #303133;
   margin: 0 0 12px 0;
+  padding-left: 8px;
+  border-left: 3px solid #409eff;
 }
 
 .reset-buttons {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
 }
 
-.tips-title {
-  font-size: 16px;
+/* 右侧操作指南卡片 */
+.guide-card {
+  position: sticky;
+  top: 20px;
+}
+
+.guide-header {
   font-weight: 600;
   color: #303133;
-  margin: 0 0 16px 0;
-  padding-bottom: 12px;
-  border-bottom: 2px solid #dcdfe6;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.guide-content {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
 }
 
 .tip-item {
   display: flex;
   gap: 12px;
-  padding: 12px;
+  padding: 14px;
   margin-bottom: 12px;
   background: #fff;
   border-radius: 6px;
@@ -427,7 +465,7 @@ onMounted(load)
 }
 
 .tip-item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   transform: translateX(2px);
 }
 
@@ -438,6 +476,11 @@ onMounted(load)
 
 .tip-item.tip-info {
   border-left-color: #909399;
+}
+
+.tip-item.tip-success {
+  border-left-color: #67c23a;
+  background: #f0f9ff;
 }
 
 .tip-icon {
@@ -524,45 +567,6 @@ onMounted(load)
   background: #909399;
 }
 
-/* 按钮颜色区分 */
-.btn-class.el-button--danger {
-  --el-button-bg-color: #fef0f0;
-  --el-button-border-color: #fbc4c4;
-  --el-button-hover-bg-color: #fde2e2;
-  --el-button-hover-border-color: #f5a6a6;
-  --el-button-text-color: #f56c6c;
-}
-
-.btn-course.el-button--warning,
-.btn-textbook.el-button--warning {
-  --el-button-bg-color: #fdf6ec;
-  --el-button-border-color: #f5dab1;
-  --el-button-hover-bg-color: #faecd8;
-  --el-button-hover-border-color: #f0c78a;
-  --el-button-text-color: #e6a23c;
-}
-
-.btn-major.el-button--info,
-.btn-college.el-button--info,
-.btn-level.el-button--info {
-  --el-button-bg-color: #f4f4f5;
-  --el-button-border-color: #d9d9d9;
-  --el-button-hover-bg-color: #e9e9eb;
-  --el-button-hover-border-color: #c0c4cc;
-  --el-button-text-color: #909399;
-}
-
-/* 响应式布局 */
-@media (max-width: 1200px) {
-  .reset-container {
-    flex-direction: column;
-  }
-  
-  .reset-tips {
-    width: 100%;
-  }
-}
-
 /* 对话框样式 */
 .dialog-content {
   padding: 10px 0;
@@ -580,5 +584,24 @@ onMounted(load)
 
 .confirm-input {
   margin-top: 10px;
+}
+
+/* 响应式布局 */
+@media (max-width: 1200px) {
+  .settings-container {
+    flex-direction: column;
+  }
+  
+  .right-panel {
+    width: 100%;
+  }
+  
+  .guide-card {
+    position: static;
+  }
+  
+  .guide-content {
+    max-height: none;
+  }
 }
 </style>
