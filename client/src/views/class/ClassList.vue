@@ -266,13 +266,34 @@
         <el-button type="primary" @click="confirmImport">确认导入</el-button>
       </template>
     </el-dialog>
+
+    <!-- 导入进度对话框 -->
+    <el-dialog v-model="progressDialogVisible" title="正在导入" width="500px" :close-on-click-modal="false" :show-close="false">
+      <div class="progress-container">
+        <el-progress 
+          :percentage="progressPercent" 
+          :status="progressStatus"
+          :stroke-width="20"
+        />
+        <div class="progress-info">
+          <div class="progress-text">{{ progressText }}</div>
+          <div class="progress-detail" v-if="progressDetail">
+            {{ progressDetail }}
+          </div>
+        </div>
+        <div class="progress-tip">
+          <el-icon class="is-loading"><Loading /></el-icon>
+          <span>请稍候，正在处理中...</span>
+        </div>
+      </div>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Delete, Edit } from '@element-plus/icons-vue'
+import { Delete, Edit, Loading } from '@element-plus/icons-vue'
 import { getClasses, createClass, updateClass, deleteClass } from '../../api/class'
 import { getMajors } from '../../api/major'
 import { getPlans } from '../../api/plan'
@@ -327,6 +348,13 @@ const form = ref({ ...defaultForm })
 const importDialogVisible = ref(false)
 const importMode = ref('skip') // 'skip' | 'overwrite'
 const pendingFile = ref(null)
+
+// 导入进度状态
+const progressDialogVisible = ref(false)
+const progressPercent = ref(0)
+const progressStatus = ref('') // '' | 'success' | 'exception' | 'warning'
+const progressText = ref('准备上传...')
+const progressDetail = ref('')
 
 // 入学年份选项（降序）
 const enrollmentYears = computed(() => {
@@ -591,23 +619,87 @@ function beforeImport(file) {
 function confirmImport() {
   importDialogVisible.value = false
   
+  // 显示进度对话框
+  progressDialogVisible.value = true
+  progressPercent.value = 0
+  progressStatus.value = ''
+  progressText.value = '准备上传...'
+  progressDetail.value = ''
+  
   // 创建 FormData 并手动上传
   const formData = new FormData()
   formData.append('file', pendingFile.value)
   formData.append('onDuplicate', importMode.value)
   
-  fetch('/api/import/classes', {
-    method: 'POST',
-    body: formData,
-    credentials: 'include',
+  // 使用 XMLHttpRequest 来监控上传进度
+  const xhr = new XMLHttpRequest()
+  
+  // 上传进度
+  xhr.upload.addEventListener('progress', (e) => {
+    if (e.lengthComputable) {
+      const percent = Math.round((e.loaded / e.total) * 50) // 上传占50%
+      progressPercent.value = percent
+      progressText.value = `上传中... ${percent}%`
+    }
   })
-    .then(res => res.json())
-    .then(data => {
-      onImportSuccess(data)
-    })
-    .catch(err => {
-      onImportError(err)
-    })
+  
+  // 下载进度（服务器响应）
+  xhr.addEventListener('progress', (e) => {
+    if (e.lengthComputable) {
+      const percent = 50 + Math.round((e.loaded / e.total) * 30) // 处理占30%
+      progressPercent.value = percent
+      progressText.value = '服务器处理中...'
+    }
+  })
+  
+  // 完成
+  xhr.addEventListener('load', () => {
+    progressPercent.value = 90
+    progressText.value = '处理完成...'
+    
+    if (xhr.status === 200) {
+      try {
+        const data = JSON.parse(xhr.responseText)
+        progressPercent.value = 100
+        progressStatus.value = 'success'
+        progressText.value = '导入完成！'
+        
+        // 延迟关闭进度对话框，让用户看到完成状态
+        setTimeout(() => {
+          progressDialogVisible.value = false
+          onImportSuccess(data)
+        }, 1000)
+      } catch (e) {
+        progressStatus.value = 'exception'
+        progressText.value = '解析响应失败'
+        setTimeout(() => {
+          progressDialogVisible.value = false
+          ElMessage.error('导入失败：响应格式错误')
+        }, 1500)
+      }
+    } else {
+      progressStatus.value = 'exception'
+      progressText.value = '上传失败'
+      setTimeout(() => {
+        progressDialogVisible.value = false
+        ElMessage.error(`导入失败：HTTP ${xhr.status}`)
+      }, 1500)
+    }
+  })
+  
+  // 错误处理
+  xhr.addEventListener('error', () => {
+    progressStatus.value = 'exception'
+    progressText.value = '网络错误'
+    setTimeout(() => {
+      progressDialogVisible.value = false
+      ElMessage.error('导入失败：网络连接错误')
+    }, 1500)
+  })
+  
+  // 发送请求
+  xhr.open('POST', '/api/import/classes')
+  xhr.send(formData)
   
   pendingFile.value = null
 }
@@ -731,5 +823,38 @@ onMounted(async () => {
   justify-content: flex-end;
   margin-top: 16px;
   padding: 12px 0;
+}
+
+/* 进度对话框样式 */
+.progress-container {
+  padding: 20px 0;
+}
+
+.progress-info {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.progress-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 8px;
+}
+
+.progress-detail {
+  font-size: 13px;
+  color: #909399;
+  min-height: 20px;
+}
+
+.progress-tip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+  color: #409eff;
+  font-size: 14px;
 }
 </style>
