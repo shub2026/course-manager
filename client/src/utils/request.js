@@ -1,13 +1,44 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import router from '@/router'
+import { useAuthStore } from '@/stores/auth'
 
 const request = axios.create({
   baseURL: '/api',
   timeout: 30000,
 })
 
+// 请求拦截器 - 自动携带Token
+request.interceptors.request.use(
+  config => {
+    const authStore = useAuthStore()
+    if (authStore.token) {
+      config.headers.Authorization = `Bearer ${authStore.token}`
+    }
+    return config
+  },
+  error => {
+    return Promise.reject(error)
+  }
+)
+
+// 响应拦截器 - 处理Token刷新和错误
+let isRefreshing = false
+let failedQueue = []
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error)
+    } else {
+      prom.resolve(token)
+    }
+  })
+  failedQueue = []
+}
+
 request.interceptors.response.use(
-  (response) => {
+  response => {
     const res = response.data
     if (res.success !== undefined && !res.success) {
       ElMessage.error(res.message || '请求失败')
@@ -15,13 +46,52 @@ request.interceptors.response.use(
     }
     return res
   },
-  (error) => {
+  async error => {
+    const originalRequest = error.config
+    const authStore = useAuthStore()
+
+    // 处理401未授权
+    if (error.response?.status === 401) {
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject })
+        })
+          .then(token => {
+            originalRequest.headers.Authorization = `Bearer ${token}`
+            return request(originalRequest)
+          })
+          .catch(err => Promise.reject(err))
+      }
+
+      isRefreshing = true
+
+      const refreshed = await authStore.refreshAccessToken()
+
+      isRefreshing = false
+
+      if (refreshed) {
+        processQueue(null, authStore.token)
+        originalRequest.headers.Authorization = `Bearer ${authStore.token}`
+        return request(originalRequest)
+      } else {
+        processQueue(error, null)
+        ElMessage.error('登录已过期，请重新登录')
+        authStore.logout()
+        return Promise.reject(error)
+      }
+    }
+
+    // 处理403权限不足
+    if (error.response?.status === 403) {
+      ElMessage.error('权限不足，无法执行此操作')
+      return Promise.reject(error)
+    }
+
+    // 处理其他错误
     if (error.response) {
       const status = error.response.status
       const msgMap = {
         400: '请求参数错误',
-        401: '未授权，请重新登录',
-        403: '拒绝访问',
         404: '请求资源不存在',
         500: '服务器内部错误',
         502: '网关错误',

@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
+import { roleMiddleware } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
+// GET - 所有登录用户可访问（用于查询）
 router.get('/', async (req, res, next) => {
   try {
     const plans = await prisma.trainingPlan.findMany({
@@ -189,6 +191,7 @@ router.delete('/:id', async (req, res, next) => {
 });
 
 // === 方案课程明细（含学期记录） ===
+// GET - 所有登录用户可访问
 router.get('/:id/courses', async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -246,7 +249,8 @@ router.get('/:id/courses', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/:id/courses', async (req, res, next) => {
+// POST/PUT/DELETE - 需要admin权限
+router.post('/:id/courses', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     const { courseId, startSemester, endSemester, weeklyHours, weeksPerSemester } = req.body;
@@ -295,7 +299,7 @@ router.post('/:id/courses', async (req, res, next) => {
   }
 });
 
-router.put('/courses/:id', async (req, res, next) => {
+router.put('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     const { startSemester, endSemester, weeklyHours, weeksPerSemester, sortOrder } = req.body;
@@ -360,7 +364,7 @@ router.put('/courses/:id', async (req, res, next) => {
   }
 });
 
-router.delete('/courses/:id', async (req, res, next) => {
+router.delete('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     try {
@@ -374,7 +378,8 @@ router.delete('/courses/:id', async (req, res, next) => {
 });
 
 // === 学期明细操作 ===
-router.post('/:planId/courses/:courseId/semesters', async (req, res, next) => {
+// POST/PUT/DELETE - 需要admin权限
+router.post('/:planId/courses/:courseId/semesters', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { planId, courseId } = req.params;
     const { semester, weeklyHours, weeksCount } = req.body;
@@ -421,7 +426,7 @@ router.post('/:planId/courses/:courseId/semesters', async (req, res, next) => {
   }
 });
 
-router.put('/semesters/:id', async (req, res, next) => {
+router.put('/semesters/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     const { weeklyHours, weeksCount } = req.body;
@@ -440,7 +445,7 @@ router.put('/semesters/:id', async (req, res, next) => {
   }
 });
 
-// 获取方案所有学期的周数设置
+// GET - 所有登录用户可访问
 router.get('/:id/semesters', async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -465,7 +470,8 @@ router.get('/:id/semesters', async (req, res, next) => {
 });
 
 // === 教材关联（关联到学期） ===
-router.post('/semesters/:id/textbooks', async (req, res, next) => {
+// POST/PUT/DELETE - 需要admin权限
+router.post('/semesters/:id/textbooks', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     const { textbookId, isRequired } = req.body;
@@ -488,7 +494,7 @@ router.post('/semesters/:id/textbooks', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.delete('/semesters/:id/textbooks', async (req, res, next) => {
+router.delete('/semesters/:id/textbooks', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     await prisma.planTextbook.deleteMany({
@@ -498,7 +504,7 @@ router.delete('/semesters/:id/textbooks', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.delete('/textbooks/:id', async (req, res, next) => {
+router.delete('/textbooks/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     try {

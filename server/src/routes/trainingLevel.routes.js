@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
+import { roleMiddleware } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
+// GET - 所有登录用户可访问
 router.get('/', async (req, res, next) => {
   try {
     const levels = await prisma.trainingLevel.findMany({
@@ -33,7 +35,8 @@ router.get('/', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/', async (req, res, next) => {
+// POST/PUT/DELETE - 需要admin权限
+router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { name, code, description, sortOrder } = req.body;
     if (!name) return fail(res, '层次名称不能为空');
@@ -47,7 +50,7 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, code, description, sortOrder } = req.body;
@@ -65,7 +68,7 @@ router.put('/:id', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     const classCount = await prisma.class.count({ where: { trainingLevelId: Number(id) } });

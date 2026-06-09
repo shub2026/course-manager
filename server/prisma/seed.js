@@ -1,10 +1,13 @@
 import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
   // 清空现有数据（按依赖关系顺序）
   console.log('清空现有数据...');
+  await prisma.auditLog.deleteMany();
+  await prisma.user.deleteMany();
   await prisma.planTextbook.deleteMany();
   await prisma.planCourseSemester.deleteMany();
   await prisma.planCourse.deleteMany();
@@ -16,7 +19,7 @@ async function main() {
   await prisma.college.deleteMany();
   await prisma.trainingLevel.deleteMany();
   await prisma.systemSetting.deleteMany();
-  console.log('数据清空完成');
+  console.log('数据清空完成\n');
 
   // ==================== 1. 系统设置 ====================
   console.log('创建系统设置...');
@@ -374,7 +377,42 @@ async function main() {
   console.log(`教材关联: ${stats[9]} 条`);
   console.log(`班级: ${stats[10]} 条`);
   console.log('================================\n');
-  console.log('种子数据创建完成！');
+
+  // ==================== 9. 创建用户账号 ====================
+  console.log('创建用户账号...');
+
+  // 创建默认超级管理员账号
+  const adminPassword = await bcrypt.hash('admin@123456', 10);
+  await prisma.user.create({
+    data: {
+      username: 'admin',
+      password: adminPassword,
+      role: 'super_admin',
+      realName: '系统管理员',
+      email: 'admin@example.com'
+    }
+  });
+  console.log('✅ 超级管理员账号已创建：');
+  console.log('   用户名: admin');
+  console.log('   密码: admin@123456');
+  console.log('   ⚠️ 请及时修改密码！\n');
+
+  // 创建示例访客账号
+  const guestPassword = await bcrypt.hash('guest@123456', 10);
+  await prisma.user.create({
+    data: {
+      username: 'guest',
+      password: guestPassword,
+      role: 'viewer',
+      realName: '访客',
+      email: 'guest@example.com'
+    }
+  });
+  console.log('✅ 访客账号已创建：');
+  console.log('   用户名: guest');
+  console.log('   密码: guest@123456\n');
+
+  console.log('种子数据初始化全部完成！');
 }
 
 main()

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { getCurrentSemesterInfo } from '../services/settings.service.js';
+import { roleMiddleware } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
@@ -9,6 +10,7 @@ const DEFAULT_SETTINGS = {
   current_semester: { value: '2025-2026-2', description: '当前学期（格式：起始学年-结束学年-学期序号，如 2025-2026-2 表示2025-2026学年第2学期）' },
 };
 
+// GET - 所有登录用户可访问
 router.get('/', async (req, res, next) => {
   try {
     const settings = await prisma.systemSetting.findMany();
@@ -28,7 +30,8 @@ router.get('/', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.put('/', async (req, res, next) => {
+// PUT - 需要super_admin权限
+router.put('/', roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     const updates = req.body;
     for (const [key, value] of Object.entries(updates)) {
@@ -42,8 +45,8 @@ router.put('/', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// POST /api/settings/reset/basic - 清空基础数据（全部）
-router.post('/reset/basic', async (req, res, next) => {
+// POST /api/settings/reset/* - 需要super_admin权限
+router.post('/reset/basic', roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     // 按依赖关系顺序清空基础数据
     await prisma.class.deleteMany();

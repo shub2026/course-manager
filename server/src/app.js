@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import authRoutes from './routes/auth.routes.js';
+import userRoutes from './routes/user.routes.js';
 import majorRoutes from './routes/major.routes.js';
 import courseRoutes from './routes/course.routes.js';
 import textbookRoutes from './routes/textbook.routes.js';
@@ -12,6 +14,7 @@ import settingsRoutes from './routes/settings.routes.js';
 import trainingLevelRoutes from './routes/trainingLevel.routes.js';
 import collegeRoutes from './routes/college.routes.js';
 import auditRoutes from './routes/audit.routes.js';
+import { authMiddleware, roleMiddleware } from './middleware/auth.middleware.js';
 import { errorHandler } from './middleware/error.js';
 
 const app = express();
@@ -19,22 +22,42 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.use('/api/majors', majorRoutes);
-app.use('/api/courses', courseRoutes);
-app.use('/api/textbooks', textbookRoutes);
-app.use('/api/classes', classRoutes);
-app.use('/api/plans', planRoutes);
-app.use('/api/query', queryRoutes);
-app.use('/api/import', importRoutes);
-app.use('/api/export', exportRoutes);
-app.use('/api/settings', settingsRoutes);
-app.use('/api/training-levels', trainingLevelRoutes);
-app.use('/api/colleges', collegeRoutes);
-app.use('/api/audit', auditRoutes);
-
+// 公开路由（无需认证）
+app.use('/api/auth', authRoutes);
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
+
+// 查询接口 - 所有登录用户可访问
+app.use('/api/query', authMiddleware, queryRoutes);
+
+// 导出接口 - 所有登录用户可访问
+app.use('/api/export', authMiddleware, exportRoutes);
+
+// 用户管理 - admin和super_admin可访问（admin只能管理访客）
+app.use('/api/users', authMiddleware, roleMiddleware('admin', 'super_admin'), userRoutes);
+
+// 基础数据管理 - 所有登录用户GET可访问，修改需要admin权限（在路由文件中控制）
+app.use('/api/majors', authMiddleware, majorRoutes);
+app.use('/api/colleges', authMiddleware, collegeRoutes);
+app.use('/api/training-levels', authMiddleware, trainingLevelRoutes);
+app.use('/api/courses', authMiddleware, courseRoutes);
+app.use('/api/textbooks', authMiddleware, textbookRoutes);
+
+// 班级管理 - 所有登录用户GET可访问，修改需要admin权限
+app.use('/api/classes', authMiddleware, classRoutes);
+
+// 培养方案管理 - 所有登录用户GET可访问，修改需要admin权限
+app.use('/api/plans', authMiddleware, planRoutes);
+
+// 导入接口 - admin和super_admin可访问
+app.use('/api/import', authMiddleware, roleMiddleware('admin', 'super_admin'), importRoutes);
+
+// 系统设置 - GET所有登录用户可访问，PUT需要super_admin权限
+app.use('/api/settings', authMiddleware, settingsRoutes);
+
+// 审计日志 - 仅超级管理员可访问
+app.use('/api/audit', authMiddleware, roleMiddleware('super_admin'), auditRoutes);
 
 app.use(errorHandler);
 

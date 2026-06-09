@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
+import { roleMiddleware } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
+// GET - 所有登录用户可访问
 router.get('/', async (req, res, next) => {
   try {
     const textbooks = await prisma.textbook.findMany({ orderBy: { sortOrder: 'asc' } });
@@ -27,7 +29,8 @@ router.get('/', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/', async (req, res, next) => {
+// POST/PUT/DELETE - 需要admin权限
+router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { title, isbn, publisher, author, edition, publishDate, price, category, description, isActive, sortOrder } = req.body;
     if (!title) return fail(res, '书名不能为空');
@@ -38,7 +41,7 @@ router.post('/', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     const { title, isbn, publisher, author, edition, publishDate, price, category, description, isActive, sortOrder } = req.body;
@@ -55,7 +58,7 @@ router.put('/:id', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     const usageCount = await prisma.planTextbook.count({ where: { textbookId: Number(id) } });
@@ -70,8 +73,8 @@ router.delete('/:id', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// POST /api/textbooks/:id/toggle-status - 切换启用/停用状态
-router.post('/:id/toggle-status', async (req, res, next) => {
+// POST /api/textbooks/:id/toggle-status - 切换启用/停用状态（需要admin权限）
+router.post('/:id/toggle-status', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     try {
