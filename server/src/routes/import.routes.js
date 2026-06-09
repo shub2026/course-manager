@@ -37,17 +37,23 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
 
     console.log('[班级导入] 读取到', rows.length, '行数据, onDuplicate:', onDuplicate);
 
-    const majors = await prisma.major.findMany();
+    // 预加载现有数据
+    let majors = await prisma.major.findMany();
     const majorMap = {};
     majors.forEach((m) => { majorMap[m.name] = m.id; });
 
-    const levels = await prisma.trainingLevel.findMany();
+    let levels = await prisma.trainingLevel.findMany();
     const levelMap = {};
     levels.forEach((l) => { levelMap[l.name] = l.id; });
 
-    const colleges = await prisma.college.findMany();
+    let colleges = await prisma.college.findMany();
     const collegeMap = {};
     colleges.forEach((c) => { collegeMap[c.name] = c.id; });
+
+    // 统计自动创建的数量
+    let autoCreatedLevels = 0;
+    let autoCreatedMajors = 0;
+    let autoCreatedColleges = 0;
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -67,20 +73,99 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
         continue;
       }
 
-      const majorId = majorName ? majorMap[majorName] : null;
-      if (majorName && !majorId) {
-        console.warn(`[班级导入] 第${i + 2}行：专业"${majorName}"不存在，将忽略`);
+      // 自动创建培养层次（如果不存在）
+      let trainingLevelId = levelMap[trainingLevelName];
+      if (!trainingLevelId && trainingLevelName) {
+        try {
+          const newLevel = await prisma.trainingLevel.create({
+            data: {
+              name: String(trainingLevelName).trim(),
+              code: null,
+              description: `由班级导入自动创建 (${new Date().toLocaleString()})`,
+              sortOrder: 0,
+            },
+          });
+          trainingLevelId = newLevel.id;
+          levelMap[trainingLevelName] = trainingLevelId;
+          autoCreatedLevels++;
+          console.log(`[班级导入] 自动创建培养层次: "${trainingLevelName}" (ID: ${trainingLevelId})`);
+        } catch (e) {
+          // 可能是唯一约束冲突（并发情况），重新查询
+          const existingLevel = await prisma.trainingLevel.findUnique({
+            where: { name: String(trainingLevelName).trim() },
+          });
+          if (existingLevel) {
+            trainingLevelId = existingLevel.id;
+            levelMap[trainingLevelName] = trainingLevelId;
+          } else {
+            errors.push(`第${i + 2}行：创建培养层次"${trainingLevelName}"失败`);
+            continue;
+          }
+        }
       }
-
-      const collegeId = collegeName ? collegeMap[collegeName] : null;
-      if (collegeName && !collegeId) {
-        console.warn(`[班级导入] 第${i + 2}行：学院"${collegeName}"不存在，将忽略`);
-      }
-
-      const trainingLevelId = levelMap[trainingLevelName];
       if (!trainingLevelId) {
-        errors.push(`第${i + 2}行：培养层次"${trainingLevelName}"不存在，请先在层次管理中添加`);
+        errors.push(`第${i + 2}行：培养层次不能为空`);
         continue;
+      }
+
+      // 自动创建专业（如果不存在且有提供）
+      let majorId = majorMap[majorName];
+      if (!majorId && majorName) {
+        try {
+          const newMajor = await prisma.major.create({
+            data: {
+              name: String(majorName).trim(),
+              code: null,
+              description: `由班级导入自动创建 (${new Date().toLocaleString()})`,
+              sortOrder: 0,
+            },
+          });
+          majorId = newMajor.id;
+          majorMap[majorName] = majorId;
+          autoCreatedMajors++;
+          console.log(`[班级导入] 自动创建专业: "${majorName}" (ID: ${majorId})`);
+        } catch (e) {
+          // 可能是唯一约束冲突（并发情况），重新查询
+          const existingMajor = await prisma.major.findFirst({
+            where: { name: String(majorName).trim() },
+          });
+          if (existingMajor) {
+            majorId = existingMajor.id;
+            majorMap[majorName] = majorId;
+          } else {
+            console.warn(`[班级导入] 第${i + 2}行：创建专业"${majorName}"失败，将忽略`);
+          }
+        }
+      }
+
+      // 自动创建学院（如果不存在且有提供）
+      let collegeId = collegeMap[collegeName];
+      if (!collegeId && collegeName) {
+        try {
+          const newCollege = await prisma.college.create({
+            data: {
+              name: String(collegeName).trim(),
+              code: null,
+              description: `由班级导入自动创建 (${new Date().toLocaleString()})`,
+              sortOrder: 0,
+            },
+          });
+          collegeId = newCollege.id;
+          collegeMap[collegeName] = collegeId;
+          autoCreatedColleges++;
+          console.log(`[班级导入] 自动创建学院: "${collegeName}" (ID: ${collegeId})`);
+        } catch (e) {
+          // 可能是唯一约束冲突（并发情况），重新查询
+          const existingCollege = await prisma.college.findUnique({
+            where: { name: String(collegeName).trim() },
+          });
+          if (existingCollege) {
+            collegeId = existingCollege.id;
+            collegeMap[collegeName] = collegeId;
+          } else {
+            console.warn(`[班级导入] 第${i + 2}行：创建学院"${collegeName}"失败，将忽略`);
+          }
+        }
       }
 
       // 处理状态字段：支持"在读"/"已毕业"或"active"/"graduated"
@@ -159,11 +244,19 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
       failed: errors.length,
       total: rows.length,
       errors,
+      autoCreated: {
+        trainingLevels: autoCreatedLevels,
+        majors: autoCreatedMajors,
+        colleges: autoCreatedColleges,
+      },
     };
     let message = `导入完成：新增${imported}条`;
     if (skipped > 0) message += `，跳过${skipped}条`;
     if (overwritten > 0) message += `，覆盖${overwritten}条`;
     if (errors.length > 0) message += `，失败${errors.length}条`;
+    if (autoCreatedLevels > 0 || autoCreatedMajors > 0 || autoCreatedColleges > 0) {
+      message += `（自动创建：${autoCreatedLevels}个层次、${autoCreatedMajors}个专业、${autoCreatedColleges}个学院）`;
+    }
 
     console.log('[班级导入] 结果:', result);
 
