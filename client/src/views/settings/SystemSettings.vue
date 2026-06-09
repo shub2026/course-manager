@@ -111,6 +111,23 @@
         </template>
 
         <div class="guide-content">
+          <!-- 当前学期设置说明 - 置顶 -->
+          <div class="tip-item tip-primary">
+            <div class="tip-icon">📅</div>
+            <div class="tip-content">
+              <strong>当前学期设置说明</strong>
+              <p>系统设置中的"当前学期"用于：</p>
+              <ul class="feature-list">
+                <li>自动计算班级的在读年级和学期</li>
+                <li>确定培养方案中哪些课程在当前学期开课</li>
+                <li>查询和导出当前学期的开课情况和教材使用情况</li>
+              </ul>
+              <p class="highlight-tip">建议每学期开始时更新此设置，确保数据准确。</p>
+            </div>
+          </div>
+
+          <el-divider />
+
           <div class="tip-item tip-warning">
             <div class="tip-icon">⚠️</div>
             <div class="tip-content">
@@ -165,22 +182,6 @@
             <div class="tip-content">
               <strong>操作日志</strong>
               <p>所有重置操作都会记录在操作日志中，可在<router-link to="/audit-logs">操作日志</router-link>页面查看历史记录。</p>
-            </div>
-          </div>
-
-          <el-divider />
-
-          <div class="tip-item tip-primary">
-            <div class="tip-icon">📅</div>
-            <div class="tip-content">
-              <strong>当前学期设置说明</strong>
-              <p>系统设置中的"当前学期"用于：</p>
-              <ul class="feature-list">
-                <li>自动计算班级的在读年级和学期</li>
-                <li>确定培养方案中哪些课程在当前学期开课</li>
-                <li>查询和导出当前学期的开课情况和教材使用情况</li>
-              </ul>
-              <p class="highlight-tip">建议每学期开始时更新此设置，确保数据准确。</p>
             </div>
           </div>
         </div>
@@ -378,7 +379,7 @@ onMounted(load)
 
 /* 左侧面板：包含两个卡片 */
 .left-panel {
-  flex: 1;
+  flex: 0 0 60%;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -387,8 +388,8 @@ onMounted(load)
 
 /* 右侧面板：操作指南 */
 .right-panel {
-  width: 400px;
-  flex-shrink: 0;
+  flex: 0 0 40%;
+  min-width: 0;
 }
 
 /* 卡片头部带操作按钮 */
