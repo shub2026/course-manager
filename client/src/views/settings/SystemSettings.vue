@@ -16,7 +16,7 @@
         </template>
         <el-form :model="form" label-width="140px" class="settings-form">
           <el-form-item label="当前学期">
-            <el-select v-model="form.current_semester" placeholder="请选择当前学期" class="full-width">
+            <el-select v-model="form.current_semester" placeholder="请选择当前学期" class="semester-select">
               <el-option 
                 v-for="sem in availableSemesters" 
                 :key="sem.value" 
@@ -380,8 +380,9 @@ onMounted(load)
 /* 主容器：田字格布局 */
 .settings-container {
   display: grid;
-  grid-template-columns: 60% 40%;
+  grid-template-columns: 6fr 4fr;
   gap: 20px;
+  align-items: stretch;
 }
 
 /* 左侧列 */
@@ -398,19 +399,6 @@ onMounted(load)
   gap: 20px;
 }
 
-/* 卡片高度一致 */
-.settings-card,
-.semester-guide {
-  height: auto;
-  min-height: 200px;
-}
-
-.reset-card,
-.reset-guide {
-  height: auto;
-  min-height: 500px;
-}
-
 /* 卡片头部带操作按钮 */
 .card-header-with-action {
   display: flex;
@@ -424,6 +412,11 @@ onMounted(load)
   max-width: 100%;
 }
 
+.semester-select {
+  width: 100%;
+  max-width: 400px;
+}
+
 .form-hint {
   color: #909399;
   font-size: 13px;
@@ -431,10 +424,6 @@ onMounted(load)
   display: flex;
   align-items: center;
   gap: 4px;
-}
-
-.full-width {
-  width: 100%;
 }
 
 /* 重置系统警告 */
