@@ -240,22 +240,21 @@ async function handleDelete(id) {
 async function handleMoveUp(row, index) {
   if (index === 0) return
   
-  const newList = [...list.value]
-  // 交换当前项和上一项的 sortOrder
-  const tempSortOrder = newList[index].sortOrder
-  newList[index].sortOrder = newList[index - 1].sortOrder
-  newList[index - 1].sortOrder = tempSortOrder
+  const currentPlan = list.value[index]
+  const prevPlan = list.value[index - 1]
   
-  // 交换数组位置
-  ;[newList[index], newList[index - 1]] = [newList[index - 1], newList[index]]
+  const currentId = currentPlan.id
+  const prevId = prevPlan.id
+  const currentSortOrder = currentPlan.sortOrder
+  const prevSortOrder = prevPlan.sortOrder
   
   try {
     await Promise.all([
-      updatePlan(newList[index].id, { sortOrder: newList[index].sortOrder }),
-      updatePlan(newList[index - 1].id, { sortOrder: newList[index - 1].sortOrder })
+      updatePlan(currentId, { sortOrder: prevSortOrder }),
+      updatePlan(prevId, { sortOrder: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
-    list.value = newList
+    await load()
   } catch (e) {
     console.error('排序更新失败:', e)
     ElMessage.error('排序更新失败')
@@ -265,22 +264,21 @@ async function handleMoveUp(row, index) {
 async function handleMoveDown(row, index) {
   if (index === list.value.length - 1) return
   
-  const newList = [...list.value]
-  // 交换当前项和下一项的 sortOrder
-  const tempSortOrder = newList[index].sortOrder
-  newList[index].sortOrder = newList[index + 1].sortOrder
-  newList[index + 1].sortOrder = tempSortOrder
+  const currentPlan = list.value[index]
+  const nextPlan = list.value[index + 1]
   
-  // 交换数组位置
-  ;[newList[index], newList[index + 1]] = [newList[index + 1], newList[index]]
+  const currentId = currentPlan.id
+  const nextId = nextPlan.id
+  const currentSortOrder = currentPlan.sortOrder
+  const nextSortOrder = nextPlan.sortOrder
   
   try {
     await Promise.all([
-      updatePlan(newList[index].id, { sortOrder: newList[index].sortOrder }),
-      updatePlan(newList[index + 1].id, { sortOrder: newList[index + 1].sortOrder })
+      updatePlan(currentId, { sortOrder: nextSortOrder }),
+      updatePlan(nextId, { sortOrder: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
-    list.value = newList
+    await load()
   } catch (e) {
     console.error('排序更新失败:', e)
     ElMessage.error('排序更新失败')

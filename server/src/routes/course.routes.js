@@ -9,7 +9,25 @@ router.get('/', async (req, res, next) => {
     const { type } = req.query;
     const where = type ? { type } : {};
     const courses = await prisma.course.findMany({ where, orderBy: { sortOrder: 'asc' } });
-    success(res, courses);
+    
+    // 检查是否需要重新分配 sortOrder（所有值都相同的情况）
+    const sortOrders = new Set(courses.map(c => c.sortOrder));
+    if (sortOrders.size <= 1 && courses.length > 0) {
+      // 所有课程的 sortOrder 都相同，需要重新分配
+      await Promise.all(
+        courses.map((course, index) =>
+          prisma.course.update({
+            where: { id: course.id },
+            data: { sortOrder: index }
+          })
+        )
+      );
+      // 重新查询获取更新后的数据
+      const updatedCourses = await prisma.course.findMany({ where, orderBy: { sortOrder: 'asc' } });
+      success(res, updatedCourses);
+    } else {
+      success(res, courses);
+    }
   } catch (e) { next(e); }
 });
 

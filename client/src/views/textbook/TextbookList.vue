@@ -489,20 +489,23 @@ function onImportError(err) {
 async function handleMoveUp(row, index) {
   if (index === 0) return
   
-  const newList = [...list.value]
-  const tempSortOrder = newList[index].sortOrder
-  newList[index].sortOrder = newList[index - 1].sortOrder
-  newList[index - 1].sortOrder = tempSortOrder
+  const currentTextbook = list.value[index]
+  const prevTextbook = list.value[index - 1]
   
-  ;[newList[index], newList[index - 1]] = [newList[index - 1], newList[index]]
+  // 保存原始的 id 和 sortOrder
+  const currentId = currentTextbook.id
+  const prevId = prevTextbook.id
+  const currentSortOrder = currentTextbook.sortOrder
+  const prevSortOrder = prevTextbook.sortOrder
   
   try {
+    // 交换两个教材的 sortOrder
     await Promise.all([
-      updateTextbook(newList[index].id, { sortOrder: newList[index].sortOrder }),
-      updateTextbook(newList[index - 1].id, { sortOrder: newList[index - 1].sortOrder })
+      updateTextbook(currentId, { sortOrder: prevSortOrder }),
+      updateTextbook(prevId, { sortOrder: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
-    list.value = newList
+    await load()
   } catch (e) {
     console.error('排序更新失败:', e)
     ElMessage.error('排序更新失败')
@@ -512,20 +515,23 @@ async function handleMoveUp(row, index) {
 async function handleMoveDown(row, index) {
   if (index === list.value.length - 1) return
   
-  const newList = [...list.value]
-  const tempSortOrder = newList[index].sortOrder
-  newList[index].sortOrder = newList[index + 1].sortOrder
-  newList[index + 1].sortOrder = tempSortOrder
+  const currentTextbook = list.value[index]
+  const nextTextbook = list.value[index + 1]
   
-  ;[newList[index], newList[index + 1]] = [newList[index + 1], newList[index]]
+  // 保存原始的 id 和 sortOrder
+  const currentId = currentTextbook.id
+  const nextId = nextTextbook.id
+  const currentSortOrder = currentTextbook.sortOrder
+  const nextSortOrder = nextTextbook.sortOrder
   
   try {
+    // 交换两个教材的 sortOrder
     await Promise.all([
-      updateTextbook(newList[index].id, { sortOrder: newList[index].sortOrder }),
-      updateTextbook(newList[index + 1].id, { sortOrder: newList[index + 1].sortOrder })
+      updateTextbook(currentId, { sortOrder: nextSortOrder }),
+      updateTextbook(nextId, { sortOrder: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
-    list.value = newList
+    await load()
   } catch (e) {
     console.error('排序更新失败:', e)
     ElMessage.error('排序更新失败')

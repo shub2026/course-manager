@@ -10,7 +10,26 @@ router.get('/', async (req, res, next) => {
       include: { _count: { select: { classes: true } } },
       orderBy: { sortOrder: 'asc' },
     });
-    success(res, levels);
+    
+    // 检查是否需要重新分配 sortOrder
+    const sortOrders = new Set(levels.map(l => l.sortOrder));
+    if (sortOrders.size <= 1 && levels.length > 0) {
+      await Promise.all(
+        levels.map((level, index) =>
+          prisma.trainingLevel.update({
+            where: { id: level.id },
+            data: { sortOrder: index }
+          })
+        )
+      );
+      const updatedLevels = await prisma.trainingLevel.findMany({
+        include: { _count: { select: { classes: true } } },
+        orderBy: { sortOrder: 'asc' },
+      });
+      success(res, updatedLevels);
+    } else {
+      success(res, levels);
+    }
   } catch (e) { next(e); }
 });
 

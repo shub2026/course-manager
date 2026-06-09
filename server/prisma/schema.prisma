@@ -1,21 +1,20 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
 model Major {
-  id          Int      @id @default(autoincrement())
-  name        String
-  code        String?
-  description String?
-  sortOrder   Int      @default(0) @map("sort_order")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
+  id            Int            @id @default(autoincrement())
+  name          String
+  code          String?
+  description   String?
+  sortOrder     Int            @default(0) @map("sort_order")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
   classes       Class[]
   trainingPlans TrainingPlan[]
 
@@ -23,157 +22,149 @@ model Major {
 }
 
 model TrainingLevel {
-  id             Int            @id @default(autoincrement())
-  name           String         @unique
-  code           String?
-  description    String?
-  sortOrder      Int            @default(0) @map("sort_order")
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
-
-  classes        Class[]
-  trainingPlans  TrainingPlan[]
+  id            Int            @id @default(autoincrement())
+  name          String         @unique
+  code          String?
+  description   String?
+  sortOrder     Int            @default(0) @map("sort_order")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  classes       Class[]
+  trainingPlans TrainingPlan[]
 
   @@map("training_levels")
 }
 
 model College {
-  id             Int            @id @default(autoincrement())
-  name           String         @unique
-  code           String?
-  description    String?
-  sortOrder      Int            @default(0) @map("sort_order")
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
-
-  classes        Class[]
-  trainingPlans  TrainingPlan[]
+  id            Int            @id @default(autoincrement())
+  name          String         @unique
+  code          String?
+  description   String?
+  sortOrder     Int            @default(0) @map("sort_order")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  classes       Class[]
+  trainingPlans TrainingPlan[]
 
   @@map("colleges")
 }
 
 model Course {
-  id          Int      @id @default(autoincrement())
+  id          Int          @id @default(autoincrement())
   name        String
   code        String?
-  type        String   @default("public")
+  type        String       @default("public")
   description String?
-  sortOrder   Int      @default(0) @map("sort_order")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
+  sortOrder   Int          @default(0) @map("sort_order")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
   planCourses PlanCourse[]
 
   @@map("courses")
 }
 
 model TrainingPlan {
-  id               Int      @id @default(autoincrement())
-  name             String
-  majorId          Int?     @map("major_id")
-  collegeId        Int?     @map("college_id")
-  trainingLevelId  Int?     @map("training_level_id")
-  version          String?
-  description      String?
-  sortOrder        Int      @default(0) @map("sort_order")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  major           Major?         @relation(fields: [majorId], references: [id])
-  college         College?       @relation(fields: [collegeId], references: [id])
-  trainingLevel   TrainingLevel? @relation(fields: [trainingLevelId], references: [id])
-  planCourses     PlanCourse[]
+  id              Int            @id @default(autoincrement())
+  name            String
+  majorId         Int?           @map("major_id")
+  collegeId       Int?           @map("college_id")
+  trainingLevelId Int?           @map("training_level_id")
+  version         String?
+  description     String?
+  sortOrder       Int            @default(0) @map("sort_order")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
   classes         Class[]        @relation("CustomPlanClasses")
+  planCourses     PlanCourse[]
+  trainingLevel   TrainingLevel? @relation(fields: [trainingLevelId], references: [id])
+  college         College?       @relation(fields: [collegeId], references: [id])
+  major           Major?         @relation(fields: [majorId], references: [id])
 
   @@map("training_plans")
 }
 
 model PlanCourse {
-  id               Int      @id @default(autoincrement())
-  planId           Int      @map("plan_id")
-  courseId         Int      @map("course_id")
-  startSemester    Int      @map("start_semester")
-  endSemester      Int      @map("end_semester")
-  weeklyHours      Float    @map("weekly_hours")
-  weeksPerSemester Int      @default(18) @map("weeks_per_semester")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  plan                TrainingPlan           @relation(fields: [planId], references: [id], onDelete: Cascade)
-  course              Course                 @relation(fields: [courseId], references: [id])
+  id                  Int                  @id @default(autoincrement())
+  planId              Int                  @map("plan_id")
+  courseId            Int                  @map("course_id")
+  startSemester       Int                  @map("start_semester")
+  endSemester         Int                  @map("end_semester")
+  weeklyHours         Float                @map("weekly_hours")
+  weeksPerSemester    Int                  @default(18) @map("weeks_per_semester")
+  sortOrder           Int                  @default(0) @map("sort_order")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
   planCourseSemesters PlanCourseSemester[]
+  course              Course               @relation(fields: [courseId], references: [id])
+  plan                TrainingPlan         @relation(fields: [planId], references: [id], onDelete: Cascade)
 
   @@map("plan_courses")
 }
 
 model PlanCourseSemester {
-  id           Int      @id @default(autoincrement())
-  planCourseId Int      @map("plan_course_id")
+  id           Int            @id @default(autoincrement())
+  planCourseId Int            @map("plan_course_id")
   semester     Int
-  weeklyHours  Float    @map("weekly_hours")
-  weeksCount   Int      @default(18) @map("weeks_count")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  planCourse PlanCourse     @relation(fields: [planCourseId], references: [id], onDelete: Cascade)
-  textbooks  PlanTextbook[]
+  weeklyHours  Float          @map("weekly_hours")
+  weeksCount   Int            @default(18) @map("weeks_count")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  planCourse   PlanCourse     @relation(fields: [planCourseId], references: [id], onDelete: Cascade)
+  textbooks    PlanTextbook[]
 
   @@unique([planCourseId, semester])
   @@map("plan_course_semesters")
 }
 
 model Textbook {
-  id          Int      @id @default(autoincrement())
-  title       String
-  isbn        String?
-  publisher   String?
-  author      String?
-  edition     String?
-  publishDate String?  @map("publish_date")
-  price       Float?
-  category    String?
-  description String?
-  isActive    Boolean  @default(true) @map("is_active")
-  sortOrder   Int      @default(0) @map("sort_order")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
+  id            Int            @id @default(autoincrement())
+  title         String
+  isbn          String?
+  publisher     String?
+  author        String?
+  edition       String?
+  publishDate   String?        @map("publish_date")
+  price         Float?
+  category      String?
+  description   String?
+  isActive      Boolean        @default(true) @map("is_active")
+  sortOrder     Int            @default(0) @map("sort_order")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
   planTextbooks PlanTextbook[]
 
   @@map("textbooks")
 }
 
 model PlanTextbook {
-  id           Int      @id @default(autoincrement())
-  semesterId   Int      @map("semester_id")
-  textbookId   Int      @map("textbook_id")
-  isRequired   Boolean  @default(true) @map("is_required")
-  createdAt    DateTime @default(now()) @map("created_at")
-
-  semester  PlanCourseSemester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
-  textbook  Textbook           @relation(fields: [textbookId], references: [id])
+  id         Int                @id @default(autoincrement())
+  semesterId Int                @map("semester_id")
+  textbookId Int                @map("textbook_id")
+  isRequired Boolean            @default(true) @map("is_required")
+  createdAt  DateTime           @default(now()) @map("created_at")
+  textbook   Textbook           @relation(fields: [textbookId], references: [id])
+  semester   PlanCourseSemester @relation(fields: [semesterId], references: [id], onDelete: Cascade)
 
   @@map("plan_textbooks")
 }
 
 model Class {
-  id               Int      @id @default(autoincrement())
-  name             String
-  enrollmentYear   Int      @map("enrollment_year")
-  durationYears    Int      @map("duration_years")
-  majorId          Int?     @map("major_id")
-  collegeId        Int?     @map("college_id")
-  trainingLevelId  Int?     @map("training_level_id")
-  studentCount     Int      @map("student_count")
-  customPlanId     Int?     @map("custom_plan_id")
-  status           String   @default("active")
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
-
-  major         Major?         @relation(fields: [majorId], references: [id])
-  college       College?       @relation(fields: [collegeId], references: [id])
-  trainingLevel TrainingLevel? @relation(fields: [trainingLevelId], references: [id])
-  customPlan    TrainingPlan?  @relation("CustomPlanClasses", fields: [customPlanId], references: [id])
+  id              Int            @id @default(autoincrement())
+  name            String
+  enrollmentYear  Int            @map("enrollment_year")
+  durationYears   Int            @map("duration_years")
+  majorId         Int?           @map("major_id")
+  collegeId       Int?           @map("college_id")
+  trainingLevelId Int?           @map("training_level_id")
+  studentCount    Int            @map("student_count")
+  customPlanId    Int?           @map("custom_plan_id")
+  status          String         @default("active")
+  createdAt       DateTime       @default(now()) @map("created_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
+  customPlan      TrainingPlan?  @relation("CustomPlanClasses", fields: [customPlanId], references: [id])
+  trainingLevel   TrainingLevel? @relation(fields: [trainingLevelId], references: [id])
+  college         College?       @relation(fields: [collegeId], references: [id])
+  major           Major?         @relation(fields: [majorId], references: [id])
 
   @@map("classes")
 }

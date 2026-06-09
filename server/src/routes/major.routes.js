@@ -10,7 +10,26 @@ router.get('/', async (req, res, next) => {
       include: { _count: { select: { classes: true, trainingPlans: true } } },
       orderBy: { sortOrder: 'asc' },
     });
-    success(res, majors);
+    
+    // 检查是否需要重新分配 sortOrder
+    const sortOrders = new Set(majors.map(m => m.sortOrder));
+    if (sortOrders.size <= 1 && majors.length > 0) {
+      await Promise.all(
+        majors.map((major, index) =>
+          prisma.major.update({
+            where: { id: major.id },
+            data: { sortOrder: index }
+          })
+        )
+      );
+      const updatedMajors = await prisma.major.findMany({
+        include: { _count: { select: { classes: true, trainingPlans: true } } },
+        orderBy: { sortOrder: 'asc' },
+      });
+      success(res, updatedMajors);
+    } else {
+      success(res, majors);
+    }
   } catch (e) { next(e); }
 });
 

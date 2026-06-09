@@ -7,7 +7,23 @@ const router = Router();
 router.get('/', async (req, res, next) => {
   try {
     const textbooks = await prisma.textbook.findMany({ orderBy: { sortOrder: 'asc' } });
-    success(res, textbooks);
+    
+    // 检查是否需要重新分配 sortOrder
+    const sortOrders = new Set(textbooks.map(t => t.sortOrder));
+    if (sortOrders.size <= 1 && textbooks.length > 0) {
+      await Promise.all(
+        textbooks.map((textbook, index) =>
+          prisma.textbook.update({
+            where: { id: textbook.id },
+            data: { sortOrder: index }
+          })
+        )
+      );
+      const updatedTextbooks = await prisma.textbook.findMany({ orderBy: { sortOrder: 'asc' } });
+      success(res, updatedTextbooks);
+    } else {
+      success(res, textbooks);
+    }
   } catch (e) { next(e); }
 });
 

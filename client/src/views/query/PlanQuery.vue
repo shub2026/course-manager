@@ -177,12 +177,13 @@ const groups = computed(() => {
       startSemester: c.startSemester,
       endSemester: c.endSemester,
       semesters: c.planCourseSemesters || [],
+      sortOrder: c.sortOrder ?? 0, // 保存plan_course的排序值
     })
   })
 
-  // 在每个分组内按课程名称排序
-  map.public.sort((a, b) => a.courseName.localeCompare(b.courseName, 'zh-CN'))
-  map.professional.sort((a, b) => a.courseName.localeCompare(b.courseName, 'zh-CN'))
+  // 在每个分组内按 sortOrder 排序
+  map.public.sort((a, b) => a.sortOrder - b.sortOrder)
+  map.professional.sort((a, b) => a.sortOrder - b.sortOrder)
 
   return [
     { type: 'public', label: '公共基础课', courses: map.public },

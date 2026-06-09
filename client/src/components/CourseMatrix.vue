@@ -74,16 +74,34 @@
             </td>
             <!-- 操作按钮 -->
             <td class="matrix-cell matrix-action-cell">
-              <el-button size="small" @click="openSemesterSettings(course)" title="设置学期">
-                <el-icon><Setting /></el-icon>
-              </el-button>
-              <el-popconfirm title="确定删除该课程？" @confirm="$emit('delete-course', course)">
-                <template #reference>
-                  <el-button size="small" type="danger" title="删除课程">
-                    <el-icon><Delete /></el-icon>
-                  </el-button>
-                </template>
-              </el-popconfirm>
+              <div class="action-buttons">
+                <el-button 
+                  size="small" 
+                  :icon="ArrowUp" 
+                  :disabled="isFirstInGroup(course, group)"
+                  @click="handleMoveUp(course, group)"
+                  circle
+                  title="上移"
+                />
+                <el-button 
+                  size="small" 
+                  :icon="ArrowDown" 
+                  :disabled="isLastInGroup(course, group)"
+                  @click="handleMoveDown(course, group)"
+                  circle
+                  title="下移"
+                />
+                <el-button size="small" @click="openSemesterSettings(course)" title="设置学期">
+                  <el-icon><Setting /></el-icon>
+                </el-button>
+                <el-popconfirm title="确定删除该课程？" @confirm="$emit('delete-course', course)">
+                  <template #reference>
+                    <el-button size="small" type="danger" title="删除课程">
+                      <el-icon><Delete /></el-icon>
+                    </el-button>
+                  </template>
+                </el-popconfirm>
+              </div>
             </td>
           </tr>
           <!-- 分组小计 -->
@@ -228,6 +246,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import {
   getPlanCourses,
   createSemester,
@@ -298,7 +317,7 @@ const groups = computed(() => {
       startSemester: c.startSemester,
       endSemester: c.endSemester,
       semesters: c.planCourseSemesters || [],
-      sortOrder: c.course?.sortOrder ?? 0, // 保存课程的排序值
+      sortOrder: c.sortOrder ?? 0, // 保存plan_course的排序值
     })
   })
   
@@ -532,6 +551,90 @@ async function saveSemesterSettings() {
   }
 }
 
+// ==================== 排序功能 ====================
+
+// 判断是否是分组中的第一项
+function isFirstInGroup(course, group) {
+  return group.courses[0]?.id === course.id
+}
+
+// 判断是否是分组中的最后一项
+function isLastInGroup(course, group) {
+  return group.courses[group.courses.length - 1]?.id === course.id
+}
+
+// 上移
+async function handleMoveUp(course, group) {
+  const index = group.courses.findIndex(c => c.id === course.id)
+  if (index <= 0) return
+  
+  const currentCourse = group.courses[index]
+  const prevCourse = group.courses[index - 1]
+  
+  console.log('上移操作:', {
+    currentIndex: index,
+    currentId: currentCourse.id,
+    currentSortOrder: currentCourse.sortOrder,
+    prevId: prevCourse.id,
+    prevSortOrder: prevCourse.sortOrder
+  })
+  
+  // 保存原始的 id 和 sortOrder
+  const currentId = currentCourse.id
+  const prevId = prevCourse.id
+  const currentSortOrder = currentCourse.sortOrder
+  const prevSortOrder = prevCourse.sortOrder
+  
+  try {
+    // 交换两个课程的 sortOrder
+    await Promise.all([
+      updatePlanCourse(currentId, { sortOrder: prevSortOrder }),
+      updatePlanCourse(prevId, { sortOrder: currentSortOrder })
+    ])
+    ElMessage.success('排序已更新')
+    await loadData()
+  } catch (e) {
+    console.error('排序更新失败:', e)
+    ElMessage.error('排序更新失败')
+  }
+}
+
+// 下移
+async function handleMoveDown(course, group) {
+  const index = group.courses.findIndex(c => c.id === course.id)
+  if (index >= group.courses.length - 1) return
+  
+  const currentCourse = group.courses[index]
+  const nextCourse = group.courses[index + 1]
+  
+  console.log('下移操作:', {
+    currentIndex: index,
+    currentId: currentCourse.id,
+    currentSortOrder: currentCourse.sortOrder,
+    nextId: nextCourse.id,
+    nextSortOrder: nextCourse.sortOrder
+  })
+  
+  // 保存原始的 id 和 sortOrder
+  const currentId = currentCourse.id
+  const nextId = nextCourse.id
+  const currentSortOrder = currentCourse.sortOrder
+  const nextSortOrder = nextCourse.sortOrder
+  
+  try {
+    // 交换两个课程的 sortOrder
+    await Promise.all([
+      updatePlanCourse(currentId, { sortOrder: nextSortOrder }),
+      updatePlanCourse(nextId, { sortOrder: currentSortOrder })
+    ])
+    ElMessage.success('排序已更新')
+    await loadData()
+  } catch (e) {
+    console.error('排序更新失败:', e)
+    ElMessage.error('排序更新失败')
+  }
+}
+
 // 加载数据
 async function loadData() {
   if (!props.planId) {
@@ -650,7 +753,7 @@ watch(
 }
 
 .matrix-action-header {
-  min-width: 60px;
+  min-width: 140px;
   text-align: center;
   background: #f5f7fa !important;
 }
@@ -775,6 +878,17 @@ watch(
 .matrix-action-cell {
   text-align: center;
   cursor: default !important;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-buttons .el-button.is-disabled {
+  opacity: 0.4;
 }
 
 .matrix-action-cell .el-button {

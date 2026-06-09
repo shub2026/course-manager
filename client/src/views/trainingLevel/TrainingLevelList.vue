@@ -125,20 +125,21 @@ async function handleDelete(id) {
 async function handleMoveUp(row, index) {
   if (index === 0) return
   
-  const newList = [...list.value]
-  const tempSortOrder = newList[index].sortOrder
-  newList[index].sortOrder = newList[index - 1].sortOrder
-  newList[index - 1].sortOrder = tempSortOrder
+  const currentLevel = list.value[index]
+  const prevLevel = list.value[index - 1]
   
-  ;[newList[index], newList[index - 1]] = [newList[index - 1], newList[index]]
+  const currentId = currentLevel.id
+  const prevId = prevLevel.id
+  const currentSortOrder = currentLevel.sortOrder
+  const prevSortOrder = prevLevel.sortOrder
   
   try {
     await Promise.all([
-      updateTrainingLevel(newList[index].id, { sortOrder: newList[index].sortOrder }),
-      updateTrainingLevel(newList[index - 1].id, { sortOrder: newList[index - 1].sortOrder })
+      updateTrainingLevel(currentId, { sortOrder: prevSortOrder }),
+      updateTrainingLevel(prevId, { sortOrder: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
-    list.value = newList
+    await load()
   } catch (e) {
     console.error('排序更新失败:', e)
     ElMessage.error('排序更新失败')
@@ -148,20 +149,21 @@ async function handleMoveUp(row, index) {
 async function handleMoveDown(row, index) {
   if (index === list.value.length - 1) return
   
-  const newList = [...list.value]
-  const tempSortOrder = newList[index].sortOrder
-  newList[index].sortOrder = newList[index + 1].sortOrder
-  newList[index + 1].sortOrder = tempSortOrder
+  const currentLevel = list.value[index]
+  const nextLevel = list.value[index + 1]
   
-  ;[newList[index], newList[index + 1]] = [newList[index + 1], newList[index]]
+  const currentId = currentLevel.id
+  const nextId = nextLevel.id
+  const currentSortOrder = currentLevel.sortOrder
+  const nextSortOrder = nextLevel.sortOrder
   
   try {
     await Promise.all([
-      updateTrainingLevel(newList[index].id, { sortOrder: newList[index].sortOrder }),
-      updateTrainingLevel(newList[index + 1].id, { sortOrder: newList[index + 1].sortOrder })
+      updateTrainingLevel(currentId, { sortOrder: nextSortOrder }),
+      updateTrainingLevel(nextId, { sortOrder: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
-    list.value = newList
+    await load()
   } catch (e) {
     console.error('排序更新失败:', e)
     ElMessage.error('排序更新失败')

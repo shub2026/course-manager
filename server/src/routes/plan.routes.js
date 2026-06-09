@@ -15,43 +15,81 @@ router.get('/', async (req, res, next) => {
       orderBy: { sortOrder: 'asc' },
     });
 
-    const plansWithCount = await Promise.all(plans.map(async (plan) => {
-      // 1. 统计明确指定该方案为特殊方案的班级
-      const customClassCount = await prisma.class.count({
-        where: { customPlanId: plan.id },
+    // 检查是否需要重新分配 sortOrder
+    const sortOrders = new Set(plans.map(p => p.sortOrder));
+    if (sortOrders.size <= 1 && plans.length > 0) {
+      await Promise.all(
+        plans.map((plan, index) =>
+          prisma.trainingPlan.update({
+            where: { id: plan.id },
+            data: { sortOrder: index }
+          })
+        )
+      );
+      // 重新查询获取更新后的数据
+      const updatedPlans = await prisma.trainingPlan.findMany({
+        include: {
+          major: { select: { id: true, name: true } },
+          trainingLevel: { select: { id: true, name: true } },
+          planCourses: { select: { id: true } },
+        },
+        orderBy: { sortOrder: 'asc' },
       });
       
-      // 2. 统计通过默认匹配且未指定特殊方案的班级
-      let defaultClassCount = 0;
-      
-      if (plan.majorId) {
-        // 按专业匹配：统计该专业且未指定特殊方案的班级
-        defaultClassCount = await prisma.class.count({
-          where: { 
-            majorId: plan.majorId,
-            customPlanId: null,
-          },
+      const plansWithCount = await Promise.all(updatedPlans.map(async (plan) => {
+        const customClassCount = await prisma.class.count({
+          where: { customPlanId: plan.id },
         });
-      } else if (plan.trainingLevelId) {
-        // 按培养层次匹配：统计该层次且未指定特殊方案的班级
-        defaultClassCount = await prisma.class.count({
-          where: { 
-            trainingLevelId: plan.trainingLevelId,
-            customPlanId: null,
+        
+        let defaultClassCount = 0;
+        if (plan.majorId) {
+          defaultClassCount = await prisma.class.count({
+            where: { majorId: plan.majorId, customPlanId: null },
+          });
+        } else if (plan.trainingLevelId) {
+          defaultClassCount = await prisma.class.count({
+            where: { trainingLevelId: plan.trainingLevelId, customPlanId: null },
+          });
+        }
+        
+        return {
+          ...plan,
+          _count: {
+            planCourses: plan.planCourses.length,
+            classes: customClassCount + defaultClassCount,
           },
-        });
-      }
+        };
+      }));
       
-      return {
-        ...plan,
-        _count: {
-          planCourses: plan.planCourses.length,
-          classes: customClassCount + defaultClassCount,
-        },
-      };
-    }));
-
-    success(res, plansWithCount);
+      success(res, plansWithCount);
+    } else {
+      const plansWithCount = await Promise.all(plans.map(async (plan) => {
+        const customClassCount = await prisma.class.count({
+          where: { customPlanId: plan.id },
+        });
+        
+        let defaultClassCount = 0;
+        if (plan.majorId) {
+          defaultClassCount = await prisma.class.count({
+            where: { majorId: plan.majorId, customPlanId: null },
+          });
+        } else if (plan.trainingLevelId) {
+          defaultClassCount = await prisma.class.count({
+            where: { trainingLevelId: plan.trainingLevelId, customPlanId: null },
+          });
+        }
+        
+        return {
+          ...plan,
+          _count: {
+            planCourses: plan.planCourses.length,
+            classes: customClassCount + defaultClassCount,
+          },
+        };
+      }));
+      
+      success(res, plansWithCount);
+    }
   } catch (e) { next(e); }
 });
 
@@ -167,9 +205,44 @@ router.get('/:id/courses', async (req, res, next) => {
           orderBy: { semester: 'asc' },
         },
       },
-      orderBy: { startSemester: 'asc' },
+      orderBy: [
+        { sortOrder: 'asc' },
+        { id: 'asc' }
+      ],
     });
-    success(res, courses);
+
+    // 检查是否需要重新分配 sortOrder（所有值都相同的情况）
+    const sortOrders = new Set(courses.map(c => c.sortOrder));
+    if (sortOrders.size <= 1) {
+      // 所有课程的 sortOrder 都相同，需要重新分配
+      await Promise.all(
+        courses.map((course, index) =>
+          prisma.planCourse.update({
+            where: { id: course.id },
+            data: { sortOrder: index }
+          })
+        )
+      );
+      // 重新查询获取更新后的数据
+      const updatedCourses = await prisma.planCourse.findMany({
+        where: { planId: Number(id) },
+        include: {
+          course: { select: { id: true, name: true, code: true, type: true } },
+          planCourseSemesters: {
+            include: {
+              textbooks: {
+                include: { textbook: { select: { id: true, title: true, isbn: true, publisher: true } } },
+              },
+            },
+            orderBy: { semester: 'asc' },
+          },
+        },
+        orderBy: { sortOrder: 'asc' },
+      });
+      success(res, updatedCourses);
+    } else {
+      success(res, courses);
+    }
   } catch (e) { next(e); }
 });
 
@@ -225,7 +298,7 @@ router.post('/:id/courses', async (req, res, next) => {
 router.put('/courses/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { startSemester, endSemester, weeklyHours, weeksPerSemester } = req.body;
+    const { startSemester, endSemester, weeklyHours, weeksPerSemester, sortOrder } = req.body;
 
     // 先获取当前课程信息
     const currentPc = await prisma.planCourse.findUnique({
@@ -242,6 +315,7 @@ router.put('/courses/:id', async (req, res, next) => {
     const newEnd = endSemester !== undefined ? Number(endSemester) : currentPc.endSemester;
     const newWeeklyHours = weeklyHours !== undefined ? Number(weeklyHours) : currentPc.weeklyHours;
     const newWeeksPerSemester = weeksPerSemester !== undefined ? Number(weeksPerSemester) : currentPc.weeksPerSemester;
+    const newSortOrder = sortOrder !== undefined ? Number(sortOrder) : currentPc.sortOrder;
 
     // 使用事务确保数据一致性
     const pc = await prisma.$transaction(async (tx) => {
@@ -252,6 +326,8 @@ router.put('/courses/:id', async (req, res, next) => {
           startSemester: newStart,
           endSemester: newEnd,
           weeklyHours: newWeeklyHours,
+          weeksPerSemester: newWeeksPerSemester,
+          sortOrder: newSortOrder,
           weeksPerSemester: newWeeksPerSemester,
         },
         include: { course: true },

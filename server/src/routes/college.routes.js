@@ -10,7 +10,26 @@ router.get('/', async (req, res, next) => {
       include: { _count: { select: { classes: true } } },
       orderBy: { sortOrder: 'asc' },
     });
-    success(res, colleges);
+    
+    // 检查是否需要重新分配 sortOrder
+    const sortOrders = new Set(colleges.map(c => c.sortOrder));
+    if (sortOrders.size <= 1 && colleges.length > 0) {
+      await Promise.all(
+        colleges.map((college, index) =>
+          prisma.college.update({
+            where: { id: college.id },
+            data: { sortOrder: index }
+          })
+        )
+      );
+      const updatedColleges = await prisma.college.findMany({
+        include: { _count: { select: { classes: true } } },
+        orderBy: { sortOrder: 'asc' },
+      });
+      success(res, updatedColleges);
+    } else {
+      success(res, colleges);
+    }
   } catch (e) { next(e); }
 });
 

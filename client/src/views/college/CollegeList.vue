@@ -125,20 +125,21 @@ async function handleDelete(id) {
 async function handleMoveUp(row, index) {
   if (index === 0) return
   
-  const newList = [...list.value]
-  const tempSortOrder = newList[index].sortOrder
-  newList[index].sortOrder = newList[index - 1].sortOrder
-  newList[index - 1].sortOrder = tempSortOrder
+  const currentCollege = list.value[index]
+  const prevCollege = list.value[index - 1]
   
-  ;[newList[index], newList[index - 1]] = [newList[index - 1], newList[index]]
+  const currentId = currentCollege.id
+  const prevId = prevCollege.id
+  const currentSortOrder = currentCollege.sortOrder
+  const prevSortOrder = prevCollege.sortOrder
   
   try {
     await Promise.all([
-      updateCollege(newList[index].id, { sortOrder: newList[index].sortOrder }),
-      updateCollege(newList[index - 1].id, { sortOrder: newList[index - 1].sortOrder })
+      updateCollege(currentId, { sortOrder: prevSortOrder }),
+      updateCollege(prevId, { sortOrder: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
-    list.value = newList
+    await load()
   } catch (e) {
     console.error('排序更新失败:', e)
     ElMessage.error('排序更新失败')
@@ -148,20 +149,21 @@ async function handleMoveUp(row, index) {
 async function handleMoveDown(row, index) {
   if (index === list.value.length - 1) return
   
-  const newList = [...list.value]
-  const tempSortOrder = newList[index].sortOrder
-  newList[index].sortOrder = newList[index + 1].sortOrder
-  newList[index + 1].sortOrder = tempSortOrder
+  const currentCollege = list.value[index]
+  const nextCollege = list.value[index + 1]
   
-  ;[newList[index], newList[index + 1]] = [newList[index + 1], newList[index]]
+  const currentId = currentCollege.id
+  const nextId = nextCollege.id
+  const currentSortOrder = currentCollege.sortOrder
+  const nextSortOrder = nextCollege.sortOrder
   
   try {
     await Promise.all([
-      updateCollege(newList[index].id, { sortOrder: newList[index].sortOrder }),
-      updateCollege(newList[index + 1].id, { sortOrder: newList[index + 1].sortOrder })
+      updateCollege(currentId, { sortOrder: nextSortOrder }),
+      updateCollege(nextId, { sortOrder: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
-    list.value = newList
+    await load()
   } catch (e) {
     console.error('排序更新失败:', e)
     ElMessage.error('排序更新失败')
