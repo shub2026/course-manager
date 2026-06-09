@@ -167,6 +167,22 @@
               <p>所有重置操作都会记录在操作日志中，可在<router-link to="/audit-logs">操作日志</router-link>页面查看历史记录。</p>
             </div>
           </div>
+
+          <el-divider />
+
+          <div class="tip-item tip-primary">
+            <div class="tip-icon">📅</div>
+            <div class="tip-content">
+              <strong>当前学期设置说明</strong>
+              <p>系统设置中的"当前学期"用于：</p>
+              <ul class="feature-list">
+                <li>自动计算班级的在读年级和学期</li>
+                <li>确定培养方案中哪些课程在当前学期开课</li>
+                <li>查询和导出当前学期的开课情况和教材使用情况</li>
+              </ul>
+              <p class="highlight-tip">建议每学期开始时更新此设置，确保数据准确。</p>
+            </div>
+          </div>
         </div>
       </el-card>
     </div>
@@ -483,6 +499,11 @@ onMounted(load)
   background: #f0f9ff;
 }
 
+.tip-item.tip-primary {
+  border-left-color: #409eff;
+  background: #ecf5ff;
+}
+
 .tip-icon {
   font-size: 20px;
   line-height: 1;
@@ -529,6 +550,31 @@ onMounted(load)
   color: #409eff;
   font-weight: 500;
   margin-right: 4px;
+}
+
+/* 功能列表 */
+.feature-list {
+  margin: 8px 0;
+  padding: 0 0 0 18px;
+  list-style: disc;
+}
+
+.feature-list li {
+  padding: 3px 0;
+  font-size: 13px;
+  color: #606266;
+  line-height: 1.6;
+}
+
+.highlight-tip {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #fef0f0;
+  border-left: 3px solid #f56c6c;
+  border-radius: 4px;
+  color: #f56c6c;
+  font-weight: 500;
+  font-size: 13px;
 }
 
 /* 颜色图例 */
