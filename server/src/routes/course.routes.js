@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { roleMiddleware } from '../middleware/auth.middleware.js';
+import { createAuditLog } from '../services/audit.service.js';
 
 const router = Router();
 
@@ -41,8 +42,30 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
     const course = await prisma.course.create({
       data: { name, code, type: type || 'public', description, sortOrder: sortOrder ?? 0 },
     });
+
+    await createAuditLog({
+      action: 'create',
+      module: 'course',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { id: course.id, name, code },
+      result: 'success',
+      message: `创建课程：${name}`
+    });
+
     success(res, course, '创建成功');
-  } catch (e) { next(e); }
+  } catch (e) {
+    await createAuditLog({
+      action: 'create',
+      module: 'course',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: req.body,
+      result: 'failed',
+      message: `创建课程失败：${e.message}`
+    });
+    next(e);
+  }
 });
 
 router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
@@ -54,8 +77,28 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
         where: { id: Number(id) },
         data: { name, code, type, description, sortOrder: sortOrder ?? 0 },
       });
+
+      await createAuditLog({
+        action: 'update',
+        module: 'course',
+        userId: req.user?.id,
+        ip: req.ip,
+        details: { id: course.id, name, code },
+        result: 'success',
+        message: `更新课程：${name}`
+      });
+
       success(res, course, '更新成功');
     } catch (e) {
+      await createAuditLog({
+        action: 'update',
+        module: 'course',
+        userId: req.user?.id,
+        ip: req.ip,
+        details: { id, ...req.body },
+        result: 'failed',
+        message: `更新课程失败：${e.message}`
+      });
       if (e.code === 'P2025') return fail(res, '课程不存在', 404);
       throw e;
     }
@@ -68,9 +111,31 @@ router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, n
     const planCount = await prisma.planCourse.count({ where: { courseId: Number(id) } });
     if (planCount > 0) return fail(res, '该课程已被培养方案使用，无法删除');
     try {
+      // 先获取课程信息用于日志记录
+      const course = await prisma.course.findUnique({ where: { id: Number(id) } });
       await prisma.course.delete({ where: { id: Number(id) } });
+
+      await createAuditLog({
+        action: 'delete',
+        module: 'course',
+        userId: req.user?.id,
+        ip: req.ip,
+        details: { id: Number(id), name: course?.name },
+        result: 'success',
+        message: `删除课程：${course?.name}`
+      });
+
       success(res, null, '删除成功');
     } catch (e) {
+      await createAuditLog({
+        action: 'delete',
+        module: 'course',
+        userId: req.user?.id,
+        ip: req.ip,
+        details: { id: Number(id) },
+        result: 'failed',
+        message: `删除课程失败：${e.message}`
+      });
       if (e.code === 'P2025') return fail(res, '课程不存在', 404);
       throw e;
     }

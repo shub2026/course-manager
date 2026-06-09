@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { roleMiddleware } from '../middleware/auth.middleware.js';
+import { createAuditLog } from '../services/audit.service.js';
 
 const router = Router();
 
@@ -128,8 +129,28 @@ router.post('/', async (req, res, next) => {
         trainingLevel: true,
       },
     });
+    
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'create',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'success',
+      details: `创建培养方案: ${plan.name}`,
+    });
+    
     success(res, plan, '创建成功');
-  } catch (e) { next(e); }
+  } catch (e) {
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'create',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      details: `创建培养方案失败: ${e.message}`,
+    });
+    next(e);
+  }
 });
 
 router.put('/:id', async (req, res, next) => {
@@ -167,12 +188,32 @@ router.put('/:id', async (req, res, next) => {
           trainingLevel: true,
         },
       });
+      
+      await createAuditLog({
+        module: 'trainingPlan',
+        action: 'update',
+        userId: req.user?.id,
+        ip: req.ip,
+        result: 'success',
+        details: `更新培养方案: ${plan.name}`,
+      });
+      
       success(res, plan, '更新成功');
     } catch (e) {
       if (e.code === 'P2025') return fail(res, '方案不存在', 404);
       throw e;
     }
-  } catch (e) { next(e); }
+  } catch (e) {
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'update',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      details: `更新培养方案失败: ${e.message}`,
+    });
+    next(e);
+  }
 });
 
 router.delete('/:id', async (req, res, next) => {
@@ -182,12 +223,32 @@ router.delete('/:id', async (req, res, next) => {
     if (classCount > 0) return fail(res, '该方案已被班级使用，无法删除');
     try {
       await prisma.trainingPlan.delete({ where: { id: Number(id) } });
+      
+      await createAuditLog({
+        module: 'trainingPlan',
+        action: 'delete',
+        userId: req.user?.id,
+        ip: req.ip,
+        result: 'success',
+        details: `删除培养方案 ID: ${id}`,
+      });
+      
       success(res, null, '删除成功');
     } catch (e) {
       if (e.code === 'P2025') return fail(res, '方案不存在', 404);
       throw e;
     }
-  } catch (e) { next(e); }
+  } catch (e) {
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'delete',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      details: `删除培养方案失败: ${e.message}`,
+    });
+    next(e);
+  }
 });
 
 // === 方案课程明细（含学期记录） ===
@@ -289,8 +350,28 @@ router.post('/:id/courses', roleMiddleware('admin', 'super_admin'), async (req, 
       return created;
     });
 
+    
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'create',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'success',
+      message: '为培养方案添加课程',
+      details: `为培养方案添加课程 ID: ${pc.courseId}`,
+    });
+    
     success(res, pc, '添加成功');
   } catch (e) { 
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'create',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: '为培养方案添加课程失败',
+      details: `为培养方案添加课程失败: ${e.message}`,
+    });
     // 如果是唯一约束冲突,返回友好提示
     if (e.code === 'P2002') {
       return fail(res, '该课程已在该方案中存在', 400);
@@ -357,8 +438,28 @@ router.put('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req, r
       return updated;
     });
 
+    
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'update',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'success',
+      message: '更新培养方案课程',
+      details: `更新培养方案课程 ID: ${pc.id}`,
+    });
+    
     success(res, pc, '更新成功');
   } catch (e) {
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'update',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: '更新培养方案课程失败',
+      details: `更新培养方案课程失败: ${e.message}`,
+    });
     if (e.code === 'P2025') return fail(res, '方案课程不存在', 404);
     next(e);
   }
@@ -369,12 +470,34 @@ router.delete('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req
     const { id } = req.params;
     try {
       await prisma.planCourse.delete({ where: { id: Number(id) } });
+      
+      await createAuditLog({
+        module: 'trainingPlan',
+        action: 'delete',
+        userId: req.user?.id,
+        ip: req.ip,
+        result: 'success',
+        message: '删除培养方案课程',
+        details: `删除培养方案课程 ID: ${id}`,
+      });
+      
       success(res, null, '删除成功');
     } catch (e) {
       if (e.code === 'P2025') return fail(res, '方案课程不存在', 404);
       throw e;
     }
-  } catch (e) { next(e); }
+  } catch (e) {
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'delete',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: '删除培养方案课程失败',
+      details: `删除培养方案课程失败: ${e.message}`,
+    });
+    next(e);
+  }
 });
 
 // === 学期明细操作 ===
@@ -420,8 +543,28 @@ router.post('/:planId/courses/:courseId/semesters', roleMiddleware('admin', 'sup
       },
     });
 
+    
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'create',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'success',
+      message: '添加学期安排',
+      details: `为课程 ID: ${courseId} 添加学期 ${semester} 安排`,
+    });
+    
     success(res, sem, '创建成功');
   } catch (e) {
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'create',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: '添加学期安排失败',
+      details: `添加学期安排失败: ${e.message}`,
+    });
     next(e);
   }
 });
@@ -438,8 +581,28 @@ router.put('/semesters/:id', roleMiddleware('admin', 'super_admin'), async (req,
       where: { id: Number(id) },
       data,
     });
+    
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'update',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'success',
+      message: '更新学期安排',
+      details: `更新学期安排 ID: ${id}`,
+    });
+    
     success(res, sem, '更新成功');
   } catch (e) {
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'update',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: '更新学期安排失败',
+      details: `更新学期安排失败: ${e.message}`,
+    });
     if (e.code === 'P2025') return fail(res, '学期记录不存在', 404);
     next(e);
   }
@@ -490,8 +653,30 @@ router.post('/semesters/:id/textbooks', roleMiddleware('admin', 'super_admin'), 
       },
       include: { textbook: true },
     });
+    
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'create',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'success',
+      message: '添加教材',
+      details: `为学期 ID: ${id} 添加教材 ID: ${textbookId}`,
+    });
+    
     success(res, pt, '关联成功');
-  } catch (e) { next(e); }
+  } catch (e) {
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'create',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: '添加教材失败',
+      details: `添加教材失败: ${e.message}`,
+    });
+    next(e);
+  }
 });
 
 router.delete('/semesters/:id/textbooks', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
@@ -500,8 +685,30 @@ router.delete('/semesters/:id/textbooks', roleMiddleware('admin', 'super_admin')
     await prisma.planTextbook.deleteMany({
       where: { semesterId: Number(id) },
     });
+    
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'delete',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'success',
+      message: '删除教材',
+      details: `删除学期 ID: ${id} 的教材`,
+    });
+    
     success(res, null, '取消关联成功');
-  } catch (e) { next(e); }
+  } catch (e) {
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'delete',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: '删除教材失败',
+      details: `删除教材失败: ${e.message}`,
+    });
+    next(e);
+  }
 });
 
 router.delete('/textbooks/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
@@ -509,12 +716,34 @@ router.delete('/textbooks/:id', roleMiddleware('admin', 'super_admin'), async (r
     const { id } = req.params;
     try {
       await prisma.planTextbook.delete({ where: { id: Number(id) } });
+      
+      await createAuditLog({
+        module: 'trainingPlan',
+        action: 'delete',
+        userId: req.user?.id,
+        ip: req.ip,
+        result: 'success',
+        message: '删除培养方案教材',
+        details: `删除培养方案教材 ID: ${id}`,
+      });
+      
       success(res, null, '取消关联成功');
     } catch (e) {
       if (e.code === 'P2025') return fail(res, '教材关联不存在', 404);
       throw e;
     }
-  } catch (e) { next(e); }
+  } catch (e) {
+    await createAuditLog({
+      module: 'trainingPlan',
+      action: 'delete',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: '删除培养方案教材失败',
+      details: `删除培养方案教材失败: ${e.message}`,
+    });
+    next(e);
+  }
 });
 
 export default router;

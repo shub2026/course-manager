@@ -267,6 +267,7 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
     await createAuditLog({
       action: 'import',
       module: 'class',
+      userId: req.user?.id,
       details: {
         total: rows.length,
         imported,
@@ -291,6 +292,7 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
     await createAuditLog({
       action: 'import',
       module: 'class',
+      userId: req.user?.id,
       result: 'failed',
       message: `班级导入失败: ${e.message}`,
     });
@@ -390,6 +392,7 @@ router.post('/courses', upload.single('file'), async (req, res, next) => {
     await createAuditLog({
       action: 'import',
       module: 'course',
+      userId: req.user?.id,
       details: {
         total: rows.length,
         imported,
@@ -409,6 +412,7 @@ router.post('/courses', upload.single('file'), async (req, res, next) => {
     await createAuditLog({
       action: 'import',
       module: 'course',
+      userId: req.user?.id,
       result: 'failed',
       message: `课程导入失败: ${e.message}`,
     });
@@ -526,6 +530,7 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
     await createAuditLog({
       action: 'import',
       module: 'textbook',
+      userId: req.user?.id,
       details: {
         total: rows.length,
         imported,
@@ -545,6 +550,7 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
     await createAuditLog({
       action: 'import',
       module: 'textbook',
+      userId: req.user?.id,
       result: 'failed',
       message: `教材导入失败: ${e.message}`,
     });

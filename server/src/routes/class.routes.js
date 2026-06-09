@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { getCurrentSemesterInfo } from '../services/settings.service.js';
+import { createAuditLog } from '../services/audit.service.js';
 
 const router = Router();
 
@@ -194,14 +195,14 @@ router.post('/', async (req, res, next) => {
     if (!name || !enrollmentYear || !durationYears || !trainingLevelId) {
       return fail(res, '班级名称、入学年份、学制、培养层次为必填项');
     }
-    
+
     // 如果未提供状态，则根据入学年份和学制自动计算
     let autoStatus = status;
     if (!autoStatus) {
       const semesterInfo = await getCurrentSemesterInfo();
       autoStatus = calculateClassStatus(Number(enrollmentYear), Number(durationYears), semesterInfo);
     }
-    
+
     const cls = await prisma.class.create({
       data: {
         name,
@@ -216,8 +217,30 @@ router.post('/', async (req, res, next) => {
       },
       include: { major: true, college: true, trainingLevel: true, customPlan: true },
     });
+
+    await createAuditLog({
+      action: 'create',
+      module: 'class',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { id: cls.id, name },
+      result: 'success',
+      message: `创建班级：${name}`
+    });
+
     success(res, cls, '创建成功');
-  } catch (e) { next(e); }
+  } catch (e) {
+    await createAuditLog({
+      action: 'create',
+      module: 'class',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: req.body,
+      result: 'failed',
+      message: `创建班级失败：${e.message}`
+    });
+    next(e);
+  }
 });
 
 router.put('/:id', async (req, res, next) => {
@@ -228,14 +251,14 @@ router.put('/:id', async (req, res, next) => {
       // 获取当前班级信息
       const currentClass = await prisma.class.findUnique({ where: { id: Number(id) } });
       if (!currentClass) return fail(res, '班级不存在', 404);
-      
+
       // 始终根据入学年份和学制自动计算状态，忽略前端传来的status
       // 这样可以确保状态始终与当前的学期配置保持一致
       const calcEnrollmentYear = enrollmentYear ? Number(enrollmentYear) : currentClass.enrollmentYear;
       const calcDurationYears = durationYears ? Number(durationYears) : currentClass.durationYears;
       const semesterInfo = await getCurrentSemesterInfo();
       const autoStatus = calculateClassStatus(calcEnrollmentYear, calcDurationYears, semesterInfo);
-      
+
       const cls = await prisma.class.update({
         where: { id: Number(id) },
         data: {
@@ -251,8 +274,28 @@ router.put('/:id', async (req, res, next) => {
         },
         include: { major: true, college: true, trainingLevel: true, customPlan: true },
       });
+
+      await createAuditLog({
+        action: 'update',
+        module: 'class',
+        userId: req.user?.id,
+        ip: req.ip,
+        details: { id: cls.id, name },
+        result: 'success',
+        message: `更新班级：${name}`
+      });
+
       success(res, cls, '更新成功');
     } catch (e) {
+      await createAuditLog({
+        action: 'update',
+        module: 'class',
+        userId: req.user?.id,
+        ip: req.ip,
+        details: { id, ...req.body },
+        result: 'failed',
+        message: `更新班级失败：${e.message}`
+      });
       if (e.code === 'P2025') return fail(res, '班级不存在', 404);
       throw e;
     }
@@ -263,9 +306,31 @@ router.delete('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     try {
+      // 先获取班级信息用于日志记录
+      const cls = await prisma.class.findUnique({ where: { id: Number(id) } });
       await prisma.class.delete({ where: { id: Number(id) } });
+
+      await createAuditLog({
+        action: 'delete',
+        module: 'class',
+        userId: req.user?.id,
+        ip: req.ip,
+        details: { id: Number(id), name: cls?.name },
+        result: 'success',
+        message: `删除班级：${cls?.name}`
+      });
+
       success(res, null, '删除成功');
     } catch (e) {
+      await createAuditLog({
+        action: 'delete',
+        module: 'class',
+        userId: req.user?.id,
+        ip: req.ip,
+        details: { id: Number(id) },
+        result: 'failed',
+        message: `删除班级失败：${e.message}`
+      });
       if (e.code === 'P2025') return fail(res, '班级不存在', 404);
       throw e;
     }

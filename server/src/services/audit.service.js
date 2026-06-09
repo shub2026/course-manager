@@ -5,19 +5,19 @@ import { prisma } from '../lib/prisma.js';
  * @param {Object} params - 日志参数
  * @param {string} params.action - 操作类型：import, export, create, update, delete
  * @param {string} params.module - 模块名称：class, course, textbook, major, college, trainingPlan, system
- * @param {string} [params.operator] - 操作人
+ * @param {number} [params.userId] - 操作人ID
  * @param {string} [params.ip] - IP地址
  * @param {Object|string} [params.details] - 操作详情（对象或JSON字符串）
  * @param {string} params.result - 结果：success, failed
  * @param {string} [params.message] - 消息
  */
-export async function createAuditLog({ action, module, operator, ip, details, result, message }) {
+export async function createAuditLog({ action, module, userId, ip, details, result, message }) {
   try {
     await prisma.auditLog.create({
       data: {
         action,
         module,
-        operator: operator || null,
+        operatorId: userId || null,
         ip: ip || null,
         details: typeof details === 'object' ? JSON.stringify(details) : details,
         result,

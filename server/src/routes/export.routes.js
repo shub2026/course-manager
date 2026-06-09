@@ -62,6 +62,7 @@ router.get('/template/:type', async (req, res, next) => {
     await createAuditLog({
       action: 'export',
       module: 'system',
+      userId: req.user?.id,
       details: { type },
       result: 'success',
       message: `下载${type}导入模板`,
@@ -75,6 +76,7 @@ router.get('/template/:type', async (req, res, next) => {
     await createAuditLog({
       action: 'export',
       module: 'system',
+      userId: req.user?.id,
       details: { type },
       result: 'failed',
       message: `下载模板失败: ${e.message}`,
@@ -256,6 +258,7 @@ router.get('/semester', async (req, res, next) => {
     await createAuditLog({
       action: 'export',
       module: 'system',
+      userId: req.user?.id,
       details: { semester: semesterInfo.label, rowCount: rows.length },
       result: 'success',
       message: `导出${semesterInfo.label}开课情况，共${rows.length}条记录`,
@@ -269,6 +272,7 @@ router.get('/semester', async (req, res, next) => {
     await createAuditLog({
       action: 'export',
       module: 'system',
+      userId: req.user?.id,
       result: 'failed',
       message: `导出开课情况失败: ${e.message}`,
     });
@@ -378,6 +382,7 @@ router.get('/textbook/:id', async (req, res, next) => {
     await createAuditLog({
       action: 'export',
       module: 'textbook',
+      userId: req.user?.id,
       details: { textbookId: Number(id), textbookTitle: textbook.title, rowCount: rows.length },
       result: 'success',
       message: `导出教材"${textbook.title}"使用情况，共${rows.length}条记录`,
@@ -391,6 +396,7 @@ router.get('/textbook/:id', async (req, res, next) => {
     await createAuditLog({
       action: 'export',
       module: 'textbook',
+      userId: req.user?.id,
       details: { textbookId: Number(req.params.id) },
       result: 'failed',
       message: `导出教材使用情况失败: ${e.message}`,
