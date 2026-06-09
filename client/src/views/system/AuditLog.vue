@@ -31,9 +31,6 @@
           <el-option label="成功" value="success" />
           <el-option label="失败" value="failed" />
         </el-select>
-        <el-button type="primary" @click="loadLogs">
-          <el-icon><Search /></el-icon> 查询
-        </el-button>
         <el-button @click="resetFilters">
           <el-icon><Refresh /></el-icon> 重置
         </el-button>
