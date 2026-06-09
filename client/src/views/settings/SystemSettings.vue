@@ -126,19 +126,6 @@
               </el-button>
             </div>
           </div>
-
-          <el-divider />
-
-          <!-- 清空操作日志 -->
-          <div class="reset-section">
-            <h4 class="section-title">清空操作日志</h4>
-            <div class="reset-single">
-              <el-button type="danger" plain @click="showResetDialog('audit-logs')" :loading="resetting">
-                <el-icon><Delete /></el-icon>
-                <span>清空操作日志</span>
-              </el-button>
-            </div>
-          </div>
         </el-card>
       </div>
 
@@ -305,8 +292,7 @@ const confirmTextMap = {
   textbooks: '请输入"清空教材"以确认操作',
   classes: '请输入"清空班级"以确认操作',
   plans: '请输入"清空培养方案"以确认操作',
-  settings: '请输入"清空系统设置"以确认操作',
-  'audit-logs': '请输入"清空操作日志"以确认操作'
+  settings: '请输入"清空系统设置"以确认操作'
 }
 
 const confirmText = computed(() => confirmTextMap[resetType.value] || '')
@@ -320,8 +306,7 @@ const cascadeInfoMap = {
   textbooks: '此操作将同时清空培养方案中的教材关联',
   classes: '此操作仅清空班级数据，不影响其他数据',
   plans: '此操作仅清空培养方案，不影响基础数据',
-  settings: '此操作仅清空系统设置，清空后需要重新配置',
-  'audit-logs': '此操作将永久删除所有操作日志记录，请谨慎操作'
+  settings: '此操作仅清空系统设置，清空后需要重新配置'
 }
 
 const cascadeInfo = computed(() => cascadeInfoMap[resetType.value] || '')
@@ -335,8 +320,7 @@ const canConfirm = computed(() => {
     textbooks: '清空教材',
     classes: '清空班级',
     plans: '清空培养方案',
-    settings: '清空系统设置',
-    'audit-logs': '清空操作日志'
+    settings: '清空系统设置'
   }
   return confirmInput.value === expectedText[resetType.value]
 })
@@ -379,8 +363,7 @@ async function handleReset() {
       textbooks: '/settings/reset/textbooks',
       classes: '/settings/reset/classes',
       plans: '/settings/reset/plans',
-      settings: '/settings/reset/settings',
-      'audit-logs': '/settings/reset/audit-logs'
+      settings: '/settings/reset/settings'
     }
 
     await request.post(endpoints[resetType.value])

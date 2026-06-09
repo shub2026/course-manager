@@ -2,7 +2,12 @@
   <div>
     <el-card>
       <template #header>
-        <span>操作日志</span>
+        <div class="card-header">
+          <span>操作日志</span>
+          <el-button type="danger" size="small" @click="showClearDialog" :loading="clearing">
+            <el-icon><Delete /></el-icon> 清空日志
+          </el-button>
+        </div>
       </template>
 
       <div class="query-toolbar">
@@ -90,6 +95,23 @@
         <el-button type="primary" @click="detailsVisible = false">关闭</el-button>
       </template>
     </el-dialog>
+
+    <!-- 清空日志确认对话框 -->
+    <el-dialog v-model="clearDialogVisible" title="清空操作日志" width="500px" :close-on-click-modal="false">
+      <el-alert
+        title="此操作不可恢复！"
+        type="error"
+        :closable="false"
+        show-icon
+      />
+      <p class="confirm-text">确定要清空所有操作日志吗？此操作将永久删除所有日志记录。</p>
+      <template #footer>
+        <el-button @click="clearDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="handleClearLogs" :loading="clearing">
+          确认清空
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -97,6 +119,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getAuditLogs } from '../../api/audit'
+import request from '../../utils/request'
 
 const logs = ref([])
 const loading = ref(false)
@@ -108,6 +131,8 @@ const pageSize = ref(20)
 const total = ref(0)
 const detailsVisible = ref(false)
 const detailsContent = ref(null)
+const clearDialogVisible = ref(false)
+const clearing = ref(false)
 
 const actionLabels = {
   import: '导入',
@@ -182,6 +207,24 @@ function resetFilters() {
   loadLogs()
 }
 
+function showClearDialog() {
+  clearDialogVisible.value = true
+}
+
+async function handleClearLogs() {
+  clearing.value = true
+  try {
+    await request.post('/settings/reset/audit-logs')
+    ElMessage.success('操作日志已清空')
+    clearDialogVisible.value = false
+    loadLogs()
+  } catch (e) {
+    ElMessage.error('清空操作日志失败：' + (e.message || '未知错误'))
+  } finally {
+    clearing.value = false
+  }
+}
+
 async function loadLogs() {
   loading.value = true
   try {
@@ -210,17 +253,25 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .query-toolbar {
   display: flex;
   gap: 12px;
   margin-bottom: 20px;
   flex-wrap: wrap;
 }
+
 .pagination {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
 }
+
 .details-content {
   background-color: var(--el-fill-color-light);
   padding: 16px;
@@ -231,6 +282,13 @@ onMounted(() => {
   word-wrap: break-word;
   font-family: monospace;
   font-size: 13px;
+  line-height: 1.6;
+}
+
+.confirm-text {
+  margin: 16px 0 0;
+  color: #606266;
+  font-size: 14px;
   line-height: 1.6;
 }
 </style>
