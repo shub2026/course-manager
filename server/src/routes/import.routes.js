@@ -202,8 +202,8 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
                 name: String(name).trim(),
                 enrollmentYear: Number(enrollmentYear),
                 durationYears: Number(durationYears),
-                majorId,
-                collegeId,
+                majorId: majorId || null,  // 确保传入null而不是undefined
+                collegeId: collegeId || null,
                 trainingLevelId,
                 studentCount: studentCount ? Number(studentCount) : 0,
                 status,
@@ -221,8 +221,8 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
             name: String(name).trim(),
             enrollmentYear: Number(enrollmentYear),
             durationYears: Number(durationYears),
-            majorId,
-            collegeId,
+            majorId: majorId || null,  // 确保传入null而不是undefined
+            collegeId: collegeId || null,
             trainingLevelId,
             studentCount: studentCount ? Number(studentCount) : 0,
             status,
