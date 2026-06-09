@@ -12,7 +12,7 @@ router.get('/', async (req, res, next) => {
         trainingLevel: { select: { id: true, name: true } },
         planCourses: { select: { id: true } },
       },
-      orderBy: { id: 'asc' },
+      orderBy: { sortOrder: 'asc' },
     });
 
     const plansWithCount = await Promise.all(plans.map(async (plan) => {
@@ -68,13 +68,20 @@ router.post('/', async (req, res, next) => {
       return fail(res, '请选择专业类别或培养层次');
     }
     
+    // 获取当前最大 sortOrder，新记录排在最后
+    const maxSortOrder = await prisma.trainingPlan.aggregate({
+      _max: { sortOrder: true },
+    });
+    const newSortOrder = (maxSortOrder._max.sortOrder || 0) + 1;
+    
     const plan = await prisma.trainingPlan.create({
       data: { 
         name, 
         majorId: majorId ? Number(majorId) : null,
         trainingLevelId: trainingLevelId ? Number(trainingLevelId) : null,
         version, 
-        description 
+        description,
+        sortOrder: newSortOrder,
       },
       include: { 
         major: true,
@@ -88,7 +95,7 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, majorId, trainingLevelId, version, description } = req.body;
+    const { name, majorId, trainingLevelId, version, description, sortOrder } = req.body;
     
     // 验证：专业类别和培养层次只能选择一项（二选一）
     if (majorId && trainingLevelId) {
@@ -98,16 +105,23 @@ router.put('/:id', async (req, res, next) => {
       return fail(res, '请选择专业类别或培养层次');
     }
     
+    const updateData = { 
+      name, 
+      majorId: majorId ? Number(majorId) : null,
+      trainingLevelId: trainingLevelId ? Number(trainingLevelId) : null,
+      version, 
+      description,
+    };
+    
+    // 如果传入了 sortOrder，则更新它
+    if (sortOrder !== undefined) {
+      updateData.sortOrder = Number(sortOrder);
+    }
+    
     try {
       const plan = await prisma.trainingPlan.update({
         where: { id: Number(id) },
-        data: { 
-          name, 
-          majorId: majorId ? Number(majorId) : null,
-          trainingLevelId: trainingLevelId ? Number(trainingLevelId) : null,
-          version, 
-          description 
-        },
+        data: updateData,
         include: { 
           major: true,
           trainingLevel: true,

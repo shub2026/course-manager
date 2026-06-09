@@ -16,7 +16,7 @@
         </div>
       </template>
       <el-table :data="list" stripe v-loading="loading">
-        <el-table-column prop="id" label="ID" width="60" />
+        <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="name" label="课程名称" min-width="150" />
         <el-table-column prop="code" label="编码" width="120" />
         <el-table-column label="类型" width="120">

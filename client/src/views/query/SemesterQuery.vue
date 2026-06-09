@@ -14,6 +14,12 @@
             <el-select v-model="filterLevel" clearable placeholder="按层次筛选" @change="load" class="filter-select">
               <el-option v-for="l in levels" :key="l.id" :label="l.name" :value="l.id" />
             </el-select>
+            <el-select v-model="filterEnrollmentYear" clearable placeholder="按入学年份筛选" @change="load" class="filter-select">
+              <el-option v-for="year in enrollmentYears" :key="year" :label="year + '年'" :value="year" />
+            </el-select>
+            <el-select v-model="filterGrade" clearable placeholder="按年级筛选" @change="load" class="filter-select">
+              <el-option v-for="g in grades" :key="g" :label="g + '年级'" :value="g" />
+            </el-select>
             <el-button type="success" @click="exportExcel">
               <el-icon><Download /></el-icon> 导出Excel
             </el-button>
@@ -56,6 +62,9 @@
         <el-table-column prop="collegeName" label="二级学院" min-width="120" />
         <el-table-column prop="majorName" label="专业" min-width="150" />
         <el-table-column prop="trainingLevelName" label="培养层次" width="100" />
+        <el-table-column label="入学年份" width="90">
+          <template #default="{ row }">{{ row.enrollmentYear }}年</template>
+        </el-table-column>
         <el-table-column label="年级" width="80">
           <template #default="{ row }">{{ row.grade }}年级</template>
         </el-table-column>
@@ -76,7 +85,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { getSemesterQuery } from '../../api/query'
 import { getMajors } from '../../api/major'
 import { getTrainingLevels } from '../../api/trainingLevel'
@@ -90,8 +99,28 @@ const colleges = ref([])
 const filterCollege = ref(null)
 const filterMajor = ref(null)
 const filterLevel = ref(null)
+const filterEnrollmentYear = ref(null)
+const filterGrade = ref(null)
 const semesterLabel = ref('')
 const totalClasses = ref(0)
+
+// 计算可用的入学年份列表（从数据中提取）
+const enrollmentYears = computed(() => {
+  const years = new Set()
+  data.value.forEach(item => {
+    if (item.enrollmentYear) years.add(item.enrollmentYear)
+  })
+  return Array.from(years).sort((a, b) => b - a)
+})
+
+// 计算可用的年级列表（从数据中提取）
+const grades = computed(() => {
+  const gradeSet = new Set()
+  data.value.forEach(item => {
+    if (item.grade) gradeSet.add(item.grade)
+  })
+  return Array.from(gradeSet).sort((a, b) => a - b)
+})
 
 async function load() {
   loading.value = true
@@ -100,6 +129,8 @@ async function load() {
     if (filterCollege.value) params.collegeId = filterCollege.value
     if (filterMajor.value) params.majorId = filterMajor.value
     if (filterLevel.value) params.trainingLevelId = filterLevel.value
+    if (filterEnrollmentYear.value) params.enrollmentYear = filterEnrollmentYear.value
+    if (filterGrade.value) params.grade = filterGrade.value
     const res = await getSemesterQuery(params)
     data.value = res.data?.data || []
     semesterLabel.value = res.data?.semesterInfo?.label || ''
@@ -134,9 +165,10 @@ onMounted(async () => {
 .card-header-actions {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
 }
 .filter-select {
-  width: 160px;
+  width: 140px;
 }
 .alert-info {
   margin-bottom: 16px;

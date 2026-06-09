@@ -10,18 +10,18 @@
         </div>
       </template>
       <el-table :data="list" stripe v-loading="loading">
-        <el-table-column prop="id" label="ID" width="60" />
+        <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="name" label="方案名称" min-width="200" />
-        <el-table-column label="关联类型" width="100">
+        <el-table-column label="关联类型" width="90">
           <template #default="{ row }">
             <el-tag v-if="row.majorId" type="success" size="small">按专业</el-tag>
             <el-tag v-else-if="row.trainingLevelId" type="info" size="small">按层次</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="专业" min-width="150">
+        <el-table-column label="专业" min-width="120">
           <template #default="{ row }">{{ row.major?.name || '-' }}</template>
         </el-table-column>
-        <el-table-column label="培养层次" width="100">
+        <el-table-column label="培养层次" min-width="100">
           <template #default="{ row }">{{ row.trainingLevel?.name || '-' }}</template>
         </el-table-column>
         <el-table-column prop="version" label="版本" width="80" />
@@ -30,6 +30,28 @@
         </el-table-column>
         <el-table-column label="使用班级" width="90">
           <template #default="{ row }">{{ row._count?.classes || 0 }}</template>
+        </el-table-column>
+        <el-table-column label="排序" width="120" align="center">
+          <template #default="{ row, $index }">
+            <div class="sort-buttons">
+              <el-button 
+                size="small" 
+                :icon="ArrowUp" 
+                :disabled="$index === 0"
+                @click="handleMoveUp(row, $index)"
+                circle
+                title="上移"
+              />
+              <el-button 
+                size="small" 
+                :icon="ArrowDown" 
+                :disabled="$index === list.length - 1"
+                @click="handleMoveDown(row, $index)"
+                circle
+                title="下移"
+              />
+            </div>
+          </template>
         </el-table-column>
         <el-table-column label="操作" width="280" fixed="right">
           <template #default="{ row }">
@@ -99,6 +121,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { getPlans, createPlan, updatePlan, deletePlan } from '../../api/plan'
 import { getMajors } from '../../api/major'
 import { getTrainingLevels } from '../../api/trainingLevel'
@@ -214,6 +237,56 @@ async function handleDelete(id) {
   load()
 }
 
+async function handleMoveUp(row, index) {
+  if (index === 0) return
+  
+  const newList = [...list.value]
+  // 交换当前项和上一项的 sortOrder
+  const tempSortOrder = newList[index].sortOrder
+  newList[index].sortOrder = newList[index - 1].sortOrder
+  newList[index - 1].sortOrder = tempSortOrder
+  
+  // 交换数组位置
+  ;[newList[index], newList[index - 1]] = [newList[index - 1], newList[index]]
+  
+  try {
+    await Promise.all([
+      updatePlan(newList[index].id, { sortOrder: newList[index].sortOrder }),
+      updatePlan(newList[index - 1].id, { sortOrder: newList[index - 1].sortOrder })
+    ])
+    ElMessage.success('排序已更新')
+    list.value = newList
+  } catch (e) {
+    console.error('排序更新失败:', e)
+    ElMessage.error('排序更新失败')
+  }
+}
+
+async function handleMoveDown(row, index) {
+  if (index === list.value.length - 1) return
+  
+  const newList = [...list.value]
+  // 交换当前项和下一项的 sortOrder
+  const tempSortOrder = newList[index].sortOrder
+  newList[index].sortOrder = newList[index + 1].sortOrder
+  newList[index + 1].sortOrder = tempSortOrder
+  
+  // 交换数组位置
+  ;[newList[index], newList[index + 1]] = [newList[index + 1], newList[index]]
+  
+  try {
+    await Promise.all([
+      updatePlan(newList[index].id, { sortOrder: newList[index].sortOrder }),
+      updatePlan(newList[index + 1].id, { sortOrder: newList[index + 1].sortOrder })
+    ])
+    ElMessage.success('排序已更新')
+    list.value = newList
+  } catch (e) {
+    console.error('排序更新失败:', e)
+    ElMessage.error('排序更新失败')
+  }
+}
+
 onMounted(async () => {
   await loadMeta()
   load()
@@ -238,5 +311,14 @@ onMounted(async () => {
   color: var(--el-text-color-secondary);
   margin-top: 4px;
   line-height: 1.5;
+}
+.sort-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+.sort-buttons .el-button.is-disabled {
+  opacity: 0.3;
 }
 </style>

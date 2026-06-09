@@ -6,7 +6,7 @@ const router = Router();
 
 router.get('/', async (req, res, next) => {
   try {
-    const { majorId, collegeId, status, trainingLevelId, planId, page, pageSize } = req.query;
+    const { majorId, collegeId, status, trainingLevelId, planId, enrollmentYear, page, pageSize } = req.query;
     const pageNum = page ? Number(page) : 1;
     const pageSizeNum = pageSize ? Number(pageSize) : 20;
     
@@ -15,6 +15,7 @@ router.get('/', async (req, res, next) => {
     if (collegeId) where.collegeId = Number(collegeId);
     if (status) where.status = status;
     if (trainingLevelId) where.trainingLevelId = Number(trainingLevelId);
+    if (enrollmentYear) where.enrollmentYear = Number(enrollmentYear);
     
     // 如果指定了培养方案ID，需要特殊处理
     if (planId) {

@@ -30,11 +30,12 @@ router.get('/semester', async (req, res, next) => {
     const semesterInfo = await getCurrentSemesterInfo();
     if (!semesterInfo) return fail(res, '请先设置当前学期');
 
-    const { majorId, collegeId, trainingLevelId } = req.query;
+    const { majorId, collegeId, trainingLevelId, enrollmentYear, grade } = req.query;
     const classWhere = { status: 'active' };
     if (majorId) classWhere.majorId = Number(majorId);
     if (collegeId) classWhere.collegeId = Number(collegeId);
     if (trainingLevelId) classWhere.trainingLevelId = Number(trainingLevelId);
+    if (enrollmentYear) classWhere.enrollmentYear = Number(enrollmentYear);
 
     const classes = await prisma.class.findMany({
       where: classWhere,
@@ -134,6 +135,9 @@ router.get('/semester', async (req, res, next) => {
     for (const cls of classes) {
       const calc = calcClassSemester(cls, semesterInfo);
       if (!calc) continue;
+
+      // 如果指定了年级筛选，检查是否匹配
+      if (grade && calc.grade !== Number(grade)) continue;
 
       const plan = findBestMatchPlan(cls);
       if (!plan) continue;

@@ -70,6 +70,8 @@ router.get('/semester', async (req, res, next) => {
       where: { status: 'active' },
       include: {
         major: true,
+        college: true,
+        trainingLevel: true,
         customPlan: {
           include: {
             planCourses: {
@@ -164,9 +166,19 @@ router.get('/semester', async (req, res, next) => {
 
       if (planCourses.length === 0) {
         rows.push({
-          '班级名称': cls.name, '专业': cls.major.name, '年级': grade,
-          '学生人数': cls.studentCount, '课程': '-', '课程类型': '-',
-          '周课时': '-', '学期总课时': '-', '使用教材': '-', '书号': '-',
+          '班级名称': cls.name, 
+          '二级学院': cls.college?.name || '-',
+          '专业': cls.major.name, 
+          '培养层次': cls.trainingLevel?.name || '-',
+          '入学年份': cls.enrollmentYear,
+          '年级': grade,
+          '学生人数': cls.studentCount, 
+          '课程': '-', 
+          '课程类型': '-',
+          '周课时': '-', 
+          '学期总课时': '-', 
+          '使用教材': '-', 
+          '书号': '-',
         });
       } else {
         for (const pc of planCourses) {
@@ -179,8 +191,14 @@ router.get('/semester', async (req, res, next) => {
           const weeksCount = semRecord?.weeksCount || pc.weeksPerSemester;
           
           rows.push({
-            '班级名称': cls.name, '专业': cls.major.name, '年级': grade,
-            '学生人数': cls.studentCount, '课程': pc.course.name,
+            '班级名称': cls.name, 
+            '二级学院': cls.college?.name || '-',
+            '专业': cls.major.name, 
+            '培养层次': cls.trainingLevel?.name || '-',
+            '入学年份': cls.enrollmentYear,
+            '年级': grade,
+            '学生人数': cls.studentCount, 
+            '课程': pc.course.name,
             '课程类型': pc.course.type === 'public' ? '公共基础课' : '专业课',
             '周课时': weeklyHours,
             '学期总课时': weeklyHours * weeksCount,
@@ -193,7 +211,10 @@ router.get('/semester', async (req, res, next) => {
 
     const headers = [
       { label: '班级名称', key: '班级名称', width: 25 },
+      { label: '二级学院', key: '二级学院', width: 15 },
       { label: '专业', key: '专业', width: 15 },
+      { label: '培养层次', key: '培养层次', width: 12 },
+      { label: '入学年份', key: '入学年份', width: 12 },
       { label: '年级', key: '年级', width: 8 },
       { label: '学生人数', key: '学生人数', width: 10 },
       { label: '课程', key: '课程', width: 20 },

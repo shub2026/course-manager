@@ -5,6 +5,9 @@
         <div class="card-header">
           <span>班级管理</span>
           <div class="card-header-actions">
+            <el-select v-model="filterYear" clearable placeholder="按入学年份筛选" @change="resetPaginationAndLoad" class="filter-select">
+              <el-option v-for="year in enrollmentYears" :key="year" :label="year + '年'" :value="year" />
+            </el-select>
             <el-select v-model="filterCollege" clearable placeholder="按学院筛选" @change="resetPaginationAndLoad" class="filter-select">
               <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
@@ -27,9 +30,10 @@
           </div>
         </div>
       </template>
-      <el-table :data="list" stripe v-loading="loading">
-        <el-table-column prop="id" label="ID" width="60" />
-        <el-table-column prop="name" label="班级名称" min-width="140" />
+      <el-table :data="list" stripe v-loading="loading" @selection-change="handleSelectionChange">
+        <el-table-column type="selection" width="45" />
+        <el-table-column type="index" label="序号" width="60" />
+        <el-table-column prop="name" label="班级名称" min-width="120" />
         <el-table-column label="专业" min-width="120">
           <template #default="{ row }">{{ row.major?.name }}</template>
         </el-table-column>
@@ -62,17 +66,43 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right">
+        <el-table-column label="操作" width="100" fixed="right">
           <template #default="{ row }">
-            <el-button size="small" @click="openDialog(row)">编辑</el-button>
+            <el-button size="small" :icon="Edit" @click="openDialog(row)" circle title="编辑" />
             <el-popconfirm title="确定删除？" @confirm="handleDelete(row.id)">
               <template #reference>
-                <el-button size="small" type="danger">删除</el-button>
+                <el-button size="small" :icon="Delete" type="danger" circle title="删除" />
               </template>
             </el-popconfirm>
           </template>
         </el-table-column>
       </el-table>
+      
+      <!-- 批量操作栏 -->
+      <div v-if="selectedClasses.length > 0" class="batch-operations">
+        <span class="selected-count">已选择 {{ selectedClasses.length }} 个班级</span>
+        <el-button type="danger" size="small" @click="handleBatchDelete">
+          <el-icon><Delete /></el-icon> 批量删除
+        </el-button>
+        <el-button size="small" @click="openBatchSetDialog('major')">
+          <el-icon><Edit /></el-icon> 批量设置专业
+        </el-button>
+        <el-button size="small" @click="openBatchSetDialog('college')">
+          <el-icon><Edit /></el-icon> 批量设置学院
+        </el-button>
+        <el-button size="small" @click="openBatchSetDialog('level')">
+          <el-icon><Edit /></el-icon> 批量设置层次
+        </el-button>
+        <el-button size="small" @click="openBatchSetDialog('year')">
+          <el-icon><Edit /></el-icon> 批量设置入学年份
+        </el-button>
+        <el-button size="small" @click="openBatchSetDialog('duration')">
+          <el-icon><Edit /></el-icon> 批量设置学制
+        </el-button>
+        <el-button size="small" @click="openBatchSetDialog('status')">
+          <el-icon><Edit /></el-icon> 批量设置状态
+        </el-button>
+      </div>
       
       <!-- 分页 -->
       <div class="pagination-container">
@@ -161,12 +191,50 @@
         <el-button type="primary" @click="handleSave" :loading="saving">保存</el-button>
       </template>
     </el-dialog>
+
+    <!-- 批量设置对话框 -->
+    <el-dialog v-model="batchDialogVisible" :title="batchDialogTitle" width="500px">
+      <el-form label-width="120px">
+        <el-form-item v-if="batchFormType === 'major'" label="专业类别">
+          <el-select v-model="batchForm.majorId" placeholder="请选择专业" class="full-width">
+            <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item v-else-if="batchFormType === 'college'" label="二级学院">
+          <el-select v-model="batchForm.collegeId" clearable placeholder="请选择学院" class="full-width">
+            <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item v-else-if="batchFormType === 'level'" label="培养层次">
+          <el-select v-model="batchForm.trainingLevelId" clearable placeholder="请选择层次" class="full-width">
+            <el-option v-for="level in trainingLevels" :key="level.id" :label="level.name" :value="level.id" />
+          </el-select>
+        </el-form-item>
+        <el-form-item v-else-if="batchFormType === 'year'" label="入学年份">
+          <el-input-number v-model="batchForm.enrollmentYear" :min="2000" :max="2099" class="full-width" />
+        </el-form-item>
+        <el-form-item v-else-if="batchFormType === 'duration'" label="学制(年)">
+          <el-input-number v-model="batchForm.durationYears" :min="1" :max="6" class="full-width" />
+        </el-form-item>
+        <el-form-item v-else-if="batchFormType === 'status'" label="状态">
+          <el-select v-model="batchForm.status" class="full-width">
+            <el-option label="在读" value="active" />
+            <el-option label="已毕业" value="graduated" />
+          </el-select>
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="batchDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="handleBatchSet" :loading="batchSaving">确定</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, onMounted, computed } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { Delete, Edit } from '@element-plus/icons-vue'
 import { getClasses, createClass, updateClass, deleteClass } from '../../api/class'
 import { getMajors } from '../../api/major'
 import { getPlans } from '../../api/plan'
@@ -181,12 +249,29 @@ const majors = ref([])
 const plans = ref([])
 const trainingLevels = ref([])
 const colleges = ref([])
+const allEnrollmentYears = ref([])
 const dialogVisible = ref(false)
 const saving = ref(false)
+const filterYear = ref(null)
 const filterCollege = ref(null)
 const filterMajor = ref(null)
 const filterLevel = ref(null)
 const filterPlan = ref(null)
+
+// 批量操作相关状态
+const selectedClasses = ref([])
+const batchDialogVisible = ref(false)
+const batchSaving = ref(false)
+const batchFormType = ref('') // major, college, level, year, duration, status
+const batchDialogTitle = ref('')
+const batchForm = ref({
+  majorId: null,
+  collegeId: null,
+  trainingLevelId: null,
+  enrollmentYear: null,
+  durationYears: null,
+  status: 'active',
+})
 
 // 分页状态
 const pagination = ref({
@@ -197,6 +282,11 @@ const pagination = ref({
 
 const defaultForm = { id: null, name: '', majorId: null, enrollmentYear: new Date().getFullYear(), durationYears: 3, collegeId: null, trainingLevelId: null, studentCount: 0, status: 'active', customPlanId: null }
 const form = ref({ ...defaultForm })
+
+// 入学年份选项（降序）
+const enrollmentYears = computed(() => {
+  return allEnrollmentYears.value.sort((a, b) => b - a)
+})
 
 // 获取班级匹配的培养方案名称（支持按专业和按层次两种方式）
 // 优先级：1.自定义方案 > 2.根据培养方案的关联类型进行匹配
@@ -251,6 +341,7 @@ async function load() {
       page: pagination.value.page,
       pageSize: pagination.value.pageSize,
     }
+    if (filterYear.value) params.enrollmentYear = filterYear.value
     if (filterCollege.value) params.collegeId = filterCollege.value
     if (filterMajor.value) params.majorId = filterMajor.value
     if (filterLevel.value) params.trainingLevelId = filterLevel.value
@@ -258,6 +349,18 @@ async function load() {
     const res = await getClasses(params)
     list.value = res.data?.items || []
     pagination.value.total = res.data?.total || 0
+    
+    // 如果是首次加载或没有筛选条件，获取所有入学年份
+    if (!filterYear.value && !filterCollege.value && !filterMajor.value && !filterLevel.value && !filterPlan.value) {
+      const allRes = await getClasses({ pageSize: 1000 })
+      const years = new Set()
+      ;(allRes.data?.items || []).forEach(cls => {
+        if (cls.enrollmentYear) {
+          years.add(cls.enrollmentYear)
+        }
+      })
+      allEnrollmentYears.value = Array.from(years)
+    }
   } finally {
     loading.value = false
   }
@@ -317,6 +420,114 @@ async function handleDelete(id) {
   load()
 }
 
+// ==================== 批量操作函数 ====================
+
+// 选择变化处理
+function handleSelectionChange(selection) {
+  selectedClasses.value = selection
+}
+
+// 批量删除
+async function handleBatchDelete() {
+  if (selectedClasses.value.length === 0) return
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除选中的 ${selectedClasses.value.length} 个班级吗？此操作不可恢复！`,
+      '批量删除确认',
+      { type: 'warning' }
+    )
+    const ids = selectedClasses.value.map(c => c.id)
+    await Promise.all(ids.map(id => deleteClass(id)))
+    ElMessage.success(`已删除 ${ids.length} 个班级`)
+    selectedClasses.value = []
+    load()
+  } catch (e) {
+    if (e !== 'cancel') {
+      console.error('批量删除失败:', e)
+      ElMessage.error('批量删除失败')
+    }
+  }
+}
+
+// 打开批量设置对话框
+function openBatchSetDialog(type) {
+  batchFormType.value = type
+  batchDialogTitle.value = {
+    major: '批量设置专业类别',
+    college: '批量设置学院',
+    level: '批量设置培养层次',
+    year: '批量设置入学年份',
+    duration: '批量设置学制',
+    status: '批量设置状态',
+  }[type]
+  
+  // 重置表单
+  batchForm.value = {
+    majorId: null,
+    collegeId: null,
+    trainingLevelId: null,
+    enrollmentYear: new Date().getFullYear(),
+    durationYears: 3,
+    status: 'active',
+  }
+  
+  batchDialogVisible.value = true
+}
+
+// 执行批量设置
+async function handleBatchSet() {
+  const type = batchFormType.value
+  
+  // 验证
+  if (type === 'major' && !batchForm.value.majorId) {
+    return ElMessage.warning('请选择专业类别')
+  }
+  if (type === 'year' && !batchForm.value.enrollmentYear) {
+    return ElMessage.warning('请设置入学年份')
+  }
+  if (type === 'duration' && !batchForm.value.durationYears) {
+    return ElMessage.warning('请设置学制')
+  }
+  
+  batchSaving.value = true
+  try {
+    const ids = selectedClasses.value.map(c => c.id)
+    const updateData = {}
+    
+    switch (type) {
+      case 'major':
+        updateData.majorId = batchForm.value.majorId
+        break
+      case 'college':
+        updateData.collegeId = batchForm.value.collegeId || null
+        break
+      case 'level':
+        updateData.trainingLevelId = batchForm.value.trainingLevelId || null
+        break
+      case 'year':
+        updateData.enrollmentYear = batchForm.value.enrollmentYear
+        break
+      case 'duration':
+        updateData.durationYears = batchForm.value.durationYears
+        break
+      case 'status':
+        updateData.status = batchForm.value.status
+        break
+    }
+    
+    await Promise.all(ids.map(id => updateClass(id, updateData)))
+    ElMessage.success(`已成功更新 ${ids.length} 个班级`)
+    batchDialogVisible.value = false
+    selectedClasses.value = []
+    load()
+  } catch (e) {
+    console.error('批量更新失败:', e)
+    ElMessage.error('批量更新失败')
+  } finally {
+    batchSaving.value = false
+  }
+}
+
 function downloadTemplate() {
   window.open('/api/export/template/classes', '_blank')
 }
@@ -356,6 +567,21 @@ onMounted(async () => {
   color: #909399;
   font-size: 12px;
   margin-top: 4px;
+}
+.batch-operations {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-top: 16px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  flex-wrap: wrap;
+}
+.selected-count {
+  color: #409eff;
+  font-weight: 500;
+  margin-right: auto;
 }
 .pagination-container {
   display: flex;

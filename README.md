@@ -66,21 +66,21 @@ API层          Express.js (RESTful API)
 
 ```
 ┌─────────────────────────────────────────────┐
-│                 浏览器客户端                   │
+│                 浏览器客户端                 │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
-│  │  班级管理  │  │ 培养方案  │  │ 查询报表  │   │
+│  │  班级管理 │  │ 培养方案 │  │ 查询报表  │   │
 │  └──────────┘  └──────────┘  └──────────┘   │
 └──────────────────────┬──────────────────────┘
                        │ HTTP/REST API
 ┌──────────────────────┴──────────────────────┐
-│              Express 后端服务                  │
+│              Express 后端服务                │
 │  ┌────────┐ ┌────────┐ ┌────────┐ ┌──────┐  │
 │  │ 路由层  │→│ 业务逻辑│→│ 数据访问│→│工具类│  │
 │  └────────┘ └────────┘ └────────┘ └──────┘  │
 └──────────────────────┬──────────────────────┘
                        │ Prisma Client
 ┌──────────────────────┴──────────────────────┐
-│              数据库 (SQLite/MySQL)             │
+│              数据库 (SQLite/MySQL)           │
 │  majors | courses | classes | plans | ...    │
 └─────────────────────────────────────────────┘
 ```
@@ -123,10 +123,17 @@ cd client && npm install && cd ..
 
 ```bash
 cd server
-npx prisma migrate dev --name init
+
+# 首次使用或更换环境时，重置数据库并应用所有迁移
+npx prisma migrate reset --force
+
+# 生成 Prisma Client
 npx prisma generate
+
 cd ..
 ```
+
+> **重要提示**：如果是更换测试环境或重新拉取代码后遇到字段缺失错误（如 `sort_order does not exist`），请执行 `npx prisma migrate reset --force` 来重置数据库并重新应用所有迁移。
 
 ### 4. 导入示例数据（可选）
 
@@ -718,7 +725,27 @@ CMD ["nginx", "-g", "daemon off;"]
 4. 检查数字格式是否正确（入学年份、学制等）
 5. 查看控制台错误提示，定位具体问题行
 
-### Q5: 如何从 SQLite 迁移到 MySQL？
+### Q5: 遇到 "column does not exist" 错误怎么办？
+
+如果前端提示类似 `The column 'sort_order' does not exist in the current database` 的错误，说明数据库 schema 与 Prisma schema 不同步。解决方法：
+
+```bash
+cd server
+
+# 重置数据库并重新应用所有迁移
+npx prisma migrate reset --force
+
+# 重新生成 Prisma Client（如果遇到文件锁定问题）
+rm -rf node_modules/.prisma/client
+npx prisma generate
+
+# 重新导入种子数据
+node prisma/seed.js
+```
+
+**原因**：更换测试环境或拉取新代码后，旧的数据库文件可能缺少最新的字段。`migrate reset --force` 会清空数据库并按照最新的迁移文件重新创建所有表。
+
+### Q6: 如何从 SQLite 迁移到 MySQL？
 
 1. 修改 `server/.env` 中的 `DATABASE_URL` 为 MySQL 连接字符串
 2. 运行 `npx prisma migrate deploy` 自动创建表结构
@@ -726,7 +753,7 @@ CMD ["nginx", "-g", "daemon off;"]
 
 Prisma 会自动处理数据库差异，无需手动迁移数据。
 
-### Q6: 培养方案的开课学期如何设置？
+### Q7: 培养方案的开课学期如何设置？
 
 在培养方案详情页，添加课程后点击「编辑学期」按钮，可以：
 - 设置开课学期范围（如：第1-4学期）
@@ -734,7 +761,7 @@ Prisma 会自动处理数据库差异，无需手动迁移数据。
 - 设置学期周数
 - 关联教材
 
-### Q7: 如何导出某个学院的开课情况？
+### Q8: 如何导出某个学院的开课情况？
 
 1. 进入「开课查询」页面
 2. 使用「按学院筛选」选择目标学院

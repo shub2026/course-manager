@@ -16,7 +16,7 @@
         </div>
       </template>
       <el-table :data="list" stripe v-loading="loading">
-        <el-table-column prop="id" label="ID" width="60" />
+        <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="title" label="书名" min-width="180" />
         <el-table-column prop="isbn" label="书号" width="180" />
         <el-table-column prop="publisher" label="出版社" width="195" />
