@@ -302,15 +302,15 @@ router.get('/textbook/:id', async (req, res, next) => {
         rows.push({
           '教材名称': textbook.title, '书号': textbook.isbn || '-',
           '课程': pc.course.name, '使用班级': cls.name,
-          '专业': cls.major.name, '培养层次': cls.trainingLevel?.name || '-',
-          '年级': grade, '学生人数': cls.studentCount,
+          '专业': cls.major?.name || '-', '培养层次': cls.trainingLevel?.name || '-',
+          '年级': grade, '学生人数': Number(cls.studentCount) || 0,
           '使用学期': `第${sem.semester}学期`,
           '是否必订': pt.isRequired ? '是' : '否',
         });
       }
     }
 
-    const totalStudents = rows.reduce((sum, r) => sum + r['学生人数'], 0);
+    const totalStudents = rows.reduce((sum, r) => sum + (Number(r['学生人数']) || 0), 0);
     rows.push({
       '教材名称': '合计', '书号': '', '课程': '',
       '使用班级': `${rows.length}个班级`, '专业': '', '培养层次': '',
