@@ -65,8 +65,7 @@ router.get('/', async (req, res, next) => {
     
     // 处理特殊值 "null" 表示筛选空值字段
     if (majorId === 'null') {
-      // majorId 是必填字段(Int类型)，使用 lt: 1 来筛选未设置的情况
-      where.majorId = { lt: 1 };
+      where.majorId = null;
     } else if (majorId) {
       where.majorId = Number(majorId);
     }
