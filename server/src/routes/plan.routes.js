@@ -315,7 +315,7 @@ router.get('/:id/courses', async (req, res, next) => {
           include: {
 
             plan_textbooks: {
-              include: { textbook: { select: { id: true, title: true, isbn: true, publisher: true } } },
+              include: { textbooks: { select: { id: true, title: true, isbn: true, publisher: true } } },
             },
           },
           orderBy: { semester: 'asc' },
@@ -349,7 +349,7 @@ router.get('/:id/courses', async (req, res, next) => {
             include: {
 
               textbooks: {
-                include: { textbook: { select: { id: true, title: true, isbn: true, publisher: true } } },
+                include: { textbooks: { select: { id: true, title: true, isbn: true, publisher: true } } },
               },
             },
             orderBy: { semester: 'asc' },

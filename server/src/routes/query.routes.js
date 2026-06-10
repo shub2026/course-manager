@@ -51,7 +51,7 @@ router.get('/semester', async (req, res, next) => {
                 plan_course_semesters: {
                   include: {
                     plan_textbooks: {
-                      include: { textbook: { select: { id: true, title: true, isbn: true, publisher: true } } },
+                      include: { textbooks: { select: { id: true, title: true, isbn: true, publisher: true } } },
                     },
                   },
                 },
@@ -95,7 +95,7 @@ router.get('/semester', async (req, res, next) => {
             planCourseSemesters: {
               include: {
                 textbooks: {
-                  include: { textbook: { select: { id: true, title: true, isbn: true, publisher: true } } },
+                  include: { textbooks: { select: { id: true, title: true, isbn: true, publisher: true } } },
                 },
               },
             },
