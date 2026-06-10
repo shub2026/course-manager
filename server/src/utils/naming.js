@@ -18,6 +18,9 @@ export function camelToSnake(obj) {
   if (obj === null || obj === undefined) return obj;
   if (typeof obj !== 'object') return obj;
   
+  // Date 对象不需要转换，直接返回
+  if (obj instanceof Date) return obj;
+  
   if (Array.isArray(obj)) {
     return obj.map(item => camelToSnake(item));
   }
@@ -25,7 +28,7 @@ export function camelToSnake(obj) {
   const result = {};
   for (const [key, value] of Object.entries(obj)) {
     const snakeKey = key.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
-    result[snakeKey] = typeof value === 'object' && value !== null ? camelToSnake(value) : value;
+    result[snakeKey] = typeof value === 'object' && value !== null && !(value instanceof Date) ? camelToSnake(value) : value;
   }
   return result;
 }
@@ -43,6 +46,9 @@ export function snakeToCamel(obj) {
   if (obj === null || obj === undefined) return obj;
   if (typeof obj !== 'object') return obj;
   
+  // Date 对象不需要转换，直接返回
+  if (obj instanceof Date) return obj;
+  
   if (Array.isArray(obj)) {
     return obj.map(item => snakeToCamel(item));
   }
@@ -50,7 +56,7 @@ export function snakeToCamel(obj) {
   const result = {};
   for (const [key, value] of Object.entries(obj)) {
     const camelKey = key.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
-    result[camelKey] = typeof value === 'object' && value !== null ? snakeToCamel(value) : value;
+    result[camelKey] = typeof value === 'object' && value !== null && !(value instanceof Date) ? snakeToCamel(value) : value;
   }
   return result;
 }
