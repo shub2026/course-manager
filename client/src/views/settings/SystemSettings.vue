@@ -549,7 +549,7 @@ const canConfirm = computed(() => {
 async function load() {
   await settingsStore.load()
   const s = settingsStore.settings
-  form.value.current_semester = s.current_semester?.value || ''
+  form.value.current_semester = s.currentSemester?.value || ''
   isCurrentSemesterSaved.value = !!form.value.current_semester
 }
 

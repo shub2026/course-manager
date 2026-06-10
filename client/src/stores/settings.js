@@ -23,7 +23,7 @@ export const useSettingsStore = defineStore('settings', () => {
   async function load() {
     const res = await request.get('/settings')
     settings.value = res.data
-    const cs = settings.value.current_semester
+    const cs = settings.value.currentSemester
     if (cs) {
       const parts = cs.value.split('-')
       const startYear = Number(parts[0])
