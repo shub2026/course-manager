@@ -37,7 +37,7 @@ model classes {
   custom_plan_id    Int?
   status            String           @default("active")
   created_at        DateTime         @default(now())
-  updated_at        DateTime
+  updated_at        DateTime         @updatedAt
   training_plans    training_plans?  @relation(fields: [custom_plan_id], references: [id])
   training_levels   training_levels? @relation(fields: [training_level_id], references: [id])
   colleges          colleges?        @relation(fields: [college_id], references: [id])
@@ -51,7 +51,7 @@ model colleges {
   description    String?
   sort_order     Int              @default(0)
   created_at     DateTime         @default(now())
-  updated_at     DateTime
+  updated_at     DateTime         @updatedAt
   classes        classes[]
   training_plans training_plans[]
 }
@@ -64,7 +64,7 @@ model courses {
   description  String?
   sort_order   Int            @default(0)
   created_at   DateTime       @default(now())
-  updated_at   DateTime
+  updated_at   DateTime         @updatedAt
   plan_courses plan_courses[]
 }
 
@@ -75,7 +75,7 @@ model majors {
   description    String?
   sort_order     Int              @default(0)
   created_at     DateTime         @default(now())
-  updated_at     DateTime
+  updated_at     DateTime         @updatedAt
   classes        classes[]
   training_plans training_plans[]
 }
@@ -87,7 +87,7 @@ model plan_course_semesters {
   weekly_hours   Float
   weeks_count    Int              @default(18)
   created_at     DateTime         @default(now())
-  updated_at     DateTime
+  updated_at     DateTime         @updatedAt
   plan_courses   plan_courses     @relation(fields: [plan_course_id], references: [id], onDelete: Cascade)
   plan_textbooks plan_textbooks[]
 
@@ -104,7 +104,7 @@ model plan_courses {
   weeks_per_semester    Int                     @default(18)
   sort_order            Int                     @default(0)
   created_at            DateTime                @default(now())
-  updated_at            DateTime
+  updated_at            DateTime         @updatedAt
   plan_course_semesters plan_course_semesters[]
   courses               courses                 @relation(fields: [course_id], references: [id])
   training_plans        training_plans          @relation(fields: [plan_id], references: [id], onDelete: Cascade)
@@ -141,7 +141,7 @@ model textbooks {
   is_active      Boolean          @default(true)
   sort_order     Int              @default(0)
   created_at     DateTime         @default(now())
-  updated_at     DateTime
+  updated_at     DateTime         @updatedAt
   plan_textbooks plan_textbooks[]
 }
 
@@ -152,7 +152,7 @@ model training_levels {
   description    String?
   sort_order     Int              @default(0)
   created_at     DateTime         @default(now())
-  updated_at     DateTime
+  updated_at     DateTime         @updatedAt
   classes        classes[]
   training_plans training_plans[]
 }
@@ -167,7 +167,7 @@ model training_plans {
   description       String?
   sort_order        Int              @default(0)
   created_at        DateTime         @default(now())
-  updated_at        DateTime
+  updated_at        DateTime         @updatedAt
   classes           classes[]
   plan_courses      plan_courses[]
   training_levels   training_levels? @relation(fields: [training_level_id], references: [id])
@@ -185,7 +185,7 @@ model users {
   is_active     Boolean      @default(true)
   last_login_at DateTime?
   created_at    DateTime     @default(now())
-  updated_at    DateTime
+  updated_at    DateTime         @updatedAt
   audit_logs    audit_logs[]
 
   @@index([role])

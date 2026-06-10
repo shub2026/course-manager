@@ -9,20 +9,20 @@ const router = Router();
 // GET - 所有登录用户可访问
 router.get('/', async (req, res, next) => {
   try {
-    const textbooks = await prisma.textbook.findMany({ orderBy: { sortOrder: 'asc' } });
+    const textbooks = await prisma.textbooks.findMany({ orderBy: { sort_order: 'asc' } });
     
     // 检查是否需要重新分配 sortOrder
-    const sortOrders = new Set(textbooks.map(t => t.sortOrder));
+    const sortOrders = new Set(textbooks.map(t => t.sort_order));
     if (sortOrders.size <= 1 && textbooks.length > 0) {
       await Promise.all(
         textbooks.map((textbook, index) =>
-          prisma.textbook.update({
+          prisma.textbooks.update({
             where: { id: textbook.id },
-            data: { sortOrder: index }
+            data: { sort_order: index }
           })
         )
       );
-      const updatedTextbooks = await prisma.textbook.findMany({ orderBy: { sortOrder: 'asc' } });
+      const updatedTextbooks = await prisma.textbooks.findMany({ orderBy: { sort_order: 'asc' } });
       success(res, updatedTextbooks);
     } else {
       success(res, textbooks);
@@ -35,8 +35,8 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
   try {
     const { title, isbn, publisher, author, edition, publishDate, price, category, description, isActive, sortOrder } = req.body;
     if (!title) return fail(res, '书名不能为空');
-    const textbook = await prisma.textbook.create({
-      data: { title, isbn, publisher, author, edition, publishDate, price: price ? Number(price) : null, category: category || null, description, isActive: isActive !== undefined ? isActive : true, sortOrder: sortOrder ?? 0 },
+    const textbook = await prisma.textbooks.create({
+      data: { title, isbn, publisher, author, edition, publishDate, price: price ? Number(price) : null, category: category || null, description, is_active: isActive !== undefined ? isActive : true, sort_order: sortOrder ?? 0 },
     });
 
     await createAuditLog({
@@ -69,9 +69,9 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
     const { id } = req.params;
     const { title, isbn, publisher, author, edition, publishDate, price, category, description, isActive, sortOrder } = req.body;
     try {
-      const textbook = await prisma.textbook.update({
+      const textbook = await prisma.textbooks.update({
         where: { id: Number(id) },
-        data: { title, isbn, publisher, author, edition, publishDate, price: price ? Number(price) : null, category, description, isActive, sortOrder: sortOrder ?? 0 },
+        data: { title, isbn, publisher, author, edition, publishDate, price: price ? Number(price) : null, category, description, isActive, sort_order: sortOrder ?? 0 },
       });
 
       await createAuditLog({
@@ -104,12 +104,12 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
 router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
-    const usageCount = await prisma.planTextbook.count({ where: { textbookId: Number(id) } });
+    const usageCount = await prisma.plan_textbooks.count({ where: { textbook_id: Number(id) } });
     if (usageCount > 0) return fail(res, '该教材已被培养方案引用，无法删除');
     try {
       // 先获取教材信息用于日志记录
-      const textbook = await prisma.textbook.findUnique({ where: { id: Number(id) } });
-      await prisma.textbook.delete({ where: { id: Number(id) } });
+      const textbook = await prisma.textbooks.findUnique({ where: { id: Number(id) } });
+      await prisma.textbooks.delete({ where: { id: Number(id) } });
 
       await createAuditLog({
         action: 'delete',
@@ -144,11 +144,11 @@ router.post('/:id/toggle-status', roleMiddleware('admin', 'super_admin'), async 
     const { id } = req.params;
     try {
       // Get current status and toggle it
-      const current = await prisma.textbook.findUnique({ where: { id: Number(id) }, select: { isActive: true, title: true } });
+      const current = await prisma.textbooks.findUnique({ where: { id: Number(id) }, select: { is_active: true, title: true } });
       if (!current) return fail(res, '教材不存在', 404);
-      const updated = await prisma.textbook.update({
+      const updated = await prisma.textbooks.update({
         where: { id: Number(id) },
-        data: { isActive: !current.isActive },
+        data: { is_active: !current.is_active },
       });
 
       await createAuditLog({
@@ -156,12 +156,12 @@ router.post('/:id/toggle-status', roleMiddleware('admin', 'super_admin'), async 
         module: 'textbook',
         userId: req.user?.id,
         ip: req.ip,
-        details: { id: updated.id, name: current.title, isActive: updated.isActive },
+        details: { id: updated.id, name: current.title, is_active: updated.is_active },
         result: 'success',
-        message: `${updated.isActive ? '启用' : '停用'}教材：${current.title}`
+        message: `${updated.is_active ? '启用' : '停用'}教材：${current.title}`
       });
 
-      success(res, updated, updated.isActive ? '已启用' : '已停用');
+      success(res, updated, updated.is_active ? '已启用' : '已停用');
     } catch (e) {
       await createAuditLog({
         action: 'update',

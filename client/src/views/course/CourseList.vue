@@ -125,6 +125,7 @@ import { useAuthStore } from '../../stores/auth'
 import { getCourses, createCourse, updateCourse, deleteCourse } from '../../api/course'
 
 const list = ref([])
+const authStore = useAuthStore()
 const loading = ref(false)
 const dialogVisible = ref(false)
 const saving = ref(false)
@@ -174,7 +175,6 @@ async function handleDelete(id) {
 }
 
 function downloadTemplate() {
-  const authStore = useAuthStore()
   const token = authStore.token
   if (token) {
     window.open(`/api/export/template/courses?token=${token}`, '_blank')
@@ -207,8 +207,10 @@ function confirmImport() {
   
   fetch('/api/import/courses', {
     method: 'POST',
+    headers: {
+      'Authorization': authStore.token ? `Bearer ${authStore.token}` : '',
+    },
     body: formData,
-    credentials: 'include',
   })
     .then(res => res.json())
     .then(data => {

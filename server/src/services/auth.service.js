@@ -5,7 +5,7 @@ import { authConfig } from '../config/auth.config.js'
 
 export class AuthService {
   static async login(username, password) {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { username }
     })
 
@@ -18,23 +18,23 @@ export class AuthService {
       throw new Error('用户名或密码错误')
     }
 
-    if (!user.isActive) {
+    if (!user.is_active) {
       throw new Error('账号已被禁用')
     }
 
     const token = this.generateToken(user)
     const refreshToken = this.generateRefreshToken(user)
 
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: user.id },
-      data: { lastLoginAt: new Date() }
+      data: { last_login_at: new Date() }
     })
 
-    await prisma.auditLog.create({
+    await prisma.audit_logs.create({
       data: {
         action: 'login',
         module: 'auth',
-        operatorId: user.id,
+        operator_id: user.id,
         result: 'success',
         message: `${user.username} 登录系统`
       }
@@ -45,7 +45,7 @@ export class AuthService {
         id: user.id,
         username: user.username,
         role: user.role,
-        realName: user.realName,
+        real_name: user.real_name,
         email: user.email
       },
       token,
@@ -61,11 +61,11 @@ export class AuthService {
         throw new Error('无效的Token类型')
       }
 
-      const user = await prisma.user.findUnique({
+      const user = await prisma.users.findUnique({
         where: { id: decoded.id }
       })
 
-      if (!user || !user.isActive) {
+      if (!user || !user.is_active) {
         throw new Error('用户不存在或已被禁用')
       }
 
@@ -108,7 +108,7 @@ export class AuthService {
   }
 
   static async changePassword(userId, oldPassword, newPassword) {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: userId }
     })
 
@@ -122,7 +122,7 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10)
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: userId },
       data: { password: hashedPassword }
     })

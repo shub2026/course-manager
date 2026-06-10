@@ -1,7 +1,7 @@
 import { prisma } from '../lib/prisma.js';
 
 export async function getCurrentSemesterInfo() {
-  const setting = await prisma.systemSetting.findUnique({ where: { key: 'current_semester' } });
+  const setting = await prisma.system_settings.findUnique({ where: { key: 'current_semester' } });
   if (!setting) return null;
   const parts = setting.value.split('-');
   const startYear = Number(parts[0]);

@@ -8,25 +8,25 @@ const router = Router();
 // GET - 所有登录用户可访问
 router.get('/', async (req, res, next) => {
   try {
-    const levels = await prisma.trainingLevel.findMany({
+    const levels = await prisma.training_levels.findMany({
       include: { _count: { select: { classes: true } } },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { sort_order: 'asc' },
     });
     
     // 检查是否需要重新分配 sortOrder
-    const sortOrders = new Set(levels.map(l => l.sortOrder));
+    const sortOrders = new Set(levels.map(l => l.sort_order));
     if (sortOrders.size <= 1 && levels.length > 0) {
       await Promise.all(
         levels.map((level, index) =>
-          prisma.trainingLevel.update({
+          prisma.training_levels.update({
             where: { id: level.id },
-            data: { sortOrder: index }
+            data: { sort_order: index }
           })
         )
       );
-      const updatedLevels = await prisma.trainingLevel.findMany({
+      const updatedLevels = await prisma.training_levels.findMany({
         include: { _count: { select: { classes: true } } },
-        orderBy: { sortOrder: 'asc' },
+        orderBy: { sort_order: 'asc' },
       });
       success(res, updatedLevels);
     } else {
@@ -40,8 +40,8 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
   try {
     const { name, code, description, sortOrder } = req.body;
     if (!name) return fail(res, '层次名称不能为空');
-    const level = await prisma.trainingLevel.create({
-      data: { name, code, description, sortOrder: sortOrder || 0 },
+    const level = await prisma.training_levels.create({
+      data: { name, code, description, sort_order: sortOrder || 0 },
     });
     success(res, level, '创建成功');
   } catch (e) {
@@ -55,7 +55,7 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
     const { id } = req.params;
     const { name, code, description, sortOrder } = req.body;
     try {
-      const level = await prisma.trainingLevel.update({
+      const level = await prisma.training_levels.update({
         where: { id: Number(id) },
         data: { name, code, description, sortOrder },
       });
@@ -71,10 +71,10 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
 router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
-    const classCount = await prisma.class.count({ where: { trainingLevelId: Number(id) } });
+    const classCount = await prisma.classes.count({ where: { training_level_id: Number(id) } });
     if (classCount > 0) return fail(res, '该层次下存在班级，无法删除');
     try {
-      await prisma.trainingLevel.delete({ where: { id: Number(id) } });
+      await prisma.training_levels.delete({ where: { id: Number(id) } });
       success(res, null, '删除成功');
     } catch (e) {
       if (e.code === 'P2025') return fail(res, '层次不存在', 404);

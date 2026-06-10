@@ -67,23 +67,35 @@ export async function readWorkbook(filePath) {
 
   sheet.eachRow((row, rowNum) => {
     if (rowNum === 1) {
+      // 读取表头,去除可能的 * 前缀(模板中的必填标记)
       row.eachCell((cell, colNum) => {
-        headers[colNum - 1] = String(cell.value || '').trim();
+        const headerValue = String(cell.value || '').trim();
+        // 去除开头的 * 号
+        headers[colNum - 1] = headerValue.startsWith('*') ? headerValue.substring(1).trim() : headerValue;
       });
+      console.log('[Excel读取] 表头:', headers);
     } else {
       const obj = {};
-      row.eachCell((cell, colNum) => {
+      
+      // 关键修复: 基于表头数量遍历列,而不是只遍历有值的单元格
+      for (let colNum = 1; colNum <= headers.length; colNum++) {
         const header = headers[colNum - 1];
         if (header) {
+          const cell = row.getCell(colNum);
           obj[header] = normalizeCellValue(cell.value);
         }
-      });
+      }
+      
       // 只添加非空行（至少有一个有效字段）
       const hasValidData = Object.values(obj).some(v => v !== null && v !== '');
-      if (hasValidData) rows.push(obj);
+      if (hasValidData) {
+        console.log(`[Excel读取] 第${rowNum}行数据:`, obj);
+        rows.push(obj);
+      }
     }
   });
 
+  console.log(`[Excel读取] 总共读取 ${rows.length} 行数据`);
   return rows;
 }
 

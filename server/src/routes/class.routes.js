@@ -66,15 +66,15 @@ router.get('/', async (req, res, next) => {
     
     // 处理特殊值 "null" 表示筛选空值字段
     if (majorId === 'null') {
-      where.majorId = null;
+      where.major_id = null;
     } else if (majorId) {
-      where.majorId = Number(majorId);
+      where.major_id = Number(majorId);
     }
     
     if (collegeId === 'null') {
-      where.collegeId = null;
+      where.college_id = null;
     } else if (collegeId) {
-      where.collegeId = Number(collegeId);
+      where.college_id = Number(collegeId);
     }
     
     if (status === 'null') {
@@ -84,15 +84,15 @@ router.get('/', async (req, res, next) => {
     }
     
     if (trainingLevelId === 'null') {
-      where.trainingLevelId = null;
+      where.training_level_id = null;
     } else if (trainingLevelId) {
-      where.trainingLevelId = Number(trainingLevelId);
+      where.training_level_id = Number(trainingLevelId);
     }
     
     if (enrollmentYear === 'null') {
-      where.enrollmentYear = null;
+      where.enrollment_year = null;
     } else if (enrollmentYear) {
-      where.enrollmentYear = Number(enrollmentYear);
+      where.enrollment_year = Number(enrollmentYear);
     }
     
     // 如果指定了培养方案ID，需要特殊处理
@@ -100,12 +100,12 @@ router.get('/', async (req, res, next) => {
       // 特殊值 "none" 表示筛选完全未关联任何培养方案的班级
       if (planId === 'none') {
         // 获取所有培养方案，构建排除条件
-        const allPlans = await prisma.trainingPlan.findMany({
-          select: { id: true, majorId: true, trainingLevelId: true },
+        const allPlans = await prisma.training_plans.findMany({
+          select: { id: true, major_id: true, training_level_id: true },
         });
         
         // 条件1：customPlanId 必须为 null
-        where.customPlanId = null;
+        where.custom_plan_id = null;
         
         // 条件2：班级的专业不能匹配任何按专业关联的方案
         // 条件3：班级的层次不能匹配任何按层次关联的方案
@@ -113,15 +113,15 @@ router.get('/', async (req, res, next) => {
         const notConditions = [];
         
         // 按专业匹配的条件
-        const majorIdsWithPlans = [...new Set(allPlans.filter(p => p.majorId).map(p => p.majorId))];
+        const majorIdsWithPlans = [...new Set(allPlans.filter(p => p.major_id).map(p => p.major_id))];
         if (majorIdsWithPlans.length > 0) {
-          notConditions.push({ majorId: { in: majorIdsWithPlans } });
+          notConditions.push({ major_id: { in: majorIdsWithPlans } });
         }
         
         // 按层次匹配的条件
-        const levelIdsWithPlans = [...new Set(allPlans.filter(p => p.trainingLevelId).map(p => p.trainingLevelId))];
+        const levelIdsWithPlans = [...new Set(allPlans.filter(p => p.training_level_id).map(p => p.training_level_id))];
         if (levelIdsWithPlans.length > 0) {
-          notConditions.push({ trainingLevelId: { in: levelIdsWithPlans } });
+          notConditions.push({ training_level_id: { in: levelIdsWithPlans } });
         }
         
         // 如果有需要排除的条件，添加 NOT 子句
@@ -132,31 +132,31 @@ router.get('/', async (req, res, next) => {
         const planIdNum = Number(planId);
         
         // 获取该方案的信息，确定关联方式
-        const plan = await prisma.trainingPlan.findUnique({
+        const plan = await prisma.training_plans.findUnique({
           where: { id: planIdNum },
-          select: { majorId: true, trainingLevelId: true },
+          select: { major_id: true, training_level_id: true },
         });
         
         if (plan) {
           // 筛选条件（优先级从高到低）：
           // 1. customPlanId = planId（明确指定该方案为特殊方案）
           const conditions = [
-            { customPlanId: planIdNum },
+            { custom_plan_id: planIdNum },
           ];
           
           // 2. 如果方案按专业关联，匹配该专业且未指定特殊方案的班级
-          if (plan.majorId) {
+          if (plan.major_id) {
             conditions.push({
-              majorId: plan.majorId,
-              customPlanId: null,
+              major_id: plan.major_id,
+              custom_plan_id: null,
             });
           }
           
           // 3. 如果方案按培养层次关联，匹配该层次且未指定特殊方案的班级
-          if (plan.trainingLevelId) {
+          if (plan.training_level_id) {
             conditions.push({
-              trainingLevelId: plan.trainingLevelId,
-              customPlanId: null,
+              training_level_id: plan.training_level_id,
+              custom_plan_id: null,
             });
           }
           
@@ -169,16 +169,16 @@ router.get('/', async (req, res, next) => {
     }
     
     // 获取总数
-    const total = await prisma.class.count({ where });
+    const total = await prisma.classes.count({ where });
     
     // 获取分页数据
-    const classes = await prisma.class.findMany({
+    const classes = await prisma.classes.findMany({
       where,
       include: {
-        major: { select: { id: true, name: true } },
-        college: { select: { id: true, name: true } },
-        trainingLevel: { select: { id: true, name: true } },
-        customPlan: { select: { id: true, name: true } },
+        majors: { select: { id: true, name: true } },
+        colleges: { select: { id: true, name: true } },
+        training_levels: { select: { id: true, name: true } },
+        training_plans: { select: { id: true, name: true } },
       },
       orderBy: { id: 'asc' },
       skip: (pageNum - 1) * pageSizeNum,
@@ -203,19 +203,19 @@ router.post('/', async (req, res, next) => {
       autoStatus = calculateClassStatus(Number(enrollmentYear), Number(durationYears), semesterInfo);
     }
 
-    const cls = await prisma.class.create({
+    const cls = await prisma.classes.create({
       data: {
         name,
-        enrollmentYear: Number(enrollmentYear),
-        durationYears: Number(durationYears),
-        majorId: majorId ? Number(majorId) : null,
-        collegeId: collegeId ? Number(collegeId) : null,
-        trainingLevelId: Number(trainingLevelId),
-        studentCount: Number(studentCount) || 0,
-        customPlanId: customPlanId ? Number(customPlanId) : null,
+        enrollment_year: Number(enrollmentYear),
+        duration_years: Number(durationYears),
+        major_id: majorId ? Number(majorId) : null,
+        college_id: collegeId ? Number(collegeId) : null,
+        training_level_id: Number(trainingLevelId),
+        student_count: Number(studentCount) || 0,
+        custom_plan_id: customPlanId ? Number(customPlanId) : null,
         status: autoStatus,
       },
-      include: { major: true, college: true, trainingLevel: true, customPlan: true },
+      include: { majors: true, colleges: true, training_levels: true, training_plans: true },
     });
 
     await createAuditLog({
@@ -249,30 +249,30 @@ router.put('/:id', async (req, res, next) => {
     const { name, enrollmentYear, durationYears, majorId, collegeId, trainingLevelId, studentCount, customPlanId, status } = req.body;
     try {
       // 获取当前班级信息
-      const currentClass = await prisma.class.findUnique({ where: { id: Number(id) } });
+      const currentClass = await prisma.classes.findUnique({ where: { id: Number(id) } });
       if (!currentClass) return fail(res, '班级不存在', 404);
 
       // 始终根据入学年份和学制自动计算状态，忽略前端传来的status
       // 这样可以确保状态始终与当前的学期配置保持一致
-      const calcEnrollmentYear = enrollmentYear ? Number(enrollmentYear) : currentClass.enrollmentYear;
-      const calcDurationYears = durationYears ? Number(durationYears) : currentClass.durationYears;
+      const calcEnrollmentYear = enrollmentYear ? Number(enrollmentYear) : currentClass.enrollment_year;
+      const calcDurationYears = durationYears ? Number(durationYears) : currentClass.duration_years;
       const semesterInfo = await getCurrentSemesterInfo();
       const autoStatus = calculateClassStatus(calcEnrollmentYear, calcDurationYears, semesterInfo);
 
-      const cls = await prisma.class.update({
+      const cls = await prisma.classes.update({
         where: { id: Number(id) },
         data: {
           name,
-          enrollmentYear: enrollmentYear ? Number(enrollmentYear) : undefined,
-          durationYears: durationYears ? Number(durationYears) : undefined,
-          majorId: majorId !== undefined ? (majorId ? Number(majorId) : null) : undefined,
-          collegeId: collegeId !== undefined ? (collegeId ? Number(collegeId) : null) : undefined,
-          trainingLevelId: trainingLevelId !== undefined ? (trainingLevelId ? Number(trainingLevelId) : null) : undefined,
-          studentCount: studentCount !== undefined ? Number(studentCount) : undefined,
-          customPlanId: customPlanId !== undefined && customPlanId !== null ? Number(customPlanId) : null,
+          enrollment_year: enrollmentYear ? Number(enrollmentYear) : undefined,
+          duration_years: durationYears ? Number(durationYears) : undefined,
+          major_id: majorId !== undefined ? (majorId ? Number(majorId) : null) : undefined,
+          college_id: collegeId !== undefined ? (collegeId ? Number(collegeId) : null) : undefined,
+          training_level_id: trainingLevelId !== undefined ? (trainingLevelId ? Number(trainingLevelId) : null) : undefined,
+          student_count: studentCount !== undefined ? Number(studentCount) : undefined,
+          custom_plan_id: customPlanId !== undefined && customPlanId !== null ? Number(customPlanId) : null,
           status: autoStatus,
         },
-        include: { major: true, college: true, trainingLevel: true, customPlan: true },
+        include: { majors: true, colleges: true, training_levels: true, training_plans: true },
       });
 
       await createAuditLog({
@@ -307,8 +307,8 @@ router.delete('/:id', async (req, res, next) => {
     const { id } = req.params;
     try {
       // 先获取班级信息用于日志记录
-      const cls = await prisma.class.findUnique({ where: { id: Number(id) } });
-      await prisma.class.delete({ where: { id: Number(id) } });
+      const cls = await prisma.classes.findUnique({ where: { id: Number(id) } });
+      await prisma.classes.delete({ where: { id: Number(id) } });
 
       await createAuditLog({
         action: 'delete',

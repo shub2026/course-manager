@@ -13,14 +13,14 @@ const DEFAULT_SETTINGS = {
 // GET - 所有登录用户可访问
 router.get('/', async (req, res, next) => {
   try {
-    const settings = await prisma.systemSetting.findMany();
+    const settings = await prisma.system_settings.findMany();
     const map = {};
     settings.forEach((s) => {
       map[s.key] = { value: s.value, description: s.description };
     });
     for (const [key, def] of Object.entries(DEFAULT_SETTINGS)) {
       if (!map[key]) {
-        const created = await prisma.systemSetting.create({
+        const created = await prisma.system_settings.create({
           data: { key, value: def.value, description: def.description },
         });
         map[key] = { value: created.value, description: created.description };
@@ -35,7 +35,7 @@ router.put('/', roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     const updates = req.body;
     for (const [key, value] of Object.entries(updates)) {
-      await prisma.systemSetting.upsert({
+      await prisma.system_settings.upsert({
         where: { key },
         update: { value: String(value) },
         create: { key, value: String(value), description: DEFAULT_SETTINGS[key]?.description || '' },
@@ -49,12 +49,12 @@ router.put('/', roleMiddleware('super_admin'), async (req, res, next) => {
 router.post('/reset/basic', roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     // 按依赖关系顺序清空基础数据
-    await prisma.class.deleteMany();
-    await prisma.textbook.deleteMany();
-    await prisma.course.deleteMany();
-    await prisma.major.deleteMany();
-    await prisma.college.deleteMany();
-    await prisma.trainingLevel.deleteMany();
+    await prisma.classes.deleteMany();
+    await prisma.textbooks.deleteMany();
+    await prisma.courses.deleteMany();
+    await prisma.majors.deleteMany();
+    await prisma.colleges.deleteMany();
+    await prisma.training_levels.deleteMany();
     success(res, null, '基础数据已清空');
   } catch (e) { next(e); }
 });
@@ -63,17 +63,17 @@ router.post('/reset/basic', roleMiddleware('super_admin'), async (req, res, next
 router.post('/reset/majors', async (req, res, next) => {
   try {
     // 检查是否有班级存在
-    const classCount = await prisma.class.count();
+    const classCount = await prisma.classes.count();
     if (classCount > 0) {
       return fail(res, '系统中存在班级数据，请先清空班级后再清空专业');
     }
     
     // 按依赖关系从顶向下清空
-    await prisma.planTextbook.deleteMany();           // Level 2: 培养方案教材
-    await prisma.planCourseSemester.deleteMany();     // Level 2: 培养方案课程学期
-    await prisma.planCourse.deleteMany();             // Level 2: 培养方案课程
-    await prisma.trainingPlan.deleteMany();           // Level 1: 培养方案
-    await prisma.major.deleteMany();                  // 清空专业
+    await prisma.plan_textbooks.deleteMany();           // Level 2: 培养方案教材
+    await prisma.plan_course_semesters.deleteMany();     // Level 2: 培养方案课程学期
+    await prisma.plan_courses.deleteMany();             // Level 2: 培养方案课程
+    await prisma.training_plans.deleteMany();           // Level 1: 培养方案
+    await prisma.majors.deleteMany();                  // 清空专业
     success(res, null, '专业数据已清空（已级联清空相关的培养方案）');
   } catch (e) { next(e); }
 });
@@ -82,17 +82,17 @@ router.post('/reset/majors', async (req, res, next) => {
 router.post('/reset/colleges', async (req, res, next) => {
   try {
     // 检查是否有班级存在
-    const classCount = await prisma.class.count();
+    const classCount = await prisma.classes.count();
     if (classCount > 0) {
       return fail(res, '系统中存在班级数据，请先清空班级后再清空学院');
     }
     
     // 按依赖关系从顶向下清空
-    await prisma.planTextbook.deleteMany();           // Level 2: 培养方案教材
-    await prisma.planCourseSemester.deleteMany();     // Level 2: 培养方案课程学期
-    await prisma.planCourse.deleteMany();             // Level 2: 培养方案课程
-    await prisma.trainingPlan.deleteMany();           // Level 1: 培养方案
-    await prisma.college.deleteMany();                // 清空学院
+    await prisma.plan_textbooks.deleteMany();           // Level 2: 培养方案教材
+    await prisma.plan_course_semesters.deleteMany();     // Level 2: 培养方案课程学期
+    await prisma.plan_courses.deleteMany();             // Level 2: 培养方案课程
+    await prisma.training_plans.deleteMany();           // Level 1: 培养方案
+    await prisma.colleges.deleteMany();                // 清空学院
     success(res, null, '学院数据已清空（已级联清空相关的培养方案）');
   } catch (e) { next(e); }
 });
@@ -101,17 +101,17 @@ router.post('/reset/colleges', async (req, res, next) => {
 router.post('/reset/levels', async (req, res, next) => {
   try {
     // 检查是否有班级存在
-    const classCount = await prisma.class.count();
+    const classCount = await prisma.classes.count();
     if (classCount > 0) {
       return fail(res, '系统中存在班级数据，请先清空班级后再清空层次');
     }
     
     // 按依赖关系从顶向下清空
-    await prisma.planTextbook.deleteMany();           // Level 2: 培养方案教材
-    await prisma.planCourseSemester.deleteMany();     // Level 2: 培养方案课程学期
-    await prisma.planCourse.deleteMany();             // Level 2: 培养方案课程
-    await prisma.trainingPlan.deleteMany();           // Level 1: 培养方案
-    await prisma.trainingLevel.deleteMany();          // 清空层次
+    await prisma.plan_textbooks.deleteMany();           // Level 2: 培养方案教材
+    await prisma.plan_course_semesters.deleteMany();     // Level 2: 培养方案课程学期
+    await prisma.plan_courses.deleteMany();             // Level 2: 培养方案课程
+    await prisma.training_plans.deleteMany();           // Level 1: 培养方案
+    await prisma.training_levels.deleteMany();          // 清空层次
     success(res, null, '层次数据已清空（已级联清空相关的培养方案）');
   } catch (e) { next(e); }
 });
@@ -120,10 +120,10 @@ router.post('/reset/levels', async (req, res, next) => {
 router.post('/reset/courses', async (req, res, next) => {
   try {
     // 先清空引用课程的培养方案课程
-    await prisma.planTextbook.deleteMany();           // Level 2: 培养方案教材
-    await prisma.planCourseSemester.deleteMany();     // Level 2: 培养方案课程学期
-    await prisma.planCourse.deleteMany();             // Level 2: 培养方案课程（引用课程）
-    await prisma.course.deleteMany();                 // 清空课程
+    await prisma.plan_textbooks.deleteMany();           // Level 2: 培养方案教材
+    await prisma.plan_course_semesters.deleteMany();     // Level 2: 培养方案课程学期
+    await prisma.plan_courses.deleteMany();             // Level 2: 培养方案课程（引用课程）
+    await prisma.courses.deleteMany();                 // 清空课程
     success(res, null, '课程数据已清空（已级联清空相关的培养方案课程）');
   } catch (e) { next(e); }
 });
@@ -132,8 +132,8 @@ router.post('/reset/courses', async (req, res, next) => {
 router.post('/reset/textbooks', async (req, res, next) => {
   try {
     // 先清空引用教材的培养方案教材
-    await prisma.planTextbook.deleteMany();           // Level 2: 培养方案教材（引用教材）
-    await prisma.textbook.deleteMany();               // 清空教材
+    await prisma.plan_textbooks.deleteMany();           // Level 2: 培养方案教材（引用教材）
+    await prisma.textbooks.deleteMany();               // 清空教材
     success(res, null, '教材数据已清空（已级联清空相关的培养方案教材）');
   } catch (e) { next(e); }
 });
@@ -141,7 +141,7 @@ router.post('/reset/textbooks', async (req, res, next) => {
 // POST /api/settings/reset/classes - 清空班级
 router.post('/reset/classes', async (req, res, next) => {
   try {
-    await prisma.class.deleteMany();
+    await prisma.classes.deleteMany();
     success(res, null, '班级数据已清空');
   } catch (e) { next(e); }
 });
@@ -150,10 +150,10 @@ router.post('/reset/classes', async (req, res, next) => {
 router.post('/reset/plans', async (req, res, next) => {
   try {
     // 按依赖关系顺序清空培养方案相关数据
-    await prisma.planTextbook.deleteMany();
-    await prisma.planCourseSemester.deleteMany();
-    await prisma.planCourse.deleteMany();
-    await prisma.trainingPlan.deleteMany();
+    await prisma.plan_textbooks.deleteMany();
+    await prisma.plan_course_semesters.deleteMany();
+    await prisma.plan_courses.deleteMany();
+    await prisma.training_plans.deleteMany();
     success(res, null, '培养方案已清空');
   } catch (e) { next(e); }
 });
@@ -161,7 +161,7 @@ router.post('/reset/plans', async (req, res, next) => {
 // POST /api/settings/reset/settings - 清空系统设置
 router.post('/reset/settings', async (req, res, next) => {
   try {
-    await prisma.systemSetting.deleteMany();
+    await prisma.system_settings.deleteMany();
     success(res, null, '系统设置已清空');
   } catch (e) { next(e); }
 });
@@ -169,7 +169,7 @@ router.post('/reset/settings', async (req, res, next) => {
 // POST /api/settings/reset/audit-logs - 清空操作日志（需要super_admin权限）
 router.post('/reset/audit-logs', roleMiddleware('super_admin'), async (req, res, next) => {
   try {
-    await prisma.auditLog.deleteMany();
+    await prisma.audit_logs.deleteMany();
     success(res, null, '操作日志已清空');
   } catch (e) { next(e); }
 });

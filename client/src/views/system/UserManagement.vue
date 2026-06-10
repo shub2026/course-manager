@@ -24,7 +24,7 @@
       <el-table :data="users" v-loading="loading" stripe>
         <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column prop="username" label="用户名" min-width="120" />
-        <el-table-column prop="realName" label="姓名" min-width="100" />
+        <el-table-column prop="real_name" label="姓名" min-width="100" />
         <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip />
         <el-table-column label="角色" width="120" align="center">
           <template #default="{ row }">
@@ -35,15 +35,15 @@
         </el-table-column>
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.isActive ? 'success' : 'danger'" size="small">
-              {{ row.isActive ? '激活' : '禁用' }}
+            <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
+              {{ row.is_active ? '激活' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="lastLoginAt" label="最后登录" min-width="160">
+        <el-table-column prop="last_login_at" label="最后登录" min-width="160">
           <template #default="{ row }">
-            <span :class="{ 'text-muted': !row.lastLoginAt }">
-              {{ row.lastLoginAt ? formatTime(row.lastLoginAt) : '从未登录' }}
+            <span :class="{ 'text-muted': !row.last_login_at }">
+              {{ row.last_login_at ? formatTime(row.last_login_at) : '从未登录' }}
             </span>
           </template>
         </el-table-column>
@@ -52,10 +52,10 @@
             <el-button size="small" type="primary" @click="showEditDialog(row)">编辑</el-button>
             <el-button
               size="small"
-              :type="row.isActive ? 'warning' : 'success'"
+              :type="row.is_active ? 'warning' : 'success'"
               @click="toggleUserStatus(row)"
             >
-              {{ row.isActive ? '禁用' : '激活' }}
+              {{ row.is_active ? '禁用' : '激活' }}
             </el-button>
             <el-button
               size="small"
@@ -99,7 +99,7 @@
           />
         </el-form-item>
 
-        <el-form-item label="姓名" prop="realName">
+        <el-form-item label="姓名" prop="real_name">
           <el-input v-model="formData.realName" placeholder="请输入姓名" />
         </el-form-item>
 
@@ -172,7 +172,7 @@ const formRef = ref(null)
 const formData = ref({
   username: '',
   password: '',
-  realName: '',
+  real_name: '',
   email: '',
   role: 'admin'
 })
@@ -211,7 +211,7 @@ function showCreateDialog() {
   formData.value = {
     username: '',
     password: '',
-    realName: '',
+    real_name: '',
     email: '',
     role: authStore.userInfo?.role === 'admin' ? 'viewer' : 'admin'
   }
@@ -223,10 +223,10 @@ function showEditDialog(user) {
   formData.value = {
     id: user.id,
     username: user.username,
-    realName: user.realName,
+    real_name: user.real_name,
     email: user.email,
     role: user.role,
-    isActive: user.isActive
+    isActive: user.is_active
   }
   dialogVisible.value = true
 }
@@ -242,7 +242,7 @@ async function handleSubmit() {
     try {
       if (isEdit.value) {
         await axios.put(`/api/users/${formData.value.id}`, {
-          realName: formData.value.realName,
+          real_name: formData.value.real_name,
           email: formData.value.email,
           role: formData.value.role
         })
@@ -263,7 +263,7 @@ async function handleSubmit() {
 }
 
 async function toggleUserStatus(user) {
-  const action = user.isActive ? '禁用' : '激活'
+  const action = user.is_active ? '禁用' : '激活'
   await ElMessageBox.confirm(`确定要${action}用户 "${user.username}" 吗？`, '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
@@ -272,7 +272,7 @@ async function toggleUserStatus(user) {
 
   try {
     await axios.put(`/api/users/${user.id}/status`, {
-      isActive: !user.isActive
+      isActive: !user.is_active
     })
     ElMessage.success(`${action}成功`)
     await loadUsers()

@@ -227,6 +227,7 @@ import { useAuthStore } from '../../stores/auth'
 import { getTextbooks, createTextbook, updateTextbook, deleteTextbook, toggleTextbookStatus } from '../../api/textbook'
 
 const list = ref([])
+const authStore = useAuthStore()
 const loading = ref(false)
 const dialogVisible = ref(false)
 const saving = ref(false)
@@ -402,7 +403,6 @@ async function handleBatchSet() {
 }
 
 function downloadTemplate() {
-  const authStore = useAuthStore()
   const token = authStore.token
   if (token) {
     window.open(`/api/export/template/textbooks?token=${token}`, '_blank')
@@ -430,8 +430,10 @@ function confirmImport() {
   
   fetch('/api/import/textbooks', {
     method: 'POST',
+    headers: {
+      'Authorization': authStore.token ? `Bearer ${authStore.token}` : '',
+    },
     body: formData,
-    credentials: 'include',
   })
     .then(res => res.json())
     .then(data => {

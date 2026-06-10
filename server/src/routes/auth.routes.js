@@ -38,11 +38,11 @@ router.post('/refresh', async (req, res) => {
 
 router.post('/logout', authMiddleware, async (req, res) => {
   try {
-    await prisma.auditLog.create({
+    await prisma.audit_logs.create({
       data: {
         action: 'logout',
         module: 'auth',
-        operatorId: req.user.id,
+        operator_id: req.user.id,
         result: 'success',
         message: `${req.user.username} 登出系统`
       }
@@ -56,16 +56,16 @@ router.post('/logout', authMiddleware, async (req, res) => {
 
 router.get('/me', authMiddleware, async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: req.user.id },
       select: {
         id: true,
         username: true,
         role: true,
-        realName: true,
+        real_name: true,
         email: true,
-        lastLoginAt: true,
-        createdAt: true
+        last_login_at: true,
+        created_at: true
       }
     })
 

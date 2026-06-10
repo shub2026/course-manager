@@ -303,6 +303,7 @@ import { getColleges } from '../../api/college'
 import { useSettingsStore } from '../../stores/settings'
 
 const settingsStore = useSettingsStore()
+const authStore = useAuthStore()
 const list = ref([])
 const loading = ref(false)
 const majors = ref([])
@@ -706,6 +707,21 @@ function confirmImport() {
   
   // 发送请求
   xhr.open('POST', '/api/import/classes')
+  
+  // 添加认证头
+  console.log('[班级导入] 当前token状态:', { 
+    hasToken: !!authStore.token, 
+    tokenLength: authStore.token?.length,
+    userInfo: authStore.userInfo 
+  })
+  
+  if (authStore.token) {
+    xhr.setRequestHeader('Authorization', `Bearer ${authStore.token}`)
+    console.log('[班级导入] 已添加Authorization头')
+  } else {
+    console.error('[班级导入] 警告: 没有token,请求将失败')
+  }
+  
   xhr.send(formData)
   
   pendingFile.value = null

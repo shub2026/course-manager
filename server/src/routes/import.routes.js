@@ -25,12 +25,33 @@ function cleanupFile(path) {
 }
 
 // POST /api/import/classes - 批量导入班级
-router.post('/classes', upload.single('file'), async (req, res, next) => {
+router.post('/classes', (req, res, next) => {
+  console.log('[班级导入] 中间件进入:', {
+    method: req.method,
+    url: req.url,
+    contentType: req.headers['content-type'],
+    authorization: req.headers['authorization'] ? 'present' : 'missing'
+  });
+  next();
+}, upload.single('file'), async (req, res, next) => {
+  console.log('[班级导入] 请求收到:', {
+    hasFile: !!req.file,
+    file: req.file ? { originalname: req.file.originalname, mimetype: req.file.mimetype, size: req.file.size } : null,
+    onDuplicate: req.body.onDuplicate,
+    user: req.user ? { id: req.user.id, username: req.user.username, role: req.user.role } : null
+  });
+  
   try {
-    if (!req.file) return fail(res, '请上传文件');
+    if (!req.file) {
+      console.error('[班级导入] 错误: 没有接收到文件');
+      return fail(res, '请上传文件');
+    }
     
     const onDuplicate = req.body.onDuplicate || 'skip'; // 'skip' | 'overwrite'
+    console.log('[班级导入] 开始读取Excel文件:', req.file.path);
     const rows = await readWorkbook(req.file.path);
+    console.log('[班级导入] Excel读取完成,行数:', rows.length, '前3行示例:', rows.slice(0, 3));
+    console.log('[班级导入] Excel读取完成,行数:', rows.length);
     cleanupFile(req.file.path);
     const errors = [];
     let imported = 0;
@@ -40,15 +61,15 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
     console.log('[班级导入] 读取到', rows.length, '行数据, onDuplicate:', onDuplicate);
 
     // 预加载现有数据
-    let majors = await prisma.major.findMany();
+    let majors = await prisma.majors.findMany();
     const majorMap = {};
     majors.forEach((m) => { majorMap[m.name] = m.id; });
 
-    let levels = await prisma.trainingLevel.findMany();
+    let levels = await prisma.training_levels.findMany();
     const levelMap = {};
     levels.forEach((l) => { levelMap[l.name] = l.id; });
 
-    let colleges = await prisma.college.findMany();
+    let colleges = await prisma.colleges.findMany();
     const collegeMap = {};
     colleges.forEach((c) => { collegeMap[c.name] = c.id; });
 
@@ -79,12 +100,12 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
       let trainingLevelId = levelMap[trainingLevelName];
       if (!trainingLevelId && trainingLevelName) {
         try {
-          const newLevel = await prisma.trainingLevel.create({
+          const newLevel = await prisma.training_levels.create({
             data: {
               name: String(trainingLevelName).trim(),
               code: null,
               description: `由班级导入自动创建 (${new Date().toLocaleString()})`,
-              sortOrder: 0,
+              sort_order: 0,
             },
           });
           trainingLevelId = newLevel.id;
@@ -93,7 +114,7 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
           console.log(`[班级导入] 自动创建培养层次: "${trainingLevelName}" (ID: ${trainingLevelId})`);
         } catch (e) {
           // 可能是唯一约束冲突（并发情况），重新查询
-          const existingLevel = await prisma.trainingLevel.findUnique({
+          const existingLevel = await prisma.training_levels.findUnique({
             where: { name: String(trainingLevelName).trim() },
           });
           if (existingLevel) {
@@ -114,12 +135,12 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
       let majorId = majorMap[majorName];
       if (!majorId && majorName) {
         try {
-          const newMajor = await prisma.major.create({
+          const newMajor = await prisma.majors.create({
             data: {
               name: String(majorName).trim(),
               code: null,
               description: `由班级导入自动创建 (${new Date().toLocaleString()})`,
-              sortOrder: 0,
+              sort_order: 0,
             },
           });
           majorId = newMajor.id;
@@ -128,7 +149,7 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
           console.log(`[班级导入] 自动创建专业: "${majorName}" (ID: ${majorId})`);
         } catch (e) {
           // 可能是唯一约束冲突（并发情况），重新查询
-          const existingMajor = await prisma.major.findFirst({
+          const existingMajor = await prisma.majors.findFirst({
             where: { name: String(majorName).trim() },
           });
           if (existingMajor) {
@@ -144,12 +165,12 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
       let collegeId = collegeMap[collegeName];
       if (!collegeId && collegeName) {
         try {
-          const newCollege = await prisma.college.create({
+          const newCollege = await prisma.colleges.create({
             data: {
               name: String(collegeName).trim(),
               code: null,
               description: `由班级导入自动创建 (${new Date().toLocaleString()})`,
-              sortOrder: 0,
+              sort_order: 0,
             },
           });
           collegeId = newCollege.id;
@@ -158,7 +179,7 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
           console.log(`[班级导入] 自动创建学院: "${collegeName}" (ID: ${collegeId})`);
         } catch (e) {
           // 可能是唯一约束冲突（并发情况），重新查询
-          const existingCollege = await prisma.college.findUnique({
+          const existingCollege = await prisma.colleges.findUnique({
             where: { name: String(collegeName).trim() },
           });
           if (existingCollege) {
@@ -189,7 +210,7 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
 
       try {
         // 检测重复：按班级名称
-        const existingClass = await prisma.class.findFirst({
+        const existingClass = await prisma.classes.findFirst({
           where: { name: String(name).trim() }
         });
 
@@ -199,18 +220,22 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
             console.log(`[班级导入] 第${i + 2}行: 跳过重复数据 "${name}"`);
             continue;
           } else if (onDuplicate === 'overwrite') {
-            await prisma.class.update({
+            const updateData = {
+              name: String(name).trim(),
+              enrollment_year: Number(enrollmentYear),
+              duration_years: Number(durationYears),
+              student_count: studentCount ? Number(studentCount) : 0,
+              status,
+            };
+            
+            // 添加关系连接(如果存在)
+            if (majorId) updateData.majors = { connect: { id: majorId } };
+            if (collegeId) updateData.colleges = { connect: { id: collegeId } };
+            if (trainingLevelId) updateData.training_levels = { connect: { id: trainingLevelId } };
+            
+            await prisma.classes.update({
               where: { id: existingClass.id },
-              data: {
-                name: String(name).trim(),
-                enrollmentYear: Number(enrollmentYear),
-                durationYears: Number(durationYears),
-                majorId: majorId || null,  // 确保传入null而不是undefined
-                collegeId: collegeId || null,
-                trainingLevelId,
-                studentCount: studentCount ? Number(studentCount) : 0,
-                status,
-              },
+              data: updateData,
             });
             overwritten++;
             console.log(`[班级导入] 第${i + 2}行: 覆盖更新 "${name}"`);
@@ -219,17 +244,21 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
         }
 
         // 不存在则创建
-        await prisma.class.create({
-          data: {
-            name: String(name).trim(),
-            enrollmentYear: Number(enrollmentYear),
-            durationYears: Number(durationYears),
-            majorId: majorId || null,  // 确保传入null而不是undefined
-            collegeId: collegeId || null,
-            trainingLevelId,
-            studentCount: studentCount ? Number(studentCount) : 0,
-            status,
-          },
+        const classData = {
+          name: String(name).trim(),
+          enrollment_year: Number(enrollmentYear),
+          duration_years: Number(durationYears),
+          student_count: studentCount ? Number(studentCount) : 0,
+          status,
+        };
+        
+        // 添加关系连接(如果存在)
+        if (majorId) classData.majors = { connect: { id: majorId } };
+        if (collegeId) classData.colleges = { connect: { id: collegeId } };
+        if (trainingLevelId) classData.training_levels = { connect: { id: trainingLevelId } };
+        
+        await prisma.classes.create({
+          data: classData,
         });
         imported++;
         console.log(`[班级导入] 第${i + 2}行: 导入成功`);
@@ -286,6 +315,7 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
 
     success(res, result, message);
   } catch (e) {
+    console.error('[班级导入] 异常错误:', e);
     if (req.file) cleanupFile(req.file.path);
     
     // 记录错误日志
@@ -332,7 +362,7 @@ router.post('/courses', upload.single('file'), async (req, res, next) => {
 
       try {
         // 检测重复：按课程名称
-        const existingCourse = await prisma.course.findFirst({
+        const existingCourse = await prisma.courses.findFirst({
           where: { name: String(name).trim() }
         });
 
@@ -342,7 +372,7 @@ router.post('/courses', upload.single('file'), async (req, res, next) => {
             console.log(`[课程导入] 第${i + 2}行: 跳过重复数据 "${name}"`);
             continue;
           } else if (onDuplicate === 'overwrite') {
-            await prisma.course.update({
+            await prisma.courses.update({
               where: { id: existingCourse.id },
               data: {
                 name: String(name).trim(),
@@ -357,7 +387,7 @@ router.post('/courses', upload.single('file'), async (req, res, next) => {
         }
 
         // 不存在则创建
-        await prisma.course.create({
+        await prisma.courses.create({
           data: {
             name: String(name).trim(),
             code: code ? String(code).trim() : null,
@@ -457,11 +487,11 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
         // 检测重复：按书名+书号（如果书号存在）
         let existingTextbook = null;
         if (isbn) {
-          existingTextbook = await prisma.textbook.findFirst({
+          existingTextbook = await prisma.textbooks.findFirst({
             where: { OR: [{ title: String(title).trim() }, { isbn: String(isbn).trim() }] }
           });
         } else {
-          existingTextbook = await prisma.textbook.findFirst({
+          existingTextbook = await prisma.textbooks.findFirst({
             where: { title: String(title).trim() }
           });
         }
@@ -472,7 +502,7 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
             console.log(`[教材导入] 第${i + 2}行: 跳过重复数据 "${title}"`);
             continue;
           } else if (onDuplicate === 'overwrite') {
-            await prisma.textbook.update({
+            await prisma.textbooks.update({
               where: { id: existingTextbook.id },
               data: {
                 title: String(title).trim(),
@@ -491,7 +521,7 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
         }
 
         // 不存在则创建
-        await prisma.textbook.create({
+        await prisma.textbooks.create({
           data: {
             title: String(title).trim(),
             isbn: isbn ? String(isbn).trim() : null,

@@ -14,63 +14,65 @@ router.get('/', async (req, res, next) => {
     
     // 如果传入了部门ID，进行筛选
     if (collegeId) {
-      where.collegeId = Number(collegeId);
+      where.college_id = Number(collegeId);
     }
     
-    const plans = await prisma.trainingPlan.findMany({
+    const plans = await prisma.training_plans.findMany({
       where,
       include: {
-        major: { select: { id: true, name: true } },
-        college: { select: { id: true, name: true } },
-        trainingLevel: { select: { id: true, name: true } },
-        planCourses: { select: { id: true } },
+
+        majors: { select: { id: true, name: true } },
+        colleges: { select: { id: true, name: true } },
+        training_levels: { select: { id: true, name: true } },
+        plan_courses: { select: { id: true } },
       },
-      orderBy: { sortOrder: 'asc' },
+      orderBy: { sort_order: 'asc' },
     });
 
     // 检查是否需要重新分配 sortOrder
-    const sortOrders = new Set(plans.map(p => p.sortOrder));
+    const sortOrders = new Set(plans.map(p => p.sort_order));
     if (sortOrders.size <= 1 && plans.length > 0) {
       await Promise.all(
         plans.map((plan, index) =>
-          prisma.trainingPlan.update({
+          prisma.training_plans.update({
             where: { id: plan.id },
-            data: { sortOrder: index }
+            data: { sort_order: index }
           })
         )
       );
       // 重新查询获取更新后的数据
-      const updatedPlans = await prisma.trainingPlan.findMany({
+      const updatedPlans = await prisma.training_plans.findMany({
         where,
         include: {
-          major: { select: { id: true, name: true } },
-          college: { select: { id: true, name: true } },
-          trainingLevel: { select: { id: true, name: true } },
-          planCourses: { select: { id: true } },
+
+          majors: { select: { id: true, name: true } },
+          colleges: { select: { id: true, name: true } },
+          training_levels: { select: { id: true, name: true } },
+          plan_courses: { select: { id: true } },
         },
-        orderBy: { sortOrder: 'asc' },
+        orderBy: { sort_order: 'asc' },
       });
       
       const plansWithCount = await Promise.all(updatedPlans.map(async (plan) => {
-        const customClassCount = await prisma.class.count({
-          where: { customPlanId: plan.id },
+        const customClassCount = await prisma.classes.count({
+          where: { custom_plan_id: plan.id },
         });
         
         let defaultClassCount = 0;
-        if (plan.majorId) {
-          defaultClassCount = await prisma.class.count({
-            where: { majorId: plan.majorId, customPlanId: null },
+        if (plan.major_id) {
+          defaultClassCount = await prisma.classes.count({
+            where: { major_id: plan.major_id, custom_plan_id: null },
           });
-        } else if (plan.trainingLevelId) {
-          defaultClassCount = await prisma.class.count({
-            where: { trainingLevelId: plan.trainingLevelId, customPlanId: null },
+        } else if (plan.training_level_id) {
+          defaultClassCount = await prisma.classes.count({
+            where: { training_level_id: plan.training_level_id, custom_plan_id: null },
           });
         }
         
         return {
           ...plan,
           _count: {
-            planCourses: plan.planCourses.length,
+            plan_courses: plan.plan_courses.length,
             classes: customClassCount + defaultClassCount,
           },
         };
@@ -79,25 +81,25 @@ router.get('/', async (req, res, next) => {
       success(res, plansWithCount);
     } else {
       const plansWithCount = await Promise.all(plans.map(async (plan) => {
-        const customClassCount = await prisma.class.count({
-          where: { customPlanId: plan.id },
+        const customClassCount = await prisma.classes.count({
+          where: { custom_plan_id: plan.id },
         });
         
         let defaultClassCount = 0;
-        if (plan.majorId) {
-          defaultClassCount = await prisma.class.count({
-            where: { majorId: plan.majorId, customPlanId: null },
+        if (plan.major_id) {
+          defaultClassCount = await prisma.classes.count({
+            where: { major_id: plan.major_id, custom_plan_id: null },
           });
-        } else if (plan.trainingLevelId) {
-          defaultClassCount = await prisma.class.count({
-            where: { trainingLevelId: plan.trainingLevelId, customPlanId: null },
+        } else if (plan.training_level_id) {
+          defaultClassCount = await prisma.classes.count({
+            where: { training_level_id: plan.training_level_id, custom_plan_id: null },
           });
         }
         
         return {
           ...plan,
           _count: {
-            planCourses: plan.planCourses.length,
+            plan_courses: plan.plan_courses.length,
             classes: customClassCount + defaultClassCount,
           },
         };
@@ -122,25 +124,25 @@ router.post('/', async (req, res, next) => {
     }
     
     // 获取当前最大 sortOrder，新记录排在最后
-    const maxSortOrder = await prisma.trainingPlan.aggregate({
-      _max: { sortOrder: true },
+    const maxSortOrder = await prisma.training_plans.aggregate({
+      _max: { sort_order: true },
     });
-    const newSortOrder = (maxSortOrder._max.sortOrder || 0) + 1;
+    const newSortOrder = (maxSortOrder._max.sort_order || 0) + 1;
     
-    const plan = await prisma.trainingPlan.create({
+    const plan = await prisma.training_plans.create({
       data: { 
         name, 
-        collegeId: collegeId ? Number(collegeId) : null,
-        majorId: majorId ? Number(majorId) : null,
-        trainingLevelId: trainingLevelId ? Number(trainingLevelId) : null,
+        college_id: collegeId ? Number(collegeId) : null,
+        major_id: majorId ? Number(majorId) : null,
+        training_level_id: trainingLevelId ? Number(trainingLevelId) : null,
         version, 
         description,
-        sortOrder: newSortOrder,
+        sort_order: newSortOrder,
       },
       include: { 
-        major: true,
-        college: true,
-        trainingLevel: true,
+        majors: true,
+        colleges: true,
+        training_levels: true,
       },
     });
     
@@ -148,9 +150,9 @@ router.post('/', async (req, res, next) => {
     const logDetails = {
       id: plan.id,
       name: plan.name,
-      college: plan.college?.name || '未设置',
-      major: plan.major?.name || '未设置',
-      trainingLevel: plan.trainingLevel?.name || '未设置',
+      colleges: plan.college?.name || '未设置',
+      majors: plan.major?.name || '未设置',
+      training_levels: plan.trainingLevel?.name || '未设置',
       version: plan.version,
     };
     
@@ -193,32 +195,32 @@ router.put('/:id', async (req, res, next) => {
     
     const updateData = { 
       name, 
-      collegeId: collegeId ? Number(collegeId) : null,
-      majorId: majorId ? Number(majorId) : null,
-      trainingLevelId: trainingLevelId ? Number(trainingLevelId) : null,
+      college_id: collegeId ? Number(collegeId) : null,
+      major_id: majorId ? Number(majorId) : null,
+      training_level_id: trainingLevelId ? Number(trainingLevelId) : null,
       version, 
       description,
     };
     
     // 如果传入了 sortOrder，则更新它
     if (sortOrder !== undefined) {
-      updateData.sortOrder = Number(sortOrder);
+      updateData.sort_order = Number(sortOrder);
     }
     
     try {
       // 先获取更新前的数据用于对比
-      const oldPlan = await prisma.trainingPlan.findUnique({
+      const oldPlan = await prisma.training_plans.findUnique({
         where: { id: Number(id) },
-        include: { college: true },
+        include: { colleges: true },
       });
       
-      const plan = await prisma.trainingPlan.update({
+      const plan = await prisma.training_plans.update({
         where: { id: Number(id) },
         data: updateData,
         include: { 
-          major: true,
-          college: true,
-          trainingLevel: true,
+          majors: true,
+          colleges: true,
+          training_levels: true,
         },
       });
       
@@ -229,7 +231,7 @@ router.put('/:id', async (req, res, next) => {
       };
       
       // 记录使用部门变更
-      if (oldPlan?.collegeId !== plan.collegeId) {
+      if (oldPlan?.college_id !== plan.college_id) {
         changes.collegeChange = {
           from: oldPlan?.college?.name || '未设置',
           to: plan.college?.name || '未设置',
@@ -267,10 +269,10 @@ router.put('/:id', async (req, res, next) => {
 router.delete('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const classCount = await prisma.class.count({ where: { customPlanId: Number(id) } });
+    const classCount = await prisma.classes.count({ where: { custom_plan_id: Number(id) } });
     if (classCount > 0) return fail(res, '该方案已被班级使用，无法删除');
     try {
-      await prisma.trainingPlan.delete({ where: { id: Number(id) } });
+      await prisma.training_plans.delete({ where: { id: Number(id) } });
       
       await createAuditLog({
         module: 'trainingPlan',
@@ -304,12 +306,14 @@ router.delete('/:id', async (req, res, next) => {
 router.get('/:id/courses', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const courses = await prisma.planCourse.findMany({
-      where: { planId: Number(id) },
+    const courses = await prisma.plan_courses.findMany({
+      where: { plan_id: Number(id) },
       include: {
+
         course: { select: { id: true, name: true, code: true, type: true } },
         planCourseSemesters: {
           include: {
+
             textbooks: {
               include: { textbook: { select: { id: true, title: true, isbn: true, publisher: true } } },
             },
@@ -318,30 +322,32 @@ router.get('/:id/courses', async (req, res, next) => {
         },
       },
       orderBy: [
-        { sortOrder: 'asc' },
+        { sort_order: 'asc' },
         { id: 'asc' }
       ],
     });
 
     // 检查是否需要重新分配 sortOrder（所有值都相同的情况）
-    const sortOrders = new Set(courses.map(c => c.sortOrder));
+    const sortOrders = new Set(courses.map(c => c.sort_order));
     if (sortOrders.size <= 1) {
       // 所有课程的 sortOrder 都相同，需要重新分配
       await Promise.all(
         courses.map((course, index) =>
-          prisma.planCourse.update({
+          prisma.plan_courses.update({
             where: { id: course.id },
-            data: { sortOrder: index }
+            data: { sort_order: index }
           })
         )
       );
       // 重新查询获取更新后的数据
-      const updatedCourses = await prisma.planCourse.findMany({
-        where: { planId: Number(id) },
+      const updatedCourses = await prisma.plan_courses.findMany({
+        where: { plan_id: Number(id) },
         include: {
+
           course: { select: { id: true, name: true, code: true, type: true } },
           planCourseSemesters: {
             include: {
+
               textbooks: {
                 include: { textbook: { select: { id: true, title: true, isbn: true, publisher: true } } },
               },
@@ -349,7 +355,7 @@ router.get('/:id/courses', async (req, res, next) => {
             orderBy: { semester: 'asc' },
           },
         },
-        orderBy: { sortOrder: 'asc' },
+        orderBy: { sort_order: 'asc' },
       });
       success(res, updatedCourses);
     } else {
@@ -373,12 +379,12 @@ router.post('/:id/courses', roleMiddleware('admin', 'super_admin'), async (req, 
       // 1. 创建 PlanCourse
       const created = await tx.planCourse.create({
         data: {
-          planId: Number(id),
-          courseId: Number(courseId),
-          startSemester: Number(startSemester),
-          endSemester: Number(endSemester),
-          weeklyHours: Number(weeklyHours),
-          weeksPerSemester: weeks,
+          plan_id: Number(id),
+          course_id: Number(courseId),
+          start_semester: Number(startSemester),
+          end_semester: Number(endSemester),
+          weekly_hours: Number(weeklyHours),
+          weeks_per_semester: weeks,
         },
         include: { course: true },
       });
@@ -389,7 +395,7 @@ router.post('/:id/courses', roleMiddleware('admin', 'super_admin'), async (req, 
           data: {
             planCourseId: created.id,
             semester: s,
-            weeklyHours: Number(weeklyHours),
+            weekly_hours: Number(weeklyHours),
             weeksCount: weeks,
           },
         });
@@ -434,7 +440,7 @@ router.put('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req, r
     const { startSemester, endSemester, weeklyHours, weeksPerSemester, sortOrder } = req.body;
 
     // 先获取当前课程信息
-    const currentPc = await prisma.planCourse.findUnique({
+    const currentPc = await prisma.plan_courses.findUnique({
       where: { id: Number(id) },
       include: { planCourseSemesters: true },
     });
@@ -448,7 +454,7 @@ router.put('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req, r
     const newEnd = endSemester !== undefined ? Number(endSemester) : currentPc.endSemester;
     const newWeeklyHours = weeklyHours !== undefined ? Number(weeklyHours) : currentPc.weeklyHours;
     const newWeeksPerSemester = weeksPerSemester !== undefined ? Number(weeksPerSemester) : currentPc.weeksPerSemester;
-    const newSortOrder = sortOrder !== undefined ? Number(sortOrder) : currentPc.sortOrder;
+    const newSortOrder = sortOrder !== undefined ? Number(sortOrder) : currentPc.sort_order;
 
     // 使用事务确保数据一致性
     const pc = await prisma.$transaction(async (tx) => {
@@ -456,12 +462,12 @@ router.put('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req, r
       const updated = await tx.planCourse.update({
         where: { id: Number(id) },
         data: {
-          startSemester: newStart,
-          endSemester: newEnd,
-          weeklyHours: newWeeklyHours,
-          weeksPerSemester: newWeeksPerSemester,
-          sortOrder: newSortOrder,
-          weeksPerSemester: newWeeksPerSemester,
+          start_semester: newStart,
+          end_semester: newEnd,
+          weekly_hours: newWeeklyHours,
+          weeks_per_semester: newWeeksPerSemester,
+          sort_order: newSortOrder,
+          weeks_per_semester: newWeeksPerSemester,
         },
         include: { course: true },
       });
@@ -477,7 +483,7 @@ router.put('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req, r
           data: {
             planCourseId: Number(id),
             semester: s,
-            weeklyHours: newWeeklyHours,
+            weekly_hours: newWeeklyHours,
             weeksCount: newWeeksPerSemester,
           },
         });
@@ -517,7 +523,7 @@ router.delete('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req
   try {
     const { id } = req.params;
     try {
-      await prisma.planCourse.delete({ where: { id: Number(id) } });
+      await prisma.plan_courses.delete({ where: { id: Number(id) } });
       
       await createAuditLog({
         module: 'trainingPlan',
@@ -560,10 +566,10 @@ router.post('/:planId/courses/:courseId/semesters', roleMiddleware('admin', 'sup
     }
 
     // 验证 PlanCourse 是否存在
-    const planCourse = await prisma.planCourse.findFirst({
+    const planCourse = await prisma.plan_courses.findFirst({
       where: {
         id: Number(courseId),
-        planId: Number(planId),
+        plan_id: Number(planId),
       },
     });
 
@@ -572,7 +578,7 @@ router.post('/:planId/courses/:courseId/semesters', roleMiddleware('admin', 'sup
     }
 
     // 使用 upsert: 存在则更新,不存在则创建
-    const sem = await prisma.planCourseSemester.upsert({
+    const sem = await prisma.plan_course_semesters.upsert({
       where: {
         planCourseId_semester: {
           planCourseId: Number(courseId),
@@ -580,13 +586,13 @@ router.post('/:planId/courses/:courseId/semesters', roleMiddleware('admin', 'sup
         },
       },
       update: {
-        weeklyHours: Number(weeklyHours),
+        weekly_hours: Number(weeklyHours),
         weeksCount: weeksCount ? Number(weeksCount) : planCourse.weeksPerSemester,
       },
       create: {
         planCourseId: Number(courseId),
         semester: Number(semester),
-        weeklyHours: Number(weeklyHours),
+        weekly_hours: Number(weeklyHours),
         weeksCount: weeksCount ? Number(weeksCount) : planCourse.weeksPerSemester,
       },
     });
@@ -625,7 +631,7 @@ router.put('/semesters/:id', roleMiddleware('admin', 'super_admin'), async (req,
     if (weeklyHours !== undefined) data.weeklyHours = Number(weeklyHours);
     if (weeksCount !== undefined) data.weeksCount = Number(weeksCount);
 
-    const sem = await prisma.planCourseSemester.update({
+    const sem = await prisma.plan_course_semesters.update({
       where: { id: Number(id) },
       data,
     });
@@ -660,8 +666,8 @@ router.put('/semesters/:id', roleMiddleware('admin', 'super_admin'), async (req,
 router.get('/:id/semesters', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const semesters = await prisma.planCourseSemester.findMany({
-      where: { planCourse: { planId: Number(id) } },
+    const semesters = await prisma.plan_course_semesters.findMany({
+      where: { planCourse: { plan_id: Number(id) } },
       select: { semester: true, weeksCount: true },
       distinct: ['semester'],
       orderBy: { semester: 'asc' },
@@ -689,15 +695,15 @@ router.post('/semesters/:id/textbooks', roleMiddleware('admin', 'super_admin'), 
     if (!textbookId) return fail(res, '教材为必填项');
 
     // 该学期只允许关联一本教材：先删后增
-    await prisma.planTextbook.deleteMany({
-      where: { semesterId: Number(id) },
+    await prisma.plan_textbooks.deleteMany({
+      where: { semester_id: Number(id) },
     });
 
-    const pt = await prisma.planTextbook.create({
+    const pt = await prisma.plan_textbooks.create({
       data: {
-        semesterId: Number(id),
-        textbookId: Number(textbookId),
-        isRequired: isRequired !== false,
+        semester_id: Number(id),
+        textbook_id: Number(textbookId),
+        is_required: isRequired !== false,
       },
       include: { textbook: true },
     });
@@ -730,8 +736,8 @@ router.post('/semesters/:id/textbooks', roleMiddleware('admin', 'super_admin'), 
 router.delete('/semesters/:id/textbooks', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
-    await prisma.planTextbook.deleteMany({
-      where: { semesterId: Number(id) },
+    await prisma.plan_textbooks.deleteMany({
+      where: { semester_id: Number(id) },
     });
     
     await createAuditLog({
@@ -763,7 +769,7 @@ router.delete('/textbooks/:id', roleMiddleware('admin', 'super_admin'), async (r
   try {
     const { id } = req.params;
     try {
-      await prisma.planTextbook.delete({ where: { id: Number(id) } });
+      await prisma.plan_textbooks.delete({ where: { id: Number(id) } });
       
       await createAuditLog({
         module: 'trainingPlan',

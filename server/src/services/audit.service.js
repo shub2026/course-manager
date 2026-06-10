@@ -13,11 +13,11 @@ import { prisma } from '../lib/prisma.js';
  */
 export async function createAuditLog({ action, module, userId, ip, details, result, message }) {
   try {
-    await prisma.auditLog.create({
+    await prisma.audit_logs.create({
       data: {
         action,
         module,
-        operatorId: userId || null,
+        operator_id: userId || null,
         ip: ip || null,
         details: typeof details === 'object' ? JSON.stringify(details) : details,
         result,
@@ -48,14 +48,27 @@ export async function getAuditLogs({ action, module, result, page = 1, pageSize 
   const take = pageSize;
 
   const [logs, total] = await Promise.all([
-    prisma.auditLog.findMany({
+    prisma.audit_logs.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { created_at: 'desc' },
       skip,
       take,
     }),
-    prisma.auditLog.count({ where }),
+    prisma.audit_logs.count({ where }),
   ]);
 
-  return { logs, total, page, pageSize };
+  // 将下划线命名转换为驼峰命名，保持前端一致
+  const formattedLogs = logs.map(log => ({
+    id: log.id,
+    action: log.action,
+    module: log.module,
+    userId: log.operator_id,
+    ip: log.ip,
+    details: log.details,
+    result: log.result,
+    message: log.message,
+    createdAt: log.created_at,
+  }));
+
+  return { logs: formattedLogs, total, page, pageSize };
 }

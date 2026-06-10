@@ -11,22 +11,22 @@ router.get('/', async (req, res, next) => {
   try {
     const { type } = req.query;
     const where = type ? { type } : {};
-    const courses = await prisma.course.findMany({ where, orderBy: { sortOrder: 'asc' } });
+    const courses = await prisma.courses.findMany({ where, orderBy: { sort_order: 'asc' } });
     
     // 检查是否需要重新分配 sortOrder（所有值都相同的情况）
-    const sortOrders = new Set(courses.map(c => c.sortOrder));
+    const sortOrders = new Set(courses.map(c => c.sort_order));
     if (sortOrders.size <= 1 && courses.length > 0) {
       // 所有课程的 sortOrder 都相同，需要重新分配
       await Promise.all(
         courses.map((course, index) =>
-          prisma.course.update({
+          prisma.courses.update({
             where: { id: course.id },
-            data: { sortOrder: index }
+            data: { sort_order: index }
           })
         )
       );
       // 重新查询获取更新后的数据
-      const updatedCourses = await prisma.course.findMany({ where, orderBy: { sortOrder: 'asc' } });
+      const updatedCourses = await prisma.courses.findMany({ where, orderBy: { sort_order: 'asc' } });
       success(res, updatedCourses);
     } else {
       success(res, courses);
@@ -39,8 +39,8 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
   try {
     const { name, code, type, description, sortOrder } = req.body;
     if (!name) return fail(res, '课程名称不能为空');
-    const course = await prisma.course.create({
-      data: { name, code, type: type || 'public', description, sortOrder: sortOrder ?? 0 },
+    const course = await prisma.courses.create({
+      data: { name, code, type: type || 'public', description, sort_order: sortOrder ?? 0 },
     });
 
     await createAuditLog({
@@ -73,9 +73,9 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
     const { id } = req.params;
     const { name, code, type, description, sortOrder } = req.body;
     try {
-      const course = await prisma.course.update({
+      const course = await prisma.courses.update({
         where: { id: Number(id) },
-        data: { name, code, type, description, sortOrder: sortOrder ?? 0 },
+        data: { name, code, type, description, sort_order: sortOrder ?? 0 },
       });
 
       await createAuditLog({
@@ -108,12 +108,12 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
 router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
-    const planCount = await prisma.planCourse.count({ where: { courseId: Number(id) } });
+    const planCount = await prisma.plan_courses.count({ where: { course_id: Number(id) } });
     if (planCount > 0) return fail(res, '该课程已被培养方案使用，无法删除');
     try {
       // 先获取课程信息用于日志记录
-      const course = await prisma.course.findUnique({ where: { id: Number(id) } });
-      await prisma.course.delete({ where: { id: Number(id) } });
+      const course = await prisma.courses.findUnique({ where: { id: Number(id) } });
+      await prisma.courses.delete({ where: { id: Number(id) } });
 
       await createAuditLog({
         action: 'delete',

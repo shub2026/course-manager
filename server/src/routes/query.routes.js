@@ -18,8 +18,8 @@ const router = Router();
  * @returns {Object} { grade, currentSemesterNum } 或 null（超出学制）
  */
 function calcClassSemester(cls, semesterInfo) {
-  const grade = semesterInfo.startYear - cls.enrollmentYear + 1;
-  if (grade < 1 || grade > cls.durationYears) return null;
+  const grade = semesterInfo.startYear - cls.enrollment_year + 1;
+  if (grade < 1 || grade > cls.duration_years) return null;
   const currentSemesterNum = (grade - 1) * 2 + semesterInfo.semesterIndex;
   return { grade, currentSemesterNum };
 }
@@ -32,20 +32,20 @@ router.get('/semester', async (req, res, next) => {
 
     const { majorId, collegeId, trainingLevelId, enrollmentYear, grade } = req.query;
     const classWhere = { status: 'active' };
-    if (majorId) classWhere.majorId = Number(majorId);
-    if (collegeId) classWhere.collegeId = Number(collegeId);
-    if (trainingLevelId) classWhere.trainingLevelId = Number(trainingLevelId);
-    if (enrollmentYear) classWhere.enrollmentYear = Number(enrollmentYear);
+    if (majorId) classWhere.major_id = Number(majorId);
+    if (collegeId) classWhere.college_id = Number(collegeId);
+    if (trainingLevelId) classWhere.training_level_id = Number(trainingLevelId);
+    if (enrollmentYear) classWhere.enrollment_year = Number(enrollmentYear);
 
-    const classes = await prisma.class.findMany({
+    const classes = await prisma.classes.findMany({
       where: classWhere,
       include: {
-        major: { select: { id: true, name: true } },
-        college: { select: { id: true, name: true } },
-        trainingLevel: { select: { id: true, name: true } },
-        customPlan: {
+        majors: { select: { id: true, name: true } },
+        colleges: { select: { id: true, name: true } },
+        training_levels: { select: { id: true, name: true } },
+        training_plans: {
           include: {
-            planCourses: {
+            plan_courses: {
               include: {
                 course: { select: { id: true, name: true, type: true } },
                 planCourseSemesters: {
@@ -60,7 +60,7 @@ router.get('/semester', async (req, res, next) => {
           },
         },
       },
-      orderBy: { enrollmentYear: 'desc' },
+      orderBy: { enrollment_year: 'desc' },
     });
 
     // 收集需要查询的方案ID：按专业匹配的和按层次匹配的
@@ -71,25 +71,25 @@ router.get('/semester', async (req, res, next) => {
     for (const cls of classes) {
       const calc = calcClassSemester(cls, semesterInfo);
       if (!calc) continue;
-      if (cls.customPlanId) {
+      if (cls.custom_plan_id) {
         classPlanMap.set(cls.id, cls.customPlan);
       } else {
         // 同时收集专业和层次的方案ID
-        if (cls.majorId) majorPlanIds.add(cls.majorId);
-        if (cls.trainingLevelId) levelPlanIds.add(cls.trainingLevelId);
+        if (cls.major_id) majorPlanIds.add(cls.major_id);
+        if (cls.training_level_id) levelPlanIds.add(cls.training_level_id);
       }
     }
 
     // 查询所有可能匹配的培养方案（包括按专业和按层次）
-    const matchingPlans = await prisma.trainingPlan.findMany({
+    const matchingPlans = await prisma.training_plans.findMany({
       where: {
         OR: [
-          { majorId: { in: [...majorPlanIds] } },
-          { trainingLevelId: { in: [...levelPlanIds] } },
+          { major_id: { in: [...majorPlanIds] } },
+          { training_level_id: { in: [...levelPlanIds] } },
         ],
       },
       include: {
-        planCourses: {
+        plan_courses: {
           include: {
             course: { select: { id: true, name: true, type: true } },
             planCourseSemesters: {
@@ -108,7 +108,7 @@ router.get('/semester', async (req, res, next) => {
     // 优先级：1.自定义方案 > 2.根据培养方案的关联类型进行匹配
     function findBestMatchPlan(cls) {
       // 1. 自定义方案优先
-      if (cls.customPlanId) {
+      if (cls.custom_plan_id) {
         return classPlanMap.get(cls.id);
       }
 
@@ -117,12 +117,12 @@ router.get('/semester', async (req, res, next) => {
       // 如果方案是按层次关联的，则检查班级的trainingLevelId是否匹配
       for (const plan of matchingPlans) {
         // 方案按专业关联：检查班级的专业是否匹配
-        if (plan.majorId && plan.majorId === cls.majorId) {
+        if (plan.major_id && plan.major_id === cls.major_id) {
           return plan;
         }
         
         // 方案按层次关联：检查班级的层次是否匹配
-        if (plan.trainingLevelId && plan.trainingLevelId === cls.trainingLevelId) {
+        if (plan.training_level_id && plan.training_level_id === cls.training_level_id) {
           return plan;
         }
       }
@@ -142,25 +142,25 @@ router.get('/semester', async (req, res, next) => {
       const plan = findBestMatchPlan(cls);
       if (!plan) continue;
 
-      const planCourses = plan.planCourses.filter(
+      const planCourses = plan.plan_courses.filter(
         (pc) => pc.startSemester <= calc.currentSemesterNum && pc.endSemester >= calc.currentSemesterNum
       );
 
       const courses = planCourses.map((pc) => {
         const semRecord = pc.planCourseSemesters?.find(s => s.semester === calc.currentSemesterNum);
         return {
-          courseId: pc.course.id,
+          course_id: pc.course.id,
           courseName: pc.course.name,
           courseType: pc.course.type,
-          weeklyHours: semRecord?.weeklyHours || pc.weeklyHours,
-          weeksPerSemester: semRecord?.weeksCount || pc.weeksPerSemester,
+          weekly_hours: semRecord?.weeklyHours || pc.weeklyHours,
+          weeks_per_semester: semRecord?.weeksCount || pc.weeksPerSemester,
           totalHoursThisSemester: (semRecord?.weeklyHours || pc.weeklyHours) * (semRecord?.weeksCount || pc.weeksPerSemester),
           textbooks: (semRecord?.textbooks || []).map((pt) => ({
             id: pt.textbook.id,
             title: pt.textbook.title,
             isbn: pt.textbook.isbn,
             publisher: pt.textbook.publisher,
-            isRequired: pt.isRequired,
+            is_required: pt.isRequired,
           })),
         };
       });
@@ -171,10 +171,10 @@ router.get('/semester', async (req, res, next) => {
         collegeName: cls.college?.name || null,
         majorName: cls.major?.name || null,
         trainingLevelName: cls.trainingLevel?.name || null,
-        enrollmentYear: cls.enrollmentYear,
+        enrollment_year: cls.enrollment_year,
         grade: calc.grade,
         currentSemester: calc.currentSemesterNum,
-        studentCount: cls.studentCount,
+        student_count: cls.student_count,
         planName: plan.name,
         courses,
       });
@@ -198,12 +198,12 @@ router.get('/textbook/:id', async (req, res, next) => {
     const semesterInfo = await getCurrentSemesterInfo();
     if (!semesterInfo) return fail(res, '请先设置当前学期');
 
-    const textbook = await prisma.textbook.findUnique({ where: { id: Number(id) } });
+    const textbook = await prisma.textbooks.findUnique({ where: { id: Number(id) } });
     if (!textbook) return fail(res, '教材不存在', 404);
 
     const [planTextbooks, allClasses] = await Promise.all([
-      prisma.planTextbook.findMany({
-        where: { textbookId: Number(id) },
+      prisma.plan_textbooks.findMany({
+        where: { textbook_id: Number(id) },
         include: {
           semester: {
             include: {
@@ -217,10 +217,10 @@ router.get('/textbook/:id', async (req, res, next) => {
           },
         },
       }),
-      prisma.class.findMany({
+      prisma.classes.findMany({
         where: { status: 'active' },
         include: { 
-          major: { select: { name: true } },
+          majors: { select: { name: true } },
           trainingLevel: true,
         },
       }),
@@ -229,13 +229,13 @@ router.get('/textbook/:id', async (req, res, next) => {
     // 判断班级是否匹配培养方案（支持按专业和按层次两种方式）
     function isClassMatchPlan(cls, plan) {
       // 1. 自定义方案
-      if (cls.customPlanId === plan.id) return true;
+      if (cls.custom_plan_id === plan.id) return true;
       
       // 2. 按专业匹配（仅当班级未指定自定义方案时）
-      if (!cls.customPlanId && cls.majorId === plan.majorId) return true;
+      if (!cls.custom_plan_id && cls.major_id === plan.major_id) return true;
       
       // 3. 按层次匹配（仅当班级未指定自定义方案时）
-      if (!cls.customPlanId && cls.trainingLevelId === plan.trainingLevelId) return true;
+      if (!cls.custom_plan_id && cls.training_level_id === plan.training_level_id) return true;
       
       return false;
     }
@@ -252,7 +252,7 @@ router.get('/textbook/:id', async (req, res, next) => {
       const enrollmentYear = semesterInfo.startYear - gradeForThisSemester + 1;
 
       for (const cls of allClasses) {
-        if (cls.enrollmentYear !== enrollmentYear) continue;
+        if (cls.enrollment_year !== enrollmentYear) continue;
         if (!isClassMatchPlan(cls, plan)) continue;
         const calc = calcClassSemester(cls, semesterInfo);
         if (!calc || calc.currentSemesterNum !== sem.semester) continue;
@@ -262,16 +262,16 @@ router.get('/textbook/:id', async (req, res, next) => {
           className: cls.name,
           majorName: cls.major?.name || null,
           trainingLevelName: cls.trainingLevel?.name || null,
-          studentCount: cls.studentCount,
+          student_count: cls.student_count,
           grade: calc.grade,
           semester: sem.semester,
           courseName: pc.course.name,
-          isRequired: pt.isRequired,
+          is_required: pt.isRequired,
         });
       }
     }
 
-    const totalStudents = classResults.reduce((sum, c) => sum + c.studentCount, 0);
+    const totalStudents = classResults.reduce((sum, c) => sum + c.student_count, 0);
 
     success(res, {
       textbook: {
@@ -298,7 +298,7 @@ router.get('/textbooks', async (req, res, next) => {
     if (!semesterInfo) return fail(res, '请先设置当前学期');
 
     const [textbooks, allClasses] = await Promise.all([
-      prisma.textbook.findMany({
+      prisma.textbooks.findMany({
         include: {
           planTextbooks: {
             include: {
@@ -317,19 +317,19 @@ router.get('/textbooks', async (req, res, next) => {
         },
         orderBy: { id: 'asc' },
       }),
-      prisma.class.findMany({ where: { status: 'active' } }),
+      prisma.classes.findMany({ where: { status: 'active' } }),
     ]);
 
     // 判断班级是否匹配培养方案（支持按专业和按层次两种方式）
     function isClassMatchPlan(cls, plan) {
       // 1. 自定义方案
-      if (cls.customPlanId === plan.id) return true;
+      if (cls.custom_plan_id === plan.id) return true;
       
       // 2. 按专业匹配（仅当班级未指定自定义方案时）
-      if (!cls.customPlanId && cls.majorId === plan.majorId) return true;
+      if (!cls.custom_plan_id && cls.major_id === plan.major_id) return true;
       
       // 3. 按层次匹配（仅当班级未指定自定义方案时）
-      if (!cls.customPlanId && cls.trainingLevelId === plan.trainingLevelId) return true;
+      if (!cls.custom_plan_id && cls.training_level_id === plan.training_level_id) return true;
       
       return false;
     }
@@ -350,10 +350,10 @@ router.get('/textbooks', async (req, res, next) => {
         const enrollmentYear = semesterInfo.startYear - gradeForThisSemester + 1;
 
         for (const c of allClasses) {
-          if (c.enrollmentYear !== enrollmentYear) continue;
+          if (c.enrollment_year !== enrollmentYear) continue;
           if (isClassMatchPlan(c, plan)) {
             usedClasses.add(c.id);
-            totalStudents += c.studentCount;
+            totalStudents += c.student_count;
           }
         }
       }

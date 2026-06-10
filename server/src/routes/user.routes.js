@@ -21,19 +21,19 @@ router.get('/', roleMiddleware('admin', 'super_admin'), async (req, res) => {
       where.role = 'viewer'
     }
 
-    const users = await prisma.user.findMany({
+    const users = await prisma.users.findMany({
       where,
       select: {
         id: true,
         username: true,
-        realName: true,
+        real_name: true,
         email: true,
         role: true,
-        isActive: true,
-        lastLoginAt: true,
-        createdAt: true
+        is_active: true,
+        last_login_at: true,
+        created_at: true
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { created_at: 'desc' }
     })
 
     success(res, users)
@@ -66,7 +66,7 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res) => {
     }
 
     // 检查用户名是否已存在
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { username }
     })
 
@@ -78,7 +78,7 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, 10)
 
     // 创建用户
-    const user = await prisma.user.create({
+    const user = await prisma.users.create({
       data: {
         username,
         password: hashedPassword,
@@ -89,19 +89,19 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res) => {
       select: {
         id: true,
         username: true,
-        realName: true,
+        real_name: true,
         email: true,
         role: true,
-        isActive: true
+        is_active: true
       }
     })
 
     // 记录操作日志
-    await prisma.auditLog.create({
+    await prisma.audit_logs.create({
       data: {
         action: 'create',
         module: 'user',
-        operatorId: req.user.id,
+        operator_id: req.user.id,
         result: 'success',
         message: `创建用户：${username}`
       }
@@ -127,7 +127,7 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res) => {
       return fail(res, '不能修改自己的角色')
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: parseInt(id) }
     })
 
@@ -147,23 +147,23 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res) => {
       updateData.role = role
     }
 
-    const updated = await prisma.user.update({
+    const updated = await prisma.users.update({
       where: { id: parseInt(id) },
       data: updateData,
       select: {
         id: true,
         username: true,
-        realName: true,
+        real_name: true,
         email: true,
         role: true
       }
     })
 
-    await prisma.auditLog.create({
+    await prisma.audit_logs.create({
       data: {
         action: 'update',
         module: 'user',
-        operatorId: req.user.id,
+        operator_id: req.user.id,
         result: 'success',
         message: `更新用户：${user.username}`
       }
@@ -189,7 +189,7 @@ router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, re
       return fail(res, '不能禁用自己')
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: parseInt(id) }
     })
 
@@ -202,16 +202,16 @@ router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, re
       return fail(res, '权限不足，管理员只能管理访客账号')
     }
 
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: parseInt(id) },
       data: { isActive }
     })
 
-    await prisma.auditLog.create({
+    await prisma.audit_logs.create({
       data: {
         action: 'update',
         module: 'user',
-        operatorId: req.user.id,
+        operator_id: req.user.id,
         result: 'success',
         message: `${isActive ? '激活' : '禁用'}用户：${user.username}`
       }
@@ -236,7 +236,7 @@ router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res) =
       return fail(res, '不能删除自己')
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.users.findUnique({
       where: { id: parseInt(id) }
     })
 
@@ -249,15 +249,15 @@ router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res) =
       return fail(res, '权限不足，管理员只能删除访客账号')
     }
 
-    await prisma.user.delete({
+    await prisma.users.delete({
       where: { id: parseInt(id) }
     })
 
-    await prisma.auditLog.create({
+    await prisma.audit_logs.create({
       data: {
         action: 'delete',
         module: 'user',
-        operatorId: req.user.id,
+        operator_id: req.user.id,
         result: 'success',
         message: `删除用户：${user.username}`
       }
