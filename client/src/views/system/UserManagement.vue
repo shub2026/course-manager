@@ -22,32 +22,34 @@
 
       <!-- 用户列表 -->
       <el-table :data="users" v-loading="loading" stripe>
-        <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="username" label="用户名" width="150" />
-        <el-table-column prop="realName" label="姓名" width="120" />
-        <el-table-column prop="email" label="邮箱" width="200" />
-        <el-table-column label="角色" width="120">
+        <el-table-column type="index" label="序号" width="60" align="center" />
+        <el-table-column prop="username" label="用户名" min-width="120" />
+        <el-table-column prop="realName" label="姓名" min-width="100" />
+        <el-table-column prop="email" label="邮箱" min-width="180" show-overflow-tooltip />
+        <el-table-column label="角色" width="120" align="center">
           <template #default="{ row }">
-            <el-tag :type="getRoleType(row.role)">
+            <el-tag :type="getRoleType(row.role)" size="small">
               {{ getRoleLabel(row.role) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="100">
+        <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.isActive ? 'success' : 'danger'">
+            <el-tag :type="row.isActive ? 'success' : 'danger'" size="small">
               {{ row.isActive ? '激活' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="lastLoginAt" label="最后登录" width="180">
+        <el-table-column prop="lastLoginAt" label="最后登录" min-width="160">
           <template #default="{ row }">
-            {{ row.lastLoginAt ? formatTime(row.lastLoginAt) : '从未登录' }}
+            <span :class="{ 'text-muted': !row.lastLoginAt }">
+              {{ row.lastLoginAt ? formatTime(row.lastLoginAt) : '从未登录' }}
+            </span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" fixed="right" width="200">
+        <el-table-column label="操作" fixed="right" width="220" align="center">
           <template #default="{ row }">
-            <el-button size="small" @click="showEditDialog(row)">编辑</el-button>
+            <el-button size="small" type="primary" @click="showEditDialog(row)">编辑</el-button>
             <el-button
               size="small"
               :type="row.isActive ? 'warning' : 'success'"
@@ -328,13 +330,18 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.user-management {
+  padding: 20px;
+}
+
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.user-management {
-  padding: 20px;
+.text-muted {
+  color: #909399;
+  font-size: 13px;
 }
 </style>

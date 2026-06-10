@@ -9,9 +9,26 @@
           </el-button>
         </div>
       </template>
-      <el-table :data="list" stripe v-loading="loading">
+      <el-row :gutter="16" style="margin-bottom: 16px;">
+        <el-col :span="4">
+          <el-select 
+            v-model="filterCollegeId" 
+            placeholder="选择使用部门" 
+            clearable 
+            class="full-width"
+            @change="handleFilterChange"
+          >
+            <el-option label="全部部门" value="" />
+            <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
+          </el-select>
+        </el-col>
+      </el-row>
+      <el-table :data="filteredlist" stripe v-loading="loading">
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="name" label="方案名称" min-width="200" />
+        <el-table-column label="使用部门" min-width="120">
+          <template #default="{ row }">{{ row.college?.name || '-' }}</template>
+        </el-table-column>
         <el-table-column label="关联类型" width="90">
           <template #default="{ row }">
             <el-tag v-if="row.majorId" type="success" size="small">按专业</el-tag>
@@ -73,6 +90,12 @@
           <el-input v-model="form.name" placeholder="如：2024级学前教育培养方案" />
         </el-form-item>
         
+        <el-form-item label="使用部门">
+          <el-select v-model="form.collegeId" placeholder="请选择使用部门（可选）" class="full-width" clearable>
+            <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
+          </el-select>
+        </el-form-item>
+        
         <el-form-item label="关联方式" required>
           <el-radio-group v-model="relationMode" @change="handleModeChange" class="relation-mode-group">
             <el-radio label="major">按专业</el-radio>
@@ -125,17 +148,22 @@ import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { getPlans, createPlan, updatePlan, deletePlan } from '../../api/plan'
 import { getMajors } from '../../api/major'
 import { getTrainingLevels } from '../../api/trainingLevel'
+import { getColleges } from '../../api/college'
 
 const list = ref([])
 const loading = ref(false)
 const majors = ref([])
 const trainingLevels = ref([])
+const colleges = ref([])
+const filterCollegeId = ref('')
+const filteredlist = ref([])
 const dialogVisible = ref(false)
 const saving = ref(false)
 const relationMode = ref('major') // 'major' 或 'trainingLevel'
 const form = ref({ 
   id: null, 
   name: '', 
+  collegeId: null,
   majorId: null, 
   trainingLevelId: null, 
   version: '', 
@@ -147,18 +175,32 @@ async function load() {
   try {
     const res = await getPlans()
     list.value = res.data || []
+    // 初始化筛选列表，显示所有数据
+    filteredlist.value = list.value
   } finally {
     loading.value = false
   }
 }
 
 async function loadMeta() {
-  const [majorsRes, levelsRes] = await Promise.all([
+  const [majorsRes, levelsRes, collegesRes] = await Promise.all([
     getMajors(),
-    getTrainingLevels()
+    getTrainingLevels(),
+    getColleges()
   ])
   majors.value = majorsRes.data || []
   trainingLevels.value = levelsRes.data || []
+  colleges.value = collegesRes.data || []
+}
+
+function handleFilterChange() {
+  if (!filterCollegeId.value || filterCollegeId.value === '') {
+    // 未选择部门或选择"全部部门"，显示所有数据
+    filteredlist.value = list.value
+  } else {
+    // 按选择的部门筛选
+    filteredlist.value = list.value.filter(item => item.collegeId === Number(filterCollegeId.value))
+  }
 }
 
 function handleModeChange(mode) {
@@ -175,6 +217,7 @@ function openDialog(row) {
   if (row) {
     form.value = { 
       ...row,
+      collegeId: row.collegeId || null,
       trainingLevelId: row.trainingLevelId || null,
     }
     
@@ -188,6 +231,7 @@ function openDialog(row) {
     form.value = { 
       id: null, 
       name: '', 
+      collegeId: null,
       majorId: null, 
       trainingLevelId: null, 
       version: '', 
@@ -213,6 +257,7 @@ async function handleSave() {
   try {
     const data = {
       name: form.value.name,
+      collegeId: form.value.collegeId || null,
       majorId: form.value.majorId || null,
       trainingLevelId: form.value.trainingLevelId || null,
       version: form.value.version,

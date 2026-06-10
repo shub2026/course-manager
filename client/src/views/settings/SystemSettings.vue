@@ -1,21 +1,28 @@
 <template>
   <div class="settings-page">
     <!-- 顶部标题栏 -->
-    <div class="page-header">
-      <h2><el-icon><Setting /></el-icon> 系统设置</h2>
-      <router-link to="/audit-logs">
-        <el-button type="primary" plain>
-          <el-icon><DocumentChecked /></el-icon> 查看操作日志
-        </el-button>
-      </router-link>
-    </div>
+    <el-card class="header-card">
+      <div class="page-header">
+        <div class="header-left">
+          <h2><el-icon><Setting /></el-icon> 系统设置</h2>
+          <p class="header-desc">配置系统参数和管理数据重置</p>
+        </div>
+        <div class="header-right">
+          <router-link to="/audit-logs">
+            <el-button type="primary" plain>
+              <el-icon><DocumentChecked /></el-icon> 查看操作日志
+            </el-button>
+          </router-link>
+        </div>
+      </div>
+    </el-card>
 
-    <!-- 主内容区：左右分栏 -->
-    <div class="settings-layout">
+    <!-- 主内容区 -->
+    <el-row :gutter="20" class="main-content">
       <!-- 左侧：功能配置区 -->
-      <div class="config-section">
+      <el-col :xs="24" :sm="24" :md="16" :lg="16">
         <!-- 当前学期设置 -->
-        <el-card class="config-card semester-config">
+        <el-card class="config-card" shadow="hover">
           <template #header>
             <div class="card-header">
               <el-icon class="header-icon"><Calendar /></el-icon>
@@ -24,37 +31,45 @@
           </template>
           
           <div class="semester-form">
-            <div class="form-row">
-              <label class="form-label">选择学期</label>
-              <el-select 
-                v-model="form.current_semester" 
-                placeholder="请选择当前学期"
-                class="semester-select"
+            <el-form label-width="120px">
+              <el-form-item label="选择当前学期">
+                <el-select 
+                  v-model="form.current_semester" 
+                  placeholder="请选择当前学期"
+                  size="default"
+                  class="semester-select"
+                >
+                  <el-option 
+                    v-for="sem in availableSemesters" 
+                    :key="sem.value" 
+                    :label="sem.label" 
+                    :value="sem.value" 
+                  />
+                </el-select>
+              </el-form-item>
+              
+              <el-alert
+                type="info"
+                :closable="false"
+                show-icon
+                class="form-tip"
               >
-                <el-option 
-                  v-for="sem in availableSemesters" 
-                  :key="sem.value" 
-                  :label="sem.label" 
-                  :value="sem.value" 
-                />
-              </el-select>
-            </div>
-            
-            <div class="form-tip">
-              <el-icon><InfoFilled /></el-icon>
-              <span>用于计算班级年级和查询当前学期开课情况</span>
-            </div>
-            
-            <div class="form-actions">
-              <el-button type="primary" @click="handleSave" :loading="saving">
-                <el-icon><Check /></el-icon> 保存设置
-              </el-button>
-            </div>
+                <template #default>
+                  用于计算班级年级和查询当前学期开课情况
+                </template>
+              </el-alert>
+              
+              <el-form-item>
+                <el-button type="primary" @click="handleSave" :loading="saving">
+                  <el-icon><Check /></el-icon> 保存设置
+                </el-button>
+              </el-form-item>
+            </el-form>
           </div>
         </el-card>
 
         <!-- 重置系统 -->
-        <el-card class="config-card reset-config">
+        <el-card class="config-card reset-card" shadow="hover">
           <template #header>
             <div class="card-header danger">
               <el-icon class="header-icon"><WarningFilled /></el-icon>
@@ -106,12 +121,10 @@
           <!-- 清空培养方案 -->
           <div class="reset-section">
             <h4 class="section-title">清空培养方案</h4>
-            <div class="reset-single">
-              <el-button type="danger" plain @click="showResetDialog('plans')" :loading="resetting">
-                <el-icon><Delete /></el-icon>
-                <span>清空培养方案</span>
-              </el-button>
-            </div>
+            <el-button type="danger" plain @click="showResetDialog('plans')" :loading="resetting">
+              <el-icon><Delete /></el-icon>
+              <span>清空培养方案</span>
+            </el-button>
           </div>
 
           <el-divider />
@@ -119,89 +132,95 @@
           <!-- 清空系统设置 -->
           <div class="reset-section">
             <h4 class="section-title">清空系统设置</h4>
-            <div class="reset-single">
-              <el-button type="danger" plain @click="showResetDialog('settings')" :loading="resetting">
-                <el-icon><Delete /></el-icon>
-                <span>清空系统设置</span>
-              </el-button>
-            </div>
+            <el-alert
+              title="清空后将恢复默认配置，需要重新设置当前学期等参数"
+              type="warning"
+              :closable="false"
+              show-icon
+              class="cascade-alert"
+            />
+            <el-button type="danger" plain @click="showResetDialog('settings')" :loading="resetting" style="margin-top: 12px;">
+              <el-icon><Delete /></el-icon>
+              <span>清空系统设置</span>
+            </el-button>
           </div>
         </el-card>
-      </div>
+      </el-col>
 
       <!-- 右侧：帮助说明区 -->
-      <div class="help-section">
-        <el-tabs v-model="activeHelpTab" class="help-tabs">
-          <!-- 学期设置说明 -->
-          <el-tab-pane label="学期设置" name="semester">
-            <div class="help-content">
-              <div class="help-item highlight">
-                <div class="help-icon">📅</div>
-                <div class="help-text">
-                  <h4>当前学期的作用</h4>
-                  <ul>
-                    <li>自动计算班级的在读年级和学期</li>
-                    <li>确定培养方案中哪些课程在当前学期开课</li>
-                    <li>查询和导出当前学期的开课情况和教材使用情况</li>
-                  </ul>
-                  <p class="tip-warning">建议每学期开始时更新此设置</p>
-                </div>
-              </div>
+      <el-col :xs="24" :sm="24" :md="8" :lg="8">
+        <el-card class="help-card" shadow="hover">
+          <template #header>
+            <div class="card-header">
+              <el-icon class="header-icon"><QuestionFilled /></el-icon>
+              <span>帮助说明</span>
             </div>
-          </el-tab-pane>
-
-          <!-- 重置系统说明 -->
-          <el-tab-pane label="重置说明" name="reset">
-            <div class="help-content">
-              <div class="help-item warning">
-                <div class="help-icon">⚠️</div>
-                <div class="help-text">
-                  <h4>重要提醒</h4>
-                  <p>所有清空操作都不可恢复，请务必提前备份重要数据！</p>
+          </template>
+          
+          <el-tabs v-model="activeHelpTab" class="help-tabs">
+            <!-- 学期设置说明 -->
+            <el-tab-pane label="学期设置" name="semester">
+              <div class="help-content">
+                <div class="help-item highlight">
+                  <div class="help-icon">📅</div>
+                  <div class="help-text">
+                    <h4>当前学期的作用</h4>
+                    <ul>
+                      <li>自动计算班级的在读年级和学期</li>
+                      <li>确定培养方案中哪些课程在当前学期开课</li>
+                      <li>查询和导出当前学期的开课情况和教材使用情况</li>
+                    </ul>
+                    <p class="tip-warning">建议每学期开始时更新此设置</p>
+                  </div>
                 </div>
               </div>
+            </el-tab-pane>
 
-              <div class="help-item">
-                <div class="help-icon">📋</div>
-                <div class="help-text">
-                  <h4>前置条件</h4>
-                  <p>清空专业、学院或层次前，必须先清空班级数据。</p>
+            <!-- 重置系统说明 -->
+            <el-tab-pane label="重置说明" name="reset">
+              <div class="help-content">
+                <div class="help-item warning">
+                  <div class="help-icon">⚠️</div>
+                  <div class="help-text">
+                    <h4>重要提醒</h4>
+                    <p>所有清空操作都不可恢复，请务必提前备份重要数据！</p>
+                  </div>
+                </div>
+
+                <div class="help-item">
+                  <div class="help-icon">📋</div>
+                  <div class="help-text">
+                    <h4>前置条件</h4>
+                    <p>清空专业、学院或层次前，必须先清空班级数据。</p>
+                  </div>
+                </div>
+
+                <div class="help-item">
+                  <div class="help-icon">🔢</div>
+                  <div class="help-text">
+                    <h4>推荐顺序</h4>
+                    <ol>
+                      <li>清空班级（无依赖）</li>
+                      <li>清空课程 / 教材</li>
+                      <li>清空培养方案</li>
+                      <li>清空专业 / 学院 / 层次</li>
+                    </ol>
+                  </div>
+                </div>
+
+                <div class="help-item">
+                  <div class="help-icon">💡</div>
+                  <div class="help-text">
+                    <h4>级联影响</h4>
+                    <p>清空课程时会同时清空培养方案中的课程安排；清空教材时会清空培养方案中的教材关联。</p>
+                  </div>
                 </div>
               </div>
-
-              <div class="help-item">
-                <div class="help-icon">🔢</div>
-                <div class="help-text">
-                  <h4>推荐顺序</h4>
-                  <ol>
-                    <li>清空班级（无依赖）</li>
-                    <li>清空课程 / 教材</li>
-                    <li>清空培养方案</li>
-                    <li>清空专业 / 学院 / 层次</li>
-                  </ol>
-                </div>
-              </div>
-
-              <div class="help-item">
-                <div class="help-icon">💡</div>
-                <div class="help-text">
-                  <h4>级联影响</h4>
-                  <p>清空课程时会同时清空培养方案中的课程安排；清空教材时会清空培养方案中的教材关联。</p>
-                </div>
-              </div>
-
-              <div class="help-item success">
-                <div class="help-icon">✅</div>
-                <div class="help-text">
-                  <h4>操作日志</h4>
-                  <p>所有重置操作都会记录在操作日志中，可在<router-link to="/audit-logs">操作日志</router-link>页面查看历史记录。</p>
-                </div>
-              </div>
-            </div>
-          </el-tab-pane>
-        </el-tabs>
-      </div>
-    </div>
+            </el-tab-pane>
+          </el-tabs>
+        </el-card>
+      </el-col>
+    </el-row>
   </div>
 
   <!-- 二次确认对话框 -->
@@ -387,47 +406,43 @@ onMounted(load)
 <style scoped>
 /* 页面整体布局 */
 .settings-page {
-  max-width: 1400px;
-  margin: 0 auto;
+  padding: 20px;
 }
 
-/* 页面头部 */
+/* 顶部标题卡片 */
+.header-card {
+  margin-bottom: 20px;
+}
+
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 2px solid #e4e7ed;
 }
 
-.page-header h2 {
-  margin: 0;
-  font-size: 24px;
+.header-left h2 {
+  margin: 0 0 8px 0;
+  font-size: 20px;
   color: #303133;
   display: flex;
   align-items: center;
   gap: 10px;
 }
 
-/* 主布局：左右分栏 */
-.settings-layout {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 24px;
-  align-items: start;
+.header-desc {
+  margin: 0;
+  font-size: 14px;
+  color: #909399;
 }
 
-/* 左侧配置区 */
-.config-section {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+/* 主内容区 */
+.main-content {
+  margin-top: 0;
 }
 
+/* 配置卡片 */
 .config-card {
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-bottom: 20px;
 }
 
 .card-header {
@@ -447,48 +462,25 @@ onMounted(load)
   font-size: 20px;
 }
 
-/* 学期配置卡片 */
+/* 学期配置表单 */
 .semester-form {
   padding: 8px 0;
 }
 
-.form-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-
-.form-label {
-  font-size: 14px;
-  color: #606266;
-  white-space: nowrap;
-  min-width: 80px;
-}
-
 .semester-select {
-  flex: 1;
-  max-width: 450px;
+  width: 100%;
+  max-width: 400px;
 }
 
 .form-tip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #909399;
-  font-size: 13px;
-  margin-bottom: 20px;
-  padding: 10px 12px;
-  background: #f4f4f5;
-  border-radius: 4px;
-}
-
-.form-actions {
-  display: flex;
-  gap: 12px;
+  margin: 16px 0;
 }
 
 /* 重置系统卡片 */
+.reset-card .card-header {
+  color: #f56c6c;
+}
+
 .reset-alert {
   margin-bottom: 20px;
 }
@@ -519,29 +511,25 @@ onMounted(load)
   flex-direction: column;
   align-items: center;
   gap: 6px;
+  min-height: 80px;
 }
 
-.reset-single {
-  display: flex;
+.cascade-alert {
+  margin-top: 8px;
 }
 
-.reset-single .el-button {
-  min-width: 180px;
-}
-
-/* 右侧帮助区 */
-.help-section {
+/* 帮助卡片 */
+.help-card {
   position: sticky;
   top: 20px;
 }
 
-.help-tabs {
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+.help-tabs :deep(.el-tabs__header) {
+  margin-bottom: 16px;
 }
 
 .help-content {
-  padding: 16px 8px;
+  padding: 8px 0;
 }
 
 .help-item {
@@ -551,6 +539,10 @@ onMounted(load)
   border-radius: 6px;
   border-left: 3px solid #409eff;
   transition: all 0.3s ease;
+}
+
+.help-item:last-child {
+  margin-bottom: 0;
 }
 
 .help-item:hover {
@@ -566,11 +558,6 @@ onMounted(load)
 .help-item.highlight {
   border-left-color: #409eff;
   background: #ecf5ff;
-}
-
-.help-item.success {
-  border-left-color: #67c23a;
-  background: #f0f9ff;
 }
 
 .help-icon {
@@ -634,35 +621,24 @@ onMounted(load)
 }
 
 /* 响应式布局 */
-@media (max-width: 1200px) {
-  .settings-layout {
-    grid-template-columns: 1fr;
+@media (max-width: 768px) {
+  .settings-page {
+    padding: 12px;
   }
   
-  .help-section {
-    position: static;
-  }
-}
-
-@media (max-width: 768px) {
   .page-header {
     flex-direction: column;
     gap: 16px;
     align-items: flex-start;
   }
   
-  .form-row {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  
-  .semester-select {
-    width: 100%;
-    max-width: none;
-  }
-  
   .reset-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .help-card {
+    position: static;
+    margin-top: 20px;
   }
 }
 </style>

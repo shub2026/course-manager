@@ -9,9 +9,19 @@ const router = Router();
 // GET - 所有登录用户可访问（用于查询）
 router.get('/', async (req, res, next) => {
   try {
+    const { collegeId } = req.query;
+    const where = {};
+    
+    // 如果传入了部门ID，进行筛选
+    if (collegeId) {
+      where.collegeId = Number(collegeId);
+    }
+    
     const plans = await prisma.trainingPlan.findMany({
+      where,
       include: {
         major: { select: { id: true, name: true } },
+        college: { select: { id: true, name: true } },
         trainingLevel: { select: { id: true, name: true } },
         planCourses: { select: { id: true } },
       },
@@ -31,8 +41,10 @@ router.get('/', async (req, res, next) => {
       );
       // 重新查询获取更新后的数据
       const updatedPlans = await prisma.trainingPlan.findMany({
+        where,
         include: {
           major: { select: { id: true, name: true } },
+          college: { select: { id: true, name: true } },
           trainingLevel: { select: { id: true, name: true } },
           planCourses: { select: { id: true } },
         },
@@ -98,7 +110,7 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    const { name, majorId, trainingLevelId, version, description } = req.body;
+    const { name, collegeId, majorId, trainingLevelId, version, description } = req.body;
     if (!name) return fail(res, '方案名称为必填项');
     
     // 验证：专业类别和培养层次只能选择一项（二选一）
@@ -118,6 +130,7 @@ router.post('/', async (req, res, next) => {
     const plan = await prisma.trainingPlan.create({
       data: { 
         name, 
+        collegeId: collegeId ? Number(collegeId) : null,
         majorId: majorId ? Number(majorId) : null,
         trainingLevelId: trainingLevelId ? Number(trainingLevelId) : null,
         version, 
@@ -126,9 +139,20 @@ router.post('/', async (req, res, next) => {
       },
       include: { 
         major: true,
+        college: true,
         trainingLevel: true,
       },
     });
+    
+    // 构建详细的日志信息
+    const logDetails = {
+      id: plan.id,
+      name: plan.name,
+      college: plan.college?.name || '未设置',
+      major: plan.major?.name || '未设置',
+      trainingLevel: plan.trainingLevel?.name || '未设置',
+      version: plan.version,
+    };
     
     await createAuditLog({
       module: 'trainingPlan',
@@ -136,7 +160,8 @@ router.post('/', async (req, res, next) => {
       userId: req.user?.id,
       ip: req.ip,
       result: 'success',
-      details: `创建培养方案: ${plan.name}`,
+      details: JSON.stringify(logDetails),
+      message: `创建培养方案：${plan.name}${plan.college?.name ? `（使用部门：${plan.college.name}）` : ''}`,
     });
     
     success(res, plan, '创建成功');
@@ -156,7 +181,7 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, majorId, trainingLevelId, version, description, sortOrder } = req.body;
+    const { name, collegeId, majorId, trainingLevelId, version, description, sortOrder } = req.body;
     
     // 验证：专业类别和培养层次只能选择一项（二选一）
     if (majorId && trainingLevelId) {
@@ -168,6 +193,7 @@ router.put('/:id', async (req, res, next) => {
     
     const updateData = { 
       name, 
+      collegeId: collegeId ? Number(collegeId) : null,
       majorId: majorId ? Number(majorId) : null,
       trainingLevelId: trainingLevelId ? Number(trainingLevelId) : null,
       version, 
@@ -180,14 +206,35 @@ router.put('/:id', async (req, res, next) => {
     }
     
     try {
+      // 先获取更新前的数据用于对比
+      const oldPlan = await prisma.trainingPlan.findUnique({
+        where: { id: Number(id) },
+        include: { college: true },
+      });
+      
       const plan = await prisma.trainingPlan.update({
         where: { id: Number(id) },
         data: updateData,
         include: { 
           major: true,
+          college: true,
           trainingLevel: true,
         },
       });
+      
+      // 构建详细的变更日志
+      const changes = {
+        id: plan.id,
+        name: plan.name,
+      };
+      
+      // 记录使用部门变更
+      if (oldPlan?.collegeId !== plan.collegeId) {
+        changes.collegeChange = {
+          from: oldPlan?.college?.name || '未设置',
+          to: plan.college?.name || '未设置',
+        };
+      }
       
       await createAuditLog({
         module: 'trainingPlan',
@@ -195,7 +242,8 @@ router.put('/:id', async (req, res, next) => {
         userId: req.user?.id,
         ip: req.ip,
         result: 'success',
-        details: `更新培养方案: ${plan.name}`,
+        details: JSON.stringify(changes),
+        message: `更新培养方案：${plan.name}${plan.college?.name ? `（使用部门：${plan.college.name}）` : ''}`,
       });
       
       success(res, plan, '更新成功');

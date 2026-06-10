@@ -19,8 +19,15 @@ import { errorHandler } from './middleware/error.js';
 
 const app = express();
 
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+  origin: true,
+  credentials: true
+}));
+app.use(express.json({ limit: '10mb' }));
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  next();
+});
 
 // 公开路由（无需认证）
 app.use('/api/auth', authRoutes);

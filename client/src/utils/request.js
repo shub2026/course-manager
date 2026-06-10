@@ -6,6 +6,9 @@ import { useAuthStore } from '@/stores/auth'
 const request = axios.create({
   baseURL: '/api',
   timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json; charset=utf-8'
+  }
 })
 
 // 请求拦截器 - 自动携带Token
