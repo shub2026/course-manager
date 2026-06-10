@@ -158,7 +158,7 @@
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import axios from 'axios'
+import request from '@/utils/request'
 
 const authStore = useAuthStore()
 
@@ -197,10 +197,10 @@ const rules = {
 async function loadUsers() {
   loading.value = true
   try {
-    const response = await axios.get('/api/users')
-    users.value = response.data.data
+    const response = await request.get('/users')
+    users.value = response.data
   } catch (error) {
-    ElMessage.error('加载用户列表失败')
+    ElMessage.error('加载用户列表失败：' + (error.message || '未知错误'))
   } finally {
     loading.value = false
   }
@@ -241,21 +241,21 @@ async function handleSubmit() {
 
     try {
       if (isEdit.value) {
-        await axios.put(`/api/users/${formData.value.id}`, {
+        await request.put(`/users/${formData.value.id}`, {
           real_name: formData.value.real_name,
           email: formData.value.email,
           role: formData.value.role
         })
         ElMessage.success('更新成功')
       } else {
-        await axios.post('/api/users', formData.value)
+        await request.post('/users', formData.value)
         ElMessage.success('创建成功')
       }
 
       dialogVisible.value = false
       await loadUsers()
     } catch (error) {
-      ElMessage.error(error.response?.data?.message || '操作失败')
+      ElMessage.error(error.message || '操作失败')
     } finally {
       submitting.value = false
     }
@@ -271,13 +271,13 @@ async function toggleUserStatus(user) {
   })
 
   try {
-    await axios.put(`/api/users/${user.id}/status`, {
+    await request.put(`/users/${user.id}/status`, {
       isActive: !user.is_active
     })
     ElMessage.success(`${action}成功`)
     await loadUsers()
   } catch (error) {
-    ElMessage.error(`${action}失败`)
+    ElMessage.error(`${action}失败：` + (error.message || '未知错误'))
   }
 }
 
@@ -294,7 +294,7 @@ async function deleteUser(user) {
   })
 
   try {
-    await axios.delete(`/api/users/${user.id}`)
+    await request.delete(`/users/${user.id}`)
     ElMessage.success('删除成功')
     await loadUsers()
   } catch (error) {

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import router from '@/router'
-import axios from 'axios'
+import request from '@/utils/request'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || '')
@@ -17,12 +17,12 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function login(username, password) {
     try {
-      const response = await axios.post('/api/auth/login', {
+      const response = await request.post('/auth/login', {
         username,
         password
       })
 
-      const { user, token: newToken, refreshToken: newRefreshToken } = response.data.data
+      const { user, token: newToken, refreshToken: newRefreshToken } = response.data
 
       token.value = newToken
       refreshToken.value = newRefreshToken
@@ -32,15 +32,13 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('refreshToken', newRefreshToken)
       localStorage.setItem('userInfo', JSON.stringify(user))
 
-      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
-
       router.push('/')
 
-      return { success: true }
+      return { success: true, message: '登录成功' }
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || '登录失败'
+        message: error.message || '登录失败'
       }
     }
   }
@@ -48,7 +46,7 @@ export const useAuthStore = defineStore('auth', () => {
   async function logout() {
     try {
       if (token.value) {
-        await axios.post('/api/auth/logout')
+        await request.post('/auth/logout')
       }
     } catch (error) {
       console.error('登出请求失败:', error)
@@ -60,15 +58,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function refreshAccessToken() {
     try {
-      const response = await axios.post('/api/auth/refresh', {
+      const response = await request.post('/auth/refresh', {
         refreshToken: refreshToken.value
       })
 
-      const { token: newToken } = response.data.data
+      const { token: newToken } = response.data
 
       token.value = newToken
       localStorage.setItem('token', newToken)
-      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
 
       return true
     } catch (error) {
@@ -80,10 +77,10 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchUserInfo() {
     try {
-      const response = await axios.get('/api/auth/me')
-      userInfo.value = response.data.data
+      const response = await request.get('/auth/me')
+      userInfo.value = response.data
 
-      localStorage.setItem('userInfo', JSON.stringify(response.data.data))
+      localStorage.setItem('userInfo', JSON.stringify(response.data))
       return true
     } catch (error) {
       const refreshed = await refreshAccessToken()
@@ -96,7 +93,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function changePassword(oldPassword, newPassword) {
     try {
-      await axios.put('/api/auth/password', {
+      await request.put('/auth/password', {
         oldPassword,
         newPassword
       })
@@ -104,7 +101,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error) {
       return {
         success: false,
-        message: error.response?.data?.message || '密码修改失败'
+        message: error.message || '密码修改失败'
       }
     }
   }
@@ -117,13 +114,10 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('token')
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('userInfo')
-
-    delete axios.defaults.headers.common['Authorization']
   }
 
   function initAuth() {
     if (token.value) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
       fetchUserInfo()
     }
   }

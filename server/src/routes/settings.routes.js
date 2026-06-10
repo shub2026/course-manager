@@ -158,11 +158,34 @@ router.post('/reset/plans', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// POST /api/settings/reset/settings - 清空系统设置
-router.post('/reset/settings', async (req, res, next) => {
+// POST /api/settings/reset/settings - 系统重置（清空所有业务数据，保留超级管理员）
+router.post('/reset/settings', roleMiddleware('super_admin'), async (req, res, next) => {
   try {
-    await prisma.system_settings.deleteMany();
-    success(res, null, '系统设置已清空');
+    // 按依赖关系从顶向下清空所有业务数据
+    
+    // Level 3: 业务数据
+    await prisma.audit_logs.deleteMany();           // 操作日志
+    await prisma.classes.deleteMany();              // 班级
+    
+    // Level 2: 培养方案相关
+    await prisma.plan_textbooks.deleteMany();       // 培养方案教材关联
+    await prisma.plan_course_semesters.deleteMany(); // 培养方案课程学期
+    await prisma.plan_courses.deleteMany();         // 培养方案课程
+    
+    // Level 1: 基础数据
+    await prisma.training_plans.deleteMany();       // 培养方案
+    await prisma.textbooks.deleteMany();            // 教材
+    await prisma.courses.deleteMany();              // 课程
+    await prisma.majors.deleteMany();               // 专业
+    await prisma.colleges.deleteMany();             // 学院
+    await prisma.training_levels.deleteMany();      // 培养层次
+    
+    // Level 0: 系统配置
+    await prisma.system_settings.deleteMany();      // 系统设置
+    
+    // 注意：不清空 users 表，保留所有用户账号（包括超级管理员）
+    
+    success(res, null, '系统已重置，所有业务数据已清空，用户账号已保留');
   } catch (e) { next(e); }
 });
 

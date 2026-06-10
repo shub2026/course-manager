@@ -286,31 +286,32 @@
           </div>
         </el-tab-pane>
 
-        <!-- Tab 3: 系统设置 -->
+        <!-- Tab 3: 系统重置 -->
         <el-tab-pane name="system">
           <template #label>
             <span class="tab-label">
               <el-icon><Setting /></el-icon>
-              系统设置
+              系统重置
             </span>
           </template>
 
           <div class="reset-group-desc">
-            清空系统配置数据，恢复默认状态。清空后需要重新配置学期等参数。
+            将系统恢复到初始化状态，清空所有业务数据但保留用户账号。此操作不可恢复！
           </div>
 
-          <div class="reset-single-card">
+          <div class="reset-single-card warning">
             <div class="reset-single-icon">
-              <el-icon :size="32"><RefreshRight /></el-icon>
+              <el-icon :size="32"><WarningFilled /></el-icon>
             </div>
             <div class="reset-single-body">
-              <h4>恢复系统默认设置</h4>
-              <p>清空所有系统配置项，包括当前学期设置。清空后系统将恢复默认学期（2025-2026学年第2学期）。</p>
+              <h4>系统重置（恢复初始状态）</h4>
+              <p>清空所有业务数据（班级、培养方案、课程、教材、专业、学院、培养层次、系统设置、操作日志），仅保留用户账号。</p>
+              <p class="highlight-text">适用场景：更换测试环境、重新导入数据、系统初始化调试</p>
             </div>
             <div class="reset-single-action">
               <el-button type="danger" @click="showResetDialog('settings')" :loading="resetting">
                 <el-icon><Delete /></el-icon>
-                清空系统设置
+                系统重置
               </el-button>
             </div>
           </div>
@@ -348,7 +349,7 @@
       </el-tabs>
     </el-card>
 
-    <!-- ==================== 二次确认弹窗 ==================== -->
+    <!-- ==================== 二次确认弹窗（复杂操作） ==================== -->
     <el-dialog
       v-model="dialogVisible"
       :title="dialogTitle"
@@ -404,6 +405,44 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <!-- ==================== 清空操作日志确认弹窗（简单） ==================== -->
+    <el-dialog
+      v-model="clearAuditDialogVisible"
+      title="清空操作日志"
+      width="500px"
+      :close-on-click-modal="false"
+    >
+      <el-alert
+        title="此操作不可恢复！"
+        type="error"
+        :closable="false"
+        show-icon
+      />
+      <p class="confirm-text">确定要清空所有操作日志吗？此操作将永久删除所有日志记录。</p>
+      <template #footer>
+        <el-button @click="clearAuditDialogVisible = false">取消</el-button>
+        <el-button type="danger" @click="handleClearAuditLogs" :loading="resetting">
+          确认清空
+        </el-button>
+      </template>
+    </el-dialog>
+
+    <!-- ==================== 保存设置确认弹窗 ==================== -->
+    <el-dialog
+      v-model="saveConfirmVisible"
+      title="确认保存"
+      width="450px"
+      :close-on-click-modal="false"
+    >
+      <p class="confirm-text">确定要保存当前学期设置吗？</p>
+      <template #footer>
+        <el-button @click="saveConfirmVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmSave" :loading="saving">
+          确认保存
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -425,6 +464,8 @@ const activeResetTab = ref('basic')
 const dialogVisible = ref(false)
 const resetType = ref('')
 const confirmInput = ref('')
+const clearAuditDialogVisible = ref(false)
+const saveConfirmVisible = ref(false)
 
 // 生成可选学期列表
 function generateAvailableSemesters() {
@@ -464,7 +505,7 @@ const confirmTextMap = {
   textbooks: '将永久删除所有教材数据，级联清空培养方案中的教材关联。',
   classes: '将永久删除所有班级数据。',
   plans: '将永久删除所有培养方案及其课程安排、教材关联数据。',
-  settings: '将永久删除所有系统配置数据，系统恢复默认设置。',
+  settings: '将系统恢复到初始化状态，清空所有业务数据（班级、培养方案、课程、教材、专业、学院、培养层次、系统设置、操作日志），仅保留用户账号。此操作不可恢复！',
   'audit-logs': '将永久删除所有操作日志记录。'
 }
 
@@ -494,7 +535,7 @@ const expectedTextMap = {
   textbooks: '清空教材',
   classes: '清空班级',
   plans: '清空培养方案',
-  settings: '清空系统设置',
+  settings: '系统重置',
   'audit-logs': '清空操作日志'
 }
 
@@ -512,12 +553,17 @@ async function load() {
   isCurrentSemesterSaved.value = !!form.value.current_semester
 }
 
-async function handleSave() {
+function handleSave() {
+  saveConfirmVisible.value = true
+}
+
+async function confirmSave() {
   saving.value = true
   try {
     await settingsStore.save(form.value)
     isCurrentSemesterSaved.value = true
     ElMessage.success('学期设置已保存')
+    saveConfirmVisible.value = false
   } catch (e) {
     ElMessage.error('保存失败：' + (e.message || '未知错误'))
   } finally {
@@ -526,6 +572,12 @@ async function handleSave() {
 }
 
 function showResetDialog(type) {
+  // 操作日志使用简单对话框
+  if (type === 'audit-logs') {
+    clearAuditDialogVisible.value = true
+    return
+  }
+  
   resetType.value = type
   confirmInput.value = ''
   dialogVisible.value = true
@@ -560,6 +612,19 @@ async function handleReset() {
     }
   } catch (error) {
     ElMessage.error('操作失败：' + (error.message || '未知错误'))
+  } finally {
+    resetting.value = false
+  }
+}
+
+async function handleClearAuditLogs() {
+  resetting.value = true
+  try {
+    await request.post('/settings/reset/audit-logs')
+    ElMessage.success('操作日志已清空')
+    clearAuditDialogVisible.value = false
+  } catch (error) {
+    ElMessage.error('清空操作日志失败：' + (error.message || '未知错误'))
   } finally {
     resetting.value = false
   }
@@ -961,6 +1026,11 @@ onMounted(load)
   border-radius: 12px;
 }
 
+.reset-single-card.warning {
+  background: #fff7e6;
+  border-color: #ffd591;
+}
+
 .reset-single-icon {
   width: 60px;
   height: 60px;
@@ -991,8 +1061,26 @@ onMounted(load)
   line-height: 1.6;
 }
 
+.reset-single-body p.highlight-text {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 107, 107, 0.1);
+  border-left: 3px solid #ff6b6b;
+  color: #ff6b6b;
+  font-weight: 500;
+  font-size: 12px;
+}
+
 .reset-single-action {
   flex-shrink: 0;
+}
+
+/* ==================== 简单确认文本 ==================== */
+.confirm-text {
+  margin: 16px 0 0;
+  font-size: 14px;
+  color: #606266;
+  line-height: 1.6;
 }
 
 /* ==================== 确认弹窗 ==================== */
