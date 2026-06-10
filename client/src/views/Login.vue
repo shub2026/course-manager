@@ -245,7 +245,7 @@ async function handleLogin() {
 
 /* ==================== 左侧品牌区 ==================== */
 .login-brand {
-  flex: 1;
+  flex: 1.618;
   position: relative;
   z-index: 1;
   display: flex;
