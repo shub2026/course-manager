@@ -4,5 +4,6 @@ dist/
 *.db-journal
 uploads/*
 !uploads/.gitkeep
+.env
 .env.local
 .DS_Store

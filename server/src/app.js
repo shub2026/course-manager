@@ -17,7 +17,7 @@ import collegeRoutes from './routes/college.routes.js';
 import auditRoutes from './routes/audit.routes.js';
 import { authMiddleware, roleMiddleware } from './middleware/auth.middleware.js';
 import { errorHandler } from './middleware/error.js';
-import { convertResponseNaming } from './middleware/naming.middleware.js';
+import { convertResponseNaming, convertRequestNaming } from './middleware/naming.middleware.js';
 
 const app = express();
 
@@ -31,8 +31,9 @@ app.use((req, res, next) => {
   next();
 });
 
-// 注册响应命名转换中间件（在所有路由之前）
-app.use(convertResponseNaming);
+// #25修复：注册命名转换中间件（在所有路由之前）
+app.use(convertRequestNaming);   // 请求：camelCase → snake_case
+app.use(convertResponseNaming);  // 响应：snake_case → camelCase
 
 // 公开路由（无需认证）
 app.use('/api/auth', authRoutes);
@@ -50,11 +51,11 @@ app.get('/api/health', async (req, res) => {
       uptime: Math.round(process.uptime())
     });
   } catch (e) {
+    // #23修复：健康检查错误不泄露数据库内部详情
     res.status(503).json({ 
       status: 'error', 
       timestamp: new Date().toISOString(),
-      database: 'disconnected',
-      error: e.message
+      database: 'disconnected'
     });
   }
 });

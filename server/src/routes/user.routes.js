@@ -1,13 +1,12 @@
 import express from 'express'
 import { prisma } from '../lib/prisma.js'
-import { authMiddleware, roleMiddleware } from '../middleware/auth.middleware.js'
+import { roleMiddleware } from '../middleware/auth.middleware.js'
 import { success, fail } from '../utils/response.js'
 import bcrypt from 'bcryptjs'
 
 const router = express.Router()
 
-// 所有用户管理接口都需要认证
-router.use(authMiddleware)
+// #24修复：移除重复的authMiddleware（app.js挂载时已应用）
 
 /**
  * GET /api/users
