@@ -29,9 +29,21 @@ router.get('/', async (req, res, next) => {
         include: { _count: { select: { classes: true, training_plans: true } } },
         orderBy: { sort_order: 'asc' },
       });
-      success(res, updatedMajors);
+      // 手动处理响应数据，避免中间件错误转换
+      const formattedMajors = updatedMajors.map(major => ({
+        ...major,
+        classCount: major._count?.classes || 0,
+        planCount: major._count?.training_plans || 0,
+      }));
+      success(res, formattedMajors);
     } else {
-      success(res, majors);
+      // 手动处理响应数据，避免中间件错误转换
+      const formattedMajors = majors.map(major => ({
+        ...major,
+        classCount: major._count?.classes || 0,
+        planCount: major._count?.training_plans || 0,
+      }));
+      success(res, formattedMajors);
     }
   } catch (e) { next(e); }
 });

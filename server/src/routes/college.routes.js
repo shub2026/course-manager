@@ -29,9 +29,19 @@ router.get('/', async (req, res, next) => {
         include: { _count: { select: { classes: true } } },
         orderBy: { sort_order: 'asc' },
       });
-      success(res, updatedColleges);
+      // 手动处理响应数据，避免中间件错误转换
+      const formattedColleges = updatedColleges.map(college => ({
+        ...college,
+        classCount: college._count?.classes || 0,
+      }));
+      success(res, formattedColleges);
     } else {
-      success(res, colleges);
+      // 手动处理响应数据，避免中间件错误转换
+      const formattedColleges = colleges.map(college => ({
+        ...college,
+        classCount: college._count?.classes || 0,
+      }));
+      success(res, formattedColleges);
     }
   } catch (e) { next(e); }
 });

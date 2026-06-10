@@ -15,7 +15,7 @@
         <el-table-column prop="code" label="编码" width="120" />
         <el-table-column prop="description" label="描述" min-width="200" show-overflow-tooltip />
         <el-table-column label="班级数" width="80">
-          <template #default="{ row }">{{ row._count?.classes || 0 }}</template>
+          <template #default="{ row }">{{ row.classCount || 0 }}</template>
         </el-table-column>
         <el-table-column label="排序" width="120" align="center">
           <template #default="{ row, $index }">

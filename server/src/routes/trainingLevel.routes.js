@@ -28,9 +28,19 @@ router.get('/', async (req, res, next) => {
         include: { _count: { select: { classes: true } } },
         orderBy: { sort_order: 'asc' },
       });
-      success(res, updatedLevels);
+      // 手动处理响应数据，避免中间件错误转换
+      const formattedLevels = updatedLevels.map(level => ({
+        ...level,
+        classCount: level._count?.classes || 0,
+      }));
+      success(res, formattedLevels);
     } else {
-      success(res, levels);
+      // 手动处理响应数据，避免中间件错误转换
+      const formattedLevels = levels.map(level => ({
+        ...level,
+        classCount: level._count?.classes || 0,
+      }));
+      success(res, formattedLevels);
     }
   } catch (e) { next(e); }
 });
