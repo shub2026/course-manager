@@ -3,10 +3,22 @@ import { prisma } from '../lib/prisma.js';
 export async function getCurrentSemesterInfo() {
   const setting = await prisma.system_settings.findUnique({ where: { key: 'current_semester' } });
   if (!setting) return null;
+  
+  // #19修复：校验数据格式，防止NaN传播
   const parts = setting.value.split('-');
+  if (parts.length !== 3) {
+    console.error(`Invalid current_semester format: ${setting.value}, expected format: YYYY-YYYY-N`);
+    return null;
+  }
+  
   const startYear = Number(parts[0]);
   const endYear = Number(parts[1]);
   const semesterIndex = Number(parts[2]);
+  
+  if (isNaN(startYear) || isNaN(endYear) || isNaN(semesterIndex)) {
+    console.error(`Invalid current_semester values: startYear=${parts[0]}, endYear=${parts[1]}, semesterIndex=${parts[2]}`);
+    return null;
+  }
   
   return {
     startYear,

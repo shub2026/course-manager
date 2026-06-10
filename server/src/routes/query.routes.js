@@ -337,7 +337,6 @@ router.get('/textbooks', async (req, res, next) => {
     const results = [];
 
     for (const tb of textbooks) {
-      let totalStudents = 0;
       const usedClasses = new Set();
 
       for (const pt of tb.plan_textbooks) {
@@ -353,8 +352,16 @@ router.get('/textbooks', async (req, res, next) => {
           if (c.enrollment_year !== enrollmentYear) continue;
           if (isClassMatchPlan(c, plan)) {
             usedClasses.add(c.id);
-            totalStudents += c.student_count;
           }
+        }
+      }
+
+      // #18修复：基于去重后的班级计算学生总数
+      let totalStudents = 0;
+      for (const classId of usedClasses) {
+        const cls = allClasses.find(c => c.id === classId);
+        if (cls) {
+          totalStudents += cls.student_count;
         }
       }
 

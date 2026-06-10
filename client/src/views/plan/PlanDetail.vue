@@ -67,7 +67,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getPlans, addPlanCourse, deletePlanCourse } from '../../api/plan'
+import { getPlanById, addPlanCourse, deletePlanCourse } from '../../api/plan'
 import { getCourses } from '../../api/course'
 import { getTextbooks } from '../../api/textbook'
 import CourseMatrix from '../../components/CourseMatrix.vue'
@@ -84,8 +84,9 @@ const showSemesterDialog = ref(false)
 const semesterForm = ref({ courseId: null, startSemester: 1, endSemester: 2, weeklyHours: 4 })
 
 async function loadPlan() {
-  const res = await getPlans()
-  plan.value = (res.data || []).find((p) => p.id === planId)
+  // #20修复：直接获取单个培养方案，而非获取全部再查找
+  const res = await getPlanById(planId)
+  plan.value = res.data
 }
 
 async function refreshMatrix() {

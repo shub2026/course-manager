@@ -5,7 +5,7 @@
         <div class="card-header">
           <span>班级管理</span>
           <div class="card-header-actions">
-            <el-input v-model="filterName" clearable placeholder="按班级名称筛选" @input="resetPaginationAndLoad" class="filter-name" />
+            <el-input v-model="filterName" clearable placeholder="按班级名称筛选" class="filter-name" />
             <el-select v-model="filterCollege" clearable placeholder="选择学院" @change="resetPaginationAndLoad" class="filter-medium">
               <el-option label="空值" value="null" />
               <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
@@ -297,7 +297,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, Edit, Loading } from '@element-plus/icons-vue'
 import { useAuthStore } from '../../stores/auth'
@@ -433,17 +433,14 @@ async function load() {
     list.value = res.data?.items || []
     pagination.value.total = res.data?.total || 0
     
-    // 如果是首次加载或没有筛选条件，获取所有入学年份
-    if (!filterName.value && !filterYear.value && !filterCollege.value && !filterMajor.value && !filterLevel.value && !filterStatus.value && !filterPlan.value) {
-      const allRes = await getClasses({ pageSize: 1000 })
-      const years = new Set()
-      ;(allRes.data?.items || []).forEach(cls => {
-        if (cls.enrollmentYear) {
-          years.add(cls.enrollmentYear)
-        }
-      })
-      allEnrollmentYears.value = Array.from(years)
-    }
+    // #21修复：从当前加载的数据中提取入学年份，避免额外请求1000条记录
+    const years = new Set()
+    ;(list.value).forEach(cls => {
+      if (cls.enrollmentYear) {
+        years.add(cls.enrollmentYear)
+      }
+    })
+    allEnrollmentYears.value = Array.from(years)
   } finally {
     loading.value = false
   }
@@ -466,6 +463,15 @@ function resetPaginationAndLoad() {
   pagination.value.page = 1
   load()
 }
+
+// 为filterName添加debounce防抖（#16修复）
+let filterNameDebounceTimer = null
+watch(filterName, () => {
+  if (filterNameDebounceTimer) clearTimeout(filterNameDebounceTimer)
+  filterNameDebounceTimer = setTimeout(() => {
+    resetPaginationAndLoad()
+  }, 300) // 300ms debounce
+})
 
 async function loadMeta() {
   const [majorsRes, plansRes, levelsRes, collegesRes] = await Promise.all([getMajors(), getPlans(), getTrainingLevels(), getColleges()])

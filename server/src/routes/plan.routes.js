@@ -106,6 +106,29 @@ router.get('/', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
+// #20修复：添加获取单个培养方案的接口
+router.get('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    
+    const plan = await prisma.training_plans.findUnique({
+      where: { id: Number(id) },
+      include: {
+        majors: { select: { id: true, name: true } },
+        colleges: { select: { id: true, name: true } },
+        training_levels: { select: { id: true, name: true } },
+        plan_courses: { select: { id: true } },
+      },
+    });
+
+    if (!plan) {
+      return fail(res, '培养方案不存在', 404);
+    }
+
+    success(res, plan);
+  } catch (e) { next(e); }
+});
+
 router.post('/', async (req, res, next) => {
   try {
     const { name, collegeId, majorId, trainingLevelId, version, description } = req.body;

@@ -145,7 +145,16 @@ function exportExcel() {
   const authStore = useAuthStore()
   const token = authStore.token
   if (token) {
-    window.open(`/api/export/semester?token=${token}`, '_blank')
+    // #17修复：导出时携带筛选参数
+    const params = new URLSearchParams()
+    params.append('token', token)
+    if (filterCollege.value) params.append('collegeId', filterCollege.value)
+    if (filterMajor.value) params.append('majorId', filterMajor.value)
+    if (filterLevel.value) params.append('trainingLevelId', filterLevel.value)
+    if (filterEnrollmentYear.value) params.append('enrollmentYear', filterEnrollmentYear.value)
+    if (filterGrade.value) params.append('grade', filterGrade.value)
+    
+    window.open(`/api/export/semester?${params.toString()}`, '_blank')
   } else {
     ElMessage.warning('请先登录')
   }

@@ -38,6 +38,10 @@ export function convertResponseNaming(req, res, next) {
     if (data && typeof data === 'object' && Array.isArray(data.items)) {
       data.items = data.items.map(item => snakeToCamel(item));
     }
+    // 如果有 logs 数组（审计日志响应），转换数组中的每个对象
+    if (data && typeof data === 'object' && Array.isArray(data.logs)) {
+      data.logs = data.logs.map(log => snakeToCamel(log));
+    }
     // 转换顶层的其他字段（如 errors、message 等保持不变）
     return originalJson(data);
   };
