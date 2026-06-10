@@ -407,7 +407,7 @@ function getCurrentPlanName(row) {
  * @returns {number|null} 年级序号或null（超出学制）
  */
 function calcGrade(cls) {
-  const cs = settingsStore.settings.current_semester
+  const cs = settingsStore.settings.currentSemester
   if (!cs) return null
   const startYear = Number(cs.value.split('-')[0])
   const grade = startYear - cls.enrollmentYear + 1

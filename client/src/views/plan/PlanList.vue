@@ -31,19 +31,19 @@
         </el-table-column>
         <el-table-column label="关联类型" width="90">
           <template #default="{ row }">
-            <el-tag v-if="row.major_id" type="success" size="small">按专业</el-tag>
-            <el-tag v-else-if="row.training_level_id" type="info" size="small">按层次</el-tag>
+            <el-tag v-if="row.majorId" type="success" size="small">按专业</el-tag>
+            <el-tag v-else-if="row.trainingLevelId" type="info" size="small">按层次</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="专业" min-width="120">
           <template #default="{ row }">{{ row.majors?.name || '-' }}</template>
         </el-table-column>
         <el-table-column label="培养层次" min-width="100">
-          <template #default="{ row }">{{ row.training_levels?.name || '-' }}</template>
+          <template #default="{ row }">{{ row.trainingLevels?.name || '-' }}</template>
         </el-table-column>
         <el-table-column prop="version" label="版本" width="80" />
         <el-table-column label="课程数" width="80">
-          <template #default="{ row }">{{ row._count?.plan_courses || 0 }}</template>
+          <template #default="{ row }">{{ row._count?.planCourses || 0 }}</template>
         </el-table-column>
         <el-table-column label="使用班级" width="90">
           <template #default="{ row }">{{ row._count?.classes || 0 }}</template>
@@ -199,7 +199,7 @@ function handleFilterChange() {
     filteredlist.value = list.value
   } else {
     // 按选择的部门筛选
-    filteredlist.value = list.value.filter(item => item.college_id === Number(filterCollegeId.value))
+    filteredlist.value = list.value.filter(item => item.collegeId === Number(filterCollegeId.value))
   }
 }
 
@@ -217,12 +217,12 @@ function openDialog(row) {
   if (row) {
     form.value = { 
       ...row,
-      collegeId: row.college_id || null,
-      trainingLevelId: row.training_level_id || null,
+      collegeId: row.collegeId || null,
+      trainingLevelId: row.trainingLevelId || null,
     }
     
     // 根据已有数据确定关联模式（优先判断层次）
-    if (row.training_level_id) {
+    if (row.trainingLevelId) {
       relationMode.value = 'trainingLevel'
     } else {
       relationMode.value = 'major'
@@ -290,13 +290,13 @@ async function handleMoveUp(row, index) {
   
   const currentId = currentPlan.id
   const prevId = prevPlan.id
-  const currentSortOrder = currentPlan.sort_order
-  const prevSortOrder = prevPlan.sort_order
+  const currentSortOrder = currentPlan.sortOrder
+  const prevSortOrder = prevPlan.sortOrder
   
   try {
     await Promise.all([
-      updatePlan(currentId, { sort_order: prevSortOrder }),
-      updatePlan(prevId, { sort_order: currentSortOrder })
+      updatePlan(currentId, { sortOrder: prevSortOrder }),
+      updatePlan(prevId, { sortOrder: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
     await load()
@@ -314,13 +314,13 @@ async function handleMoveDown(row, index) {
   
   const currentId = currentPlan.id
   const nextId = nextPlan.id
-  const currentSortOrder = currentPlan.sort_order
-  const nextSortOrder = nextPlan.sort_order
+  const currentSortOrder = currentPlan.sortOrder
+  const nextSortOrder = nextPlan.sortOrder
   
   try {
     await Promise.all([
-      updatePlan(currentId, { sort_order: nextSortOrder }),
-      updatePlan(nextId, { sort_order: currentSortOrder })
+      updatePlan(currentId, { sortOrder: nextSortOrder }),
+      updatePlan(nextId, { sortOrder: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
     await load()
