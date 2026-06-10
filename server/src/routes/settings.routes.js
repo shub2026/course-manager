@@ -60,7 +60,7 @@ router.post('/reset/basic', roleMiddleware('super_admin'), async (req, res, next
 });
 
 // POST /api/settings/reset/majors - 清空专业（检查班级依赖）
-router.post('/reset/majors', async (req, res, next) => {
+router.post('/reset/majors', roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     // 检查是否有班级存在
     const classCount = await prisma.classes.count();
@@ -79,7 +79,7 @@ router.post('/reset/majors', async (req, res, next) => {
 });
 
 // POST /api/settings/reset/colleges - 清空学院（检查班级依赖）
-router.post('/reset/colleges', async (req, res, next) => {
+router.post('/reset/colleges', roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     // 检查是否有班级存在
     const classCount = await prisma.classes.count();
@@ -98,7 +98,7 @@ router.post('/reset/colleges', async (req, res, next) => {
 });
 
 // POST /api/settings/reset/levels - 清空层次（检查班级依赖）
-router.post('/reset/levels', async (req, res, next) => {
+router.post('/reset/levels', roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     // 检查是否有班级存在
     const classCount = await prisma.classes.count();
@@ -117,7 +117,7 @@ router.post('/reset/levels', async (req, res, next) => {
 });
 
 // POST /api/settings/reset/courses - 清空课程（级联清空培养方案课程）
-router.post('/reset/courses', async (req, res, next) => {
+router.post('/reset/courses', roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     // 先清空引用课程的培养方案课程
     await prisma.plan_textbooks.deleteMany();           // Level 2: 培养方案教材
@@ -129,7 +129,7 @@ router.post('/reset/courses', async (req, res, next) => {
 });
 
 // POST /api/settings/reset/textbooks - 清空教材（级联清空培养方案教材）
-router.post('/reset/textbooks', async (req, res, next) => {
+router.post('/reset/textbooks', roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     // 先清空引用教材的培养方案教材
     await prisma.plan_textbooks.deleteMany();           // Level 2: 培养方案教材（引用教材）
@@ -139,7 +139,7 @@ router.post('/reset/textbooks', async (req, res, next) => {
 });
 
 // POST /api/settings/reset/classes - 清空班级
-router.post('/reset/classes', async (req, res, next) => {
+router.post('/reset/classes', roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     await prisma.classes.deleteMany();
     success(res, null, '班级数据已清空');
@@ -147,7 +147,7 @@ router.post('/reset/classes', async (req, res, next) => {
 });
 
 // POST /api/settings/reset/plans - 清空培养方案
-router.post('/reset/plans', async (req, res, next) => {
+router.post('/reset/plans', roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     // 按依赖关系顺序清空培养方案相关数据
     await prisma.plan_textbooks.deleteMany();

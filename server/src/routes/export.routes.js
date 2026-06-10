@@ -113,6 +113,22 @@ router.get('/semester', async (req, res, next) => {
             },
           },
         },
+        customPlan: {
+          include: {
+            plan_courses: {
+              include: {
+                courses: true,
+                plan_course_semesters: {
+                  include: {
+                    plan_textbooks: {
+                      include: { textbooks: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
       },
       orderBy: { enrollment_year: 'desc' },
     });
@@ -153,7 +169,7 @@ router.get('/semester', async (req, res, next) => {
     // 优先级：1.自定义方案 > 2.根据培养方案的关联类型进行匹配
     function findBestMatchPlan(cls) {
       // 1. 自定义方案优先
-      if (cls.custom_plan_id) {
+      if (cls.custom_plan_id && cls.customPlan) {
         return cls.customPlan;
       }
 
@@ -291,13 +307,13 @@ router.get('/textbook/:id', async (req, res, next) => {
       prisma.textbooks.findUnique({
         where: { id: Number(id) },
         include: {
-          planTextbooks: {
+          plan_textbooks: {
             include: {
-              semester: {
+              plan_course_semesters: {
                 include: {
-                  planCourses: { 
+                  plan_courses: { 
                     include: { 
-                      plan: { include: { majors: true, training_levels: true } }, 
+                      training_plans: { include: { majors: true, training_levels: true } }, 
                       courses: true 
                     } 
                   },
@@ -332,9 +348,9 @@ router.get('/textbook/:id', async (req, res, next) => {
     const rows = [];
 
     for (const pt of textbook.plan_textbooks) {
-      const sem = pt.semester;
+      const sem = pt.plan_course_semesters;
       const pc = sem.plan_courses;
-      const plan = pc.plan;
+      const plan = pc.training_plans;
 
       for (const cls of allClasses) {
         const grade = semesterInfo.startYear - cls.enrollment_year + 1;
