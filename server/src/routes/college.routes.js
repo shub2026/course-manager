@@ -78,7 +78,7 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
     try {
       const college = await prisma.colleges.update({
         where: { id: Number(id) },
-        data: { name, code, description, sortOrder },
+        data: { name, code, description, sort_order: sortOrder },
       });
       
       await createAuditLog({

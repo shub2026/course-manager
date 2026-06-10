@@ -36,7 +36,7 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
     const { title, isbn, publisher, author, edition, publishDate, price, category, description, isActive, sortOrder } = req.body;
     if (!title) return fail(res, '书名不能为空');
     const textbook = await prisma.textbooks.create({
-      data: { title, isbn, publisher, author, edition, publishDate, price: price ? Number(price) : null, category: category || null, description, is_active: isActive !== undefined ? isActive : true, sort_order: sortOrder ?? 0 },
+      data: { title, isbn, publisher, author, edition, publish_date: publishDate, price: price ? Number(price) : null, category: category || null, description, is_active: isActive !== undefined ? isActive : true, sort_order: sortOrder ?? 0 },
     });
 
     await createAuditLog({
@@ -71,7 +71,7 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
     try {
       const textbook = await prisma.textbooks.update({
         where: { id: Number(id) },
-        data: { title, isbn, publisher, author, edition, publishDate, price: price ? Number(price) : null, category, description, isActive, sort_order: sortOrder ?? 0 },
+        data: { title, isbn, publisher, author, edition, publish_date: publishDate, price: price ? Number(price) : null, category, description, is_active: isActive, sort_order: sortOrder ?? 0 },
       });
 
       await createAuditLog({

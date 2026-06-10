@@ -89,7 +89,17 @@ router.post('/classes', (req, res, next) => {
       const studentCount = row['班级人数'];
       const statusValue = row['状态'];
 
-      console.log(`[班级导入] 第${i + 2}行:`, { name, enrollmentYear, durationYears, majorName, collegeName, trainingLevelName, studentCount, statusValue });
+      console.log(`[班级导入] 第${i + 2}行原始数据:`, JSON.stringify(row));
+      console.log(`[班级导入] 第${i + 2}行解析结果:`, { 
+        name, 
+        enrollmentYear: `[${typeof enrollmentYear}]${enrollmentYear}`, 
+        durationYears: `[${typeof durationYears}]${durationYears}`, 
+        majorName, 
+        collegeName, 
+        trainingLevelName, 
+        studentCount: `[${typeof studentCount}]${studentCount}`, 
+        statusValue 
+      });
 
       if (!name || !enrollmentYear || !durationYears || !trainingLevelName) {
         errors.push(`第${i + 2}行：缺少必填字段（班级名称、入学年份、学制、培养层次）`);

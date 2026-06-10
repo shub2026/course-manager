@@ -94,17 +94,17 @@ router.get('/semester', async (req, res, next) => {
     const classes = await prisma.classes.findMany({
       where: { status: 'active' },
       include: {
-        major: true,
-        college: true,
-        trainingLevel: true,
+        majors: true,
+        colleges: true,
+        training_levels: true,
         training_plans: {
           include: {
             plan_courses: {
               include: {
-                course: true,
-                planCourseSemesters: {
+                courses: true,
+                plan_course_semesters: {
                   include: {
-                    textbooks: {
+                    plan_textbooks: {
                       include: { textbook: true },
                     },
                   },
@@ -138,7 +138,7 @@ router.get('/semester', async (req, res, next) => {
       include: {
         plan_courses: {
           include: {
-            course: true,
+            courses: true,
             planCourseSemesters: {
               include: {
                 textbooks: { include: { textbook: true } },
@@ -186,15 +186,15 @@ router.get('/semester', async (req, res, next) => {
       if (!plan) continue;
 
       const planCourses = plan.plan_courses.filter(
-        (pc) => pc.startSemester <= currentSemesterNum && pc.endSemester >= currentSemesterNum
+        (pc) => pc.start_semester <= currentSemesterNum && pc.end_semester >= currentSemesterNum
       );
 
       if (planCourses.length === 0) {
         rows.push({
           '班级名称': cls.name, 
-          '二级学院': cls.college?.name || '-',
-          '专业': cls.major?.name || '-', 
-          '培养层次': cls.trainingLevel?.name || '-',
+          '二级学院': cls.colleges?.name || '-',
+          '专业': cls.majors?.name || '-', 
+          '培养层次': cls.training_levels?.name || '-',
           '入学年份': cls.enrollment_year,
           '年级': grade,
           '学生人数': Number(cls.student_count) || 0, 
@@ -208,23 +208,23 @@ router.get('/semester', async (req, res, next) => {
       } else {
         for (const pc of planCourses) {
           // 先找到对应学期的记录，再获取其教材
-          const semRecord = pc.planCourseSemesters?.find(s => s.semester === currentSemesterNum);
-          const textbooks = semRecord?.textbooks || [];
+          const semRecord = pc.plan_course_semesters?.find(s => s.semester === currentSemesterNum);
+          const textbooks = semRecord?.plan_textbooks || [];
           
           // 使用学期记录的周课时和周数，如果没有则使用课程默认值
-          const weeklyHours = semRecord?.weeklyHours || pc.weeklyHours;
-          const weeksCount = semRecord?.weeksCount || pc.weeksPerSemester;
+          const weeklyHours = semRecord?.weekly_hours || pc.weekly_hours;
+          const weeksCount = semRecord?.weeks_count || pc.weeks_per_semester;
           
           rows.push({
             '班级名称': cls.name, 
-            '二级学院': cls.college?.name || '-',
-            '专业': cls.major?.name || '-', 
-            '培养层次': cls.trainingLevel?.name || '-',
+            '二级学院': cls.colleges?.name || '-',
+            '专业': cls.majors?.name || '-', 
+            '培养层次': cls.training_levels?.name || '-',
             '入学年份': cls.enrollment_year,
             '年级': grade,
             '学生人数': Number(cls.student_count) || 0, 
-            '课程': pc.course.name,
-            '课程类型': pc.course.type === 'public' ? '公共基础课' : '专业课',
+            '课程': pc.courses.name,
+            '课程类型': pc.courses.type === 'public' ? '公共基础课' : '专业课',
             '周课时': weeklyHours,
             '学期总课时': weeklyHours * weeksCount,
             '使用教材': textbooks.map((pt) => pt.textbook.title).join('、') || '未指定',
@@ -295,10 +295,10 @@ router.get('/textbook/:id', async (req, res, next) => {
             include: {
               semester: {
                 include: {
-                  planCourse: { 
+                  planCourses: { 
                     include: { 
-                      plan: { include: { major: true, trainingLevel: true } }, 
-                      course: true 
+                      plan: { include: { majors: true, training_levels: true } }, 
+                      courses: true 
                     } 
                   },
                 },
@@ -309,7 +309,7 @@ router.get('/textbook/:id', async (req, res, next) => {
       }),
       prisma.classes.findMany({
         where: { status: 'active' },
-        include: { major: true, trainingLevel: true },
+        include: { majors: true, training_levels: true },
       }),
     ]);
 
@@ -333,7 +333,7 @@ router.get('/textbook/:id', async (req, res, next) => {
 
     for (const pt of textbook.planTextbooks) {
       const sem = pt.semester;
-      const pc = sem.planCourse;
+      const pc = sem.planCourses;
       const plan = pc.plan;
 
       for (const cls of allClasses) {
@@ -345,11 +345,11 @@ router.get('/textbook/:id', async (req, res, next) => {
 
         rows.push({
           '教材名称': textbook.title, '书号': textbook.isbn || '-',
-          '课程': pc.course.name, '使用班级': cls.name,
-          '专业': cls.major?.name || '-', '培养层次': cls.trainingLevel?.name || '-',
+          '课程': pc.courses.name, '使用班级': cls.name,
+          '专业': cls.majors?.name || '-', '培养层次': cls.training_levels?.name || '-',
           '年级': grade, '学生人数': Number(cls.student_count) || 0,
           '使用学期': `第${sem.semester}学期`,
-          '是否必订': pt.isRequired ? '是' : '否',
+          '是否必订': pt.is_required ? '是' : '否',
         });
       }
     }

@@ -281,14 +281,14 @@ async function handleMoveUp(row, index) {
   // 保存原始的 id 和 sortOrder
   const currentId = currentCourse.id
   const prevId = prevCourse.id
-  const currentSortOrder = currentCourse.sortOrder
-  const prevSortOrder = prevCourse.sortOrder
+  const currentSortOrder = currentCourse.sort_order
+  const prevSortOrder = prevCourse.sort_order
   
   try {
     // 交换两个课程的 sortOrder
     await Promise.all([
-      updateCourse(currentId, { sortOrder: prevSortOrder }),
-      updateCourse(prevId, { sortOrder: currentSortOrder })
+      updateCourse(currentId, { sort_order: prevSortOrder }),
+      updateCourse(prevId, { sort_order: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
     await load()
@@ -307,14 +307,14 @@ async function handleMoveDown(row, index) {
   // 保存原始的 id 和 sortOrder
   const currentId = currentCourse.id
   const nextId = nextCourse.id
-  const currentSortOrder = currentCourse.sortOrder
-  const nextSortOrder = nextCourse.sortOrder
+  const currentSortOrder = currentCourse.sort_order
+  const nextSortOrder = nextCourse.sort_order
   
   try {
     // 交换两个课程的 sortOrder
     await Promise.all([
-      updateCourse(currentId, { sortOrder: nextSortOrder }),
-      updateCourse(nextId, { sortOrder: currentSortOrder })
+      updateCourse(currentId, { sort_order: nextSortOrder }),
+      updateCourse(nextId, { sort_order: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
     await load()

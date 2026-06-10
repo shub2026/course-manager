@@ -53,8 +53,8 @@
         </el-table-column>
         <el-table-column label="状态" width="80">
           <template #default="{ row }">
-            <el-tag :type="row.isActive ? 'success' : 'info'" size="small">
-              {{ row.isActive ? '启用' : '停用' }}
+            <el-tag :type="row.is_active ? 'success' : 'info'" size="small">
+              {{ row.is_active ? '启用' : '停用' }}
             </el-tag>
           </template>
         </el-table-column>
@@ -83,8 +83,8 @@
         <el-table-column label="操作" width="150" fixed="right">
           <template #default="{ row }">
             <div class="action-buttons">
-              <el-button size="small" :type="row.isActive ? 'warning' : 'success'" @click="handleToggleStatus(row)">
-                {{ row.isActive ? '停用' : '启用' }}
+              <el-button size="small" :type="row.is_active ? 'warning' : 'success'" @click="handleToggleStatus(row)">
+                {{ row.is_active ? '停用' : '启用' }}
               </el-button>
               <el-button size="small" :icon="Edit" circle @click="openDialog(row)" title="编辑" />
               <el-popconfirm title="确定删除？" @confirm="handleDelete(row.id)">
@@ -234,7 +234,7 @@ const saving = ref(false)
 const filterTitle = ref('')
 const filterCategory = ref('')
 const filterPublisher = ref('')
-const defaultForm = { id: null, title: '', isbn: '', publisher: '', author: '', edition: '', publishDate: '', price: null, category: '', description: '', isActive: true }
+const defaultForm = { id: null, title: '', isbn: '', publisher: '', author: '', edition: '', publishDate: '', price: null, category: '', description: '', is_active: true }
 const form = ref({ ...defaultForm })
 
 // 批量操作相关状态
@@ -324,7 +324,7 @@ async function handleDelete(id) {
 async function handleToggleStatus(row) {
   try {
     await toggleTextbookStatus(row.id)
-    ElMessage.success(row.isActive ? '已停用' : '已启用')
+    ElMessage.success(row.is_active ? '已停用' : '已启用')
     load()
   } catch (e) {
     ElMessage.error('操作失败')
@@ -504,14 +504,14 @@ async function handleMoveUp(row, index) {
   // 保存原始的 id 和 sortOrder
   const currentId = currentTextbook.id
   const prevId = prevTextbook.id
-  const currentSortOrder = currentTextbook.sortOrder
-  const prevSortOrder = prevTextbook.sortOrder
+  const currentSortOrder = currentTextbook.sort_order
+  const prevSortOrder = prevTextbook.sort_order
   
   try {
     // 交换两个教材的 sortOrder
     await Promise.all([
-      updateTextbook(currentId, { sortOrder: prevSortOrder }),
-      updateTextbook(prevId, { sortOrder: currentSortOrder })
+      updateTextbook(currentId, { sort_order: prevSortOrder }),
+      updateTextbook(prevId, { sort_order: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
     await load()
@@ -530,14 +530,14 @@ async function handleMoveDown(row, index) {
   // 保存原始的 id 和 sortOrder
   const currentId = currentTextbook.id
   const nextId = nextTextbook.id
-  const currentSortOrder = currentTextbook.sortOrder
-  const nextSortOrder = nextTextbook.sortOrder
+  const currentSortOrder = currentTextbook.sort_order
+  const nextSortOrder = nextTextbook.sort_order
   
   try {
     // 交换两个教材的 sortOrder
     await Promise.all([
-      updateTextbook(currentId, { sortOrder: nextSortOrder }),
-      updateTextbook(nextId, { sortOrder: currentSortOrder })
+      updateTextbook(currentId, { sort_order: nextSortOrder }),
+      updateTextbook(nextId, { sort_order: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
     await load()

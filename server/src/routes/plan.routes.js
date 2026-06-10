@@ -310,11 +310,11 @@ router.get('/:id/courses', async (req, res, next) => {
       where: { plan_id: Number(id) },
       include: {
 
-        course: { select: { id: true, name: true, code: true, type: true } },
-        planCourseSemesters: {
+        courses: { select: { id: true, name: true, code: true, type: true } },
+        plan_course_semesters: {
           include: {
 
-            textbooks: {
+            plan_textbooks: {
               include: { textbook: { select: { id: true, title: true, isbn: true, publisher: true } } },
             },
           },
@@ -344,8 +344,8 @@ router.get('/:id/courses', async (req, res, next) => {
         where: { plan_id: Number(id) },
         include: {
 
-          course: { select: { id: true, name: true, code: true, type: true } },
-          planCourseSemesters: {
+          courses: { select: { id: true, name: true, code: true, type: true } },
+          plan_course_semesters: {
             include: {
 
               textbooks: {
@@ -386,17 +386,17 @@ router.post('/:id/courses', roleMiddleware('admin', 'super_admin'), async (req, 
           weekly_hours: Number(weeklyHours),
           weeks_per_semester: weeks,
         },
-        include: { course: true },
+        include: { courses: true },
       });
 
       // 2. 自动创建学期记录
       for (let s = Number(startSemester); s <= Number(endSemester); s++) {
-        await tx.planCourseSemester.create({
+        await tx.plan_course_semesters.create({
           data: {
-            planCourseId: created.id,
+            plan_course_id: created.id,
             semester: s,
             weekly_hours: Number(weeklyHours),
-            weeksCount: weeks,
+            weeks_count: weeks,
           },
         });
       }
@@ -442,7 +442,7 @@ router.put('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req, r
     // 先获取当前课程信息
     const currentPc = await prisma.plan_courses.findUnique({
       where: { id: Number(id) },
-      include: { planCourseSemesters: true },
+      include: { plan_course_semesters: true },
     });
 
     if (!currentPc) {
@@ -469,22 +469,22 @@ router.put('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req, r
           sort_order: newSortOrder,
           weeks_per_semester: newWeeksPerSemester,
         },
-        include: { course: true },
+        include: { courses: true },
       });
 
       // 2. 同步学期记录 - 先删除所有旧记录
-      await tx.planCourseSemester.deleteMany({
-        where: { planCourseId: Number(id) },
+      await tx.plan_course_semesters.deleteMany({
+        where: { plan_course_id: Number(id) },
       });
 
       // 3. 重新创建所有学期记录
       for (let s = newStart; s <= newEnd; s++) {
-        await tx.planCourseSemester.create({
+        await tx.plan_course_semesters.create({
           data: {
-            planCourseId: Number(id),
+            plan_course_id: Number(id),
             semester: s,
             weekly_hours: newWeeklyHours,
-            weeksCount: newWeeksPerSemester,
+            weeks_count: newWeeksPerSemester,
           },
         });
       }
@@ -580,20 +580,20 @@ router.post('/:planId/courses/:courseId/semesters', roleMiddleware('admin', 'sup
     // 使用 upsert: 存在则更新,不存在则创建
     const sem = await prisma.plan_course_semesters.upsert({
       where: {
-        planCourseId_semester: {
-          planCourseId: Number(courseId),
+        plan_course_id_semester: {
+          plan_course_id: Number(courseId),
           semester: Number(semester),
         },
       },
       update: {
         weekly_hours: Number(weeklyHours),
-        weeksCount: weeksCount ? Number(weeksCount) : planCourse.weeksPerSemester,
+        weeks_count: weeksCount ? Number(weeksCount) : planCourse.weeks_per_semester,
       },
       create: {
-        planCourseId: Number(courseId),
+        plan_course_id: Number(courseId),
         semester: Number(semester),
         weekly_hours: Number(weeklyHours),
-        weeksCount: weeksCount ? Number(weeksCount) : planCourse.weeksPerSemester,
+        weeks_count: weeksCount ? Number(weeksCount) : planCourse.weeks_per_semester,
       },
     });
 
@@ -628,8 +628,8 @@ router.put('/semesters/:id', roleMiddleware('admin', 'super_admin'), async (req,
     const { id } = req.params;
     const { weeklyHours, weeksCount } = req.body;
     const data = {};
-    if (weeklyHours !== undefined) data.weeklyHours = Number(weeklyHours);
-    if (weeksCount !== undefined) data.weeksCount = Number(weeksCount);
+    if (weeklyHours !== undefined) data.weekly_hours = Number(weeklyHours);
+    if (weeksCount !== undefined) data.weeks_count = Number(weeksCount);
 
     const sem = await prisma.plan_course_semesters.update({
       where: { id: Number(id) },
@@ -667,21 +667,21 @@ router.get('/:id/semesters', async (req, res, next) => {
   try {
     const { id } = req.params;
     const semesters = await prisma.plan_course_semesters.findMany({
-      where: { planCourse: { plan_id: Number(id) } },
-      select: { semester: true, weeksCount: true },
+      where: { plan_courses: { plan_id: Number(id) } },
+      select: { semester: true, weeks_count: true },
       distinct: ['semester'],
       orderBy: { semester: 'asc' },
     });
     // 去重后返回每学期周数
     const map = {};
     semesters.forEach(s => {
-      if (!map[s.semester] || map[s.semester] < s.weeksCount) {
-        map[s.semester] = s.weeksCount;
+      if (!map[s.semester] || map[s.semester] < s.weeks_count) {
+        map[s.semester] = s.weeks_count;
       }
     });
-    success(res, Object.entries(map).map(([semester, weeksCount]) => ({
+    success(res, Object.entries(map).map(([semester, weeks_count]) => ({
       semester: Number(semester),
-      weeksCount,
+      weeks_count,
     })));
   } catch (e) { next(e); }
 });

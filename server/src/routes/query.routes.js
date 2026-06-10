@@ -47,10 +47,10 @@ router.get('/semester', async (req, res, next) => {
           include: {
             plan_courses: {
               include: {
-                course: { select: { id: true, name: true, type: true } },
-                planCourseSemesters: {
+                courses: { select: { id: true, name: true, type: true } },
+                plan_course_semesters: {
                   include: {
-                    textbooks: {
+                    plan_textbooks: {
                       include: { textbook: { select: { id: true, title: true, isbn: true, publisher: true } } },
                     },
                   },
@@ -91,7 +91,7 @@ router.get('/semester', async (req, res, next) => {
       include: {
         plan_courses: {
           include: {
-            course: { select: { id: true, name: true, type: true } },
+            courses: { select: { id: true, name: true, type: true } },
             planCourseSemesters: {
               include: {
                 textbooks: {
@@ -143,24 +143,24 @@ router.get('/semester', async (req, res, next) => {
       if (!plan) continue;
 
       const planCourses = plan.plan_courses.filter(
-        (pc) => pc.startSemester <= calc.currentSemesterNum && pc.endSemester >= calc.currentSemesterNum
+        (pc) => pc.start_semester <= calc.currentSemesterNum && pc.end_semester >= calc.currentSemesterNum
       );
 
       const courses = planCourses.map((pc) => {
-        const semRecord = pc.planCourseSemesters?.find(s => s.semester === calc.currentSemesterNum);
+        const semRecord = pc.plan_course_semesters?.find(s => s.semester === calc.currentSemesterNum);
         return {
-          course_id: pc.course.id,
-          courseName: pc.course.name,
-          courseType: pc.course.type,
-          weekly_hours: semRecord?.weeklyHours || pc.weeklyHours,
-          weeks_per_semester: semRecord?.weeksCount || pc.weeksPerSemester,
-          totalHoursThisSemester: (semRecord?.weeklyHours || pc.weeklyHours) * (semRecord?.weeksCount || pc.weeksPerSemester),
-          textbooks: (semRecord?.textbooks || []).map((pt) => ({
+          course_id: pc.courses.id,
+          courseName: pc.courses.name,
+          courseType: pc.courses.type,
+          weekly_hours: semRecord?.weekly_hours || pc.weekly_hours,
+          weeks_per_semester: semRecord?.weeks_count || pc.weeks_per_semester,
+          totalHoursThisSemester: (semRecord?.weekly_hours || pc.weekly_hours) * (semRecord?.weeks_count || pc.weeks_per_semester),
+          textbooks: (semRecord?.plan_textbooks || []).map((pt) => ({
             id: pt.textbook.id,
             title: pt.textbook.title,
             isbn: pt.textbook.isbn,
             publisher: pt.textbook.publisher,
-            is_required: pt.isRequired,
+            is_required: pt.is_required,
           })),
         };
       });
@@ -168,9 +168,9 @@ router.get('/semester', async (req, res, next) => {
       results.push({
         classId: cls.id,
         className: cls.name,
-        collegeName: cls.college?.name || null,
-        majorName: cls.major?.name || null,
-        trainingLevelName: cls.trainingLevel?.name || null,
+        collegeName: cls.colleges?.name || null,
+        majorName: cls.majors?.name || null,
+        trainingLevelName: cls.training_levels?.name || null,
         enrollment_year: cls.enrollment_year,
         grade: calc.grade,
         currentSemester: calc.currentSemesterNum,
@@ -207,10 +207,10 @@ router.get('/textbook/:id', async (req, res, next) => {
         include: {
           semester: {
             include: {
-              planCourse: {
+              planCourses: {
                 include: {
-                  plan: { include: { major: true, trainingLevel: true } },
-                  course: { select: { name: true } },
+                  plan: { include: { majors: true, training_levels: true } },
+                  courses: { select: { name: true } },
                 },
               },
             },
@@ -221,7 +221,7 @@ router.get('/textbook/:id', async (req, res, next) => {
         where: { status: 'active' },
         include: { 
           majors: { select: { name: true } },
-          trainingLevel: true,
+          training_levels: true,
         },
       }),
     ]);
@@ -244,9 +244,9 @@ router.get('/textbook/:id', async (req, res, next) => {
 
     for (const pt of planTextbooks) {
       const sem = pt.semester;
-      const pc = sem.planCourse;
+      const pc = sem.planCourses;
       const plan = pc.plan;
-      if (sem.semester < pc.startSemester || sem.semester > pc.endSemester) continue;
+      if (sem.semester < pc.start_semester || sem.semester > pc.end_semester) continue;
 
       const gradeForThisSemester = Math.ceil(sem.semester / 2);
       const enrollmentYear = semesterInfo.startYear - gradeForThisSemester + 1;
@@ -260,13 +260,13 @@ router.get('/textbook/:id', async (req, res, next) => {
         classResults.push({
           classId: cls.id,
           className: cls.name,
-          majorName: cls.major?.name || null,
-          trainingLevelName: cls.trainingLevel?.name || null,
+          majorName: cls.majors?.name || null,
+          trainingLevelName: cls.training_levels?.name || null,
           student_count: cls.student_count,
           grade: calc.grade,
           semester: sem.semester,
-          courseName: pc.course.name,
-          is_required: pt.isRequired,
+          courseName: pc.courses.name,
+          is_required: pt.is_required,
         });
       }
     }
@@ -304,10 +304,10 @@ router.get('/textbooks', async (req, res, next) => {
             include: {
               semester: {
                 include: {
-                  planCourse: {
+                  planCourses: {
                     include: {
-                      plan: { include: { major: true, trainingLevel: true } },
-                      course: { select: { name: true } },
+                      plan: { include: { majors: true, training_levels: true } },
+                      courses: { select: { name: true } },
                     },
                   },
                 },
@@ -342,9 +342,9 @@ router.get('/textbooks', async (req, res, next) => {
 
       for (const pt of tb.planTextbooks) {
         const sem = pt.semester;
-        const pc = sem.planCourse;
+        const pc = sem.planCourses;
         const plan = pc.plan;
-        if (sem.semester < pc.startSemester || sem.semester > pc.endSemester) continue;
+        if (sem.semester < pc.start_semester || sem.semester > pc.end_semester) continue;
 
         const gradeForThisSemester = Math.ceil(sem.semester / 2);
         const enrollmentYear = semesterInfo.startYear - gradeForThisSemester + 1;

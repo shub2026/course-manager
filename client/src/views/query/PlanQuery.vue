@@ -161,7 +161,7 @@ const planCourses = ref([])
 // 计算最大学期数
 const maxSemester = computed(() => {
   if (!planCourses.value.length) return 8
-  const max = Math.max(...planCourses.value.map(c => c.endSemester), 0)
+  const max = Math.max(...planCourses.value.map(c => c.end_semester), 0)
   return Math.max(max, 8)
 })
 
@@ -169,15 +169,15 @@ const maxSemester = computed(() => {
 const groups = computed(() => {
   const map = { public: [], professional: [] }
   planCourses.value.forEach(c => {
-    const type = c.course?.type || 'public'
+    const type = c.courses?.type || 'public'
     map[type].push({
       id: c.id,
-      courseName: c.course?.name || '未知课程',
-      courseCode: c.course?.code || '',
-      startSemester: c.startSemester,
-      endSemester: c.endSemester,
-      semesters: c.planCourseSemesters || [],
-      sortOrder: c.sortOrder ?? 0, // 保存plan_course的排序值
+      courseName: c.courses?.name || '未知课程',
+      courseCode: c.courses?.code || '',
+      startSemester: c.start_semester,
+      endSemester: c.end_semester,
+      semesters: c.plan_course_semesters || [],
+      sortOrder: c.sort_order ?? 0, // 保存plan_course的排序值
     })
   })
 
@@ -209,15 +209,15 @@ function isInRange(course, semester) {
 // 获取某学期周课时
 function getHours(course, semester) {
   const sem = course.semesters.find(s => s.semester === semester)
-  return sem ? sem.weeklyHours : null
+  return sem ? sem.weekly_hours : null
 }
 
 // 获取教材信息
 function getTextbookInfo(course, semester) {
   const sem = course.semesters.find(s => s.semester === semester)
-  if (!sem || !sem.textbooks?.length) return null
+  if (!sem || !sem.plan_textbooks?.length) return null
 
-  const tb = sem.textbooks[0]
+  const tb = sem.plan_textbooks[0]
   const textbook = tb.textbook
   if (!textbook) return null
 
@@ -232,7 +232,7 @@ function getTextbookInfo(course, semester) {
     publisher: textbook.publisher || '',
     isbn: textbook.isbn || '',
     edition: textbook.edition || '',
-    isRequired: tb.isRequired,
+    isRequired: tb.is_required,
     shortTitle,
   }
 }
@@ -253,12 +253,12 @@ function calcTotalHours(course) {
   for (let s = course.startSemester; s <= course.endSemester; s++) {
     const sem = course.semesters.find(x => x.semester === s)
     if (sem) {
-      const hours = sem.weeklyHours || 0
-      const weeks = sem.weeksCount || 18
+      const hours = sem.weekly_hours || 0
+      const weeks = sem.weeks_count || 18
       total += hours * weeks
     } else {
-      const hours = course.weeklyHours || 0
-      const weeks = course.weeksPerSemester || 18
+      const hours = course.weekly_hours || 0
+      const weeks = course.weeks_per_semester || 18
       total += hours * weeks
     }
   }

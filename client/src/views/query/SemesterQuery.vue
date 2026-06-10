@@ -63,7 +63,7 @@
         <el-table-column prop="majorName" label="专业" width="150" />
         <el-table-column prop="trainingLevelName" label="培养层次" width="100" />
         <el-table-column label="入学年份" width="90">
-          <template #default="{ row }">{{ row.enrollmentYear }}年</template>
+          <template #default="{ row }">{{ row.enrollment_year }}年</template>
         </el-table-column>
         <el-table-column label="年级" width="80">
           <template #default="{ row }">{{ row.grade }}年级</template>
@@ -71,12 +71,12 @@
         <el-table-column label="在读学期" width="100">
           <template #default="{ row }">第{{ row.currentSemester }}学期</template>
         </el-table-column>
-        <el-table-column prop="studentCount" label="人数" width="70" />
+        <el-table-column prop="student_count" label="人数" width="70" />
         <el-table-column label="开课数" width="70">
           <template #default="{ row }">{{ row.courses?.length || 0 }}</template>
         </el-table-column>
         <el-table-column label="周课时合计" width="100">
-          <template #default="{ row }">{{ (row.courses || []).reduce((s, c) => s + c.weeklyHours, 0) }}</template>
+          <template #default="{ row }">{{ (row.courses || []).reduce((s, c) => s + c.weekly_hours, 0) }}</template>
         </el-table-column>
         <el-table-column prop="planName" label="培养方案" min-width="180" />
       </el-table>
@@ -110,7 +110,7 @@ const totalClasses = ref(0)
 const enrollmentYears = computed(() => {
   const years = new Set()
   data.value.forEach(item => {
-    if (item.enrollmentYear) years.add(item.enrollmentYear)
+    if (item.enrollment_year) years.add(item.enrollment_year)
   })
   return Array.from(years).sort((a, b) => b - a)
 })
