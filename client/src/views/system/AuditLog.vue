@@ -153,7 +153,7 @@ const actionTagTypes = {
   import: 'success',
   export: 'warning',
   create: 'primary',
-  update: '',
+  update: 'info',
   delete: 'danger',
 }
 
@@ -166,7 +166,7 @@ function getModuleLabel(module) {
 }
 
 function getActionTagType(action) {
-  return actionTagTypes[action] || ''
+  return actionTagTypes[action] || 'info'
 }
 
 function formatDateTime(dateStr) {
@@ -234,6 +234,8 @@ async function loadLogs() {
     if (filterResult.value) params.result = filterResult.value
 
     const res = await getAuditLogs(params)
+    console.log('API Response:', res)
+    console.log('First log item:', res.data?.logs?.[0])
     logs.value = res.data.logs
     total.value = res.data.total
   } catch (e) {
