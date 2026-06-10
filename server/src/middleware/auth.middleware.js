@@ -1,16 +1,25 @@
 import { AuthService } from '../services/auth.service.js'
 
 export function authMiddleware(req, res, next) {
-  const authHeader = req.headers.authorization
+  let token = null
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  // 优先从 Authorization 头获取
+  const authHeader = req.headers.authorization
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    token = authHeader.substring(7)
+  }
+  // 备选：从查询参数获取（用于 window.open 等场景）
+  else if (req.query.token) {
+    token = req.query.token
+  }
+
+  if (!token) {
     return res.status(401).json({
       success: false,
       message: '未授权，请先登录'
     })
   }
 
-  const token = authHeader.substring(7)
   const decoded = AuthService.verifyToken(token)
 
   if (!decoded) {

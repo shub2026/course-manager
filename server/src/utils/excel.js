@@ -96,19 +96,29 @@ export function createTemplateWorkbook(headers, sampleData = []) {
   const sheet = workbook.addWorksheet('模板');
 
   sheet.columns = headers.map((h) => ({
-    header: h.label,
+    header: h.required ? `*${h.label}` : h.label,
     key: h.key,
     width: h.width || 20,
   }));
 
   sampleData.forEach((row) => sheet.addRow(row));
 
-  sheet.getRow(1).font = { bold: true };
-  sheet.getRow(1).fill = {
-    type: 'pattern',
-    pattern: 'solid',
-    fgColor: { argb: 'FFE0E0E0' },
-  };
+  // 设置表头样式
+  const headerRow = sheet.getRow(1);
+  headerRow.font = { bold: true };
+  
+  // 为每个单元格设置背景色
+  headers.forEach((h, index) => {
+    const cell = headerRow.getCell(index + 1);
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: h.required ? 'FFFFCCCC' : 'FFE0E0E0' }, // 必填字段用浅红色，可选字段用浅灰色
+    };
+    if (h.required) {
+      cell.font = { bold: true, color: { argb: 'FFCC0000' } }; // 必填字段字体为深红色
+    }
+  });
 
   return workbook;
 }

@@ -121,6 +121,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
+import { useAuthStore } from '../../stores/auth'
 import { getCourses, createCourse, updateCourse, deleteCourse } from '../../api/course'
 
 const list = ref([])
@@ -173,7 +174,13 @@ async function handleDelete(id) {
 }
 
 function downloadTemplate() {
-  window.open('/api/export/template/courses', '_blank')
+  const authStore = useAuthStore()
+  const token = authStore.token
+  if (token) {
+    window.open(`/api/export/template/courses?token=${token}`, '_blank')
+  } else {
+    ElMessage.warning('请先登录')
+  }
 }
 
 // 导入前拦截，显示选项对话框

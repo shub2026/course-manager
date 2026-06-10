@@ -86,6 +86,8 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { ElMessage } from 'element-plus'
+import { useAuthStore } from '../../stores/auth'
 import { getSemesterQuery } from '../../api/query'
 import { getMajors } from '../../api/major'
 import { getTrainingLevels } from '../../api/trainingLevel'
@@ -140,7 +142,13 @@ async function load() {
 }
 
 function exportExcel() {
-  window.open('/api/export/semester', '_blank')
+  const authStore = useAuthStore()
+  const token = authStore.token
+  if (token) {
+    window.open(`/api/export/semester?token=${token}`, '_blank')
+  } else {
+    ElMessage.warning('请先登录')
+  }
 }
 
 onMounted(async () => {

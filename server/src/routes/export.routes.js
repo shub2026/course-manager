@@ -17,12 +17,12 @@ router.get('/template/:type', async (req, res, next) => {
     switch (type) {
       case 'classes':
         headers = [
-          { label: '班级名称', key: 'name', width: 25 },
-          { label: '入学年份', key: 'year', width: 12 },
-          { label: '学制(年)', key: 'duration', width: 10 },
+          { label: '班级名称', key: 'name', width: 25, required: true },
+          { label: '入学年份', key: 'year', width: 12, required: true },
+          { label: '学制(年)', key: 'duration', width: 10, required: true },
           { label: '专业类别', key: 'major', width: 20 },
           { label: '二级学院', key: 'college', width: 20 },
-          { label: '培养层次', key: 'trainingLevel', width: 15 },
+          { label: '培养层次', key: 'trainingLevel', width: 15, required: true },
           { label: '班级人数', key: 'count', width: 10 },
           { label: '状态', key: 'status', width: 10 },
         ];
@@ -31,7 +31,7 @@ router.get('/template/:type', async (req, res, next) => {
         break;
       case 'courses':
         headers = [
-          { label: '课程名称', key: 'name', width: 20 },
+          { label: '课程名称', key: 'name', width: 20, required: true },
           { label: '课程编码', key: 'code', width: 15 },
           { label: '课程类型', key: 'type', width: 15 },
         ];
@@ -40,7 +40,7 @@ router.get('/template/:type', async (req, res, next) => {
         break;
       case 'textbooks':
         headers = [
-          { label: '书名', key: 'title', width: 30 },
+          { label: '书名', key: 'title', width: 30, required: true },
           { label: '书号', key: 'isbn', width: 20 },
           { label: '出版社', key: 'publisher', width: 20 },
           { label: '作者', key: 'author', width: 15 },

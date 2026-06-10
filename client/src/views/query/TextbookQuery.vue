@@ -53,6 +53,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useAuthStore } from '../../stores/auth'
 import { getTextbooks } from '../../api/textbook'
 import { getTextbookQuery } from '../../api/query'
 
@@ -76,7 +77,13 @@ async function loadDetail(id) {
 
 function exportExcel() {
   if (selectedTextbook.value) {
-    window.open(`/api/export/textbook/${selectedTextbook.value}`, '_blank')
+    const authStore = useAuthStore()
+    const token = authStore.token
+    if (token) {
+      window.open(`/api/export/textbook/${selectedTextbook.value}?token=${token}`, '_blank')
+    } else {
+      ElMessage.warning('请先登录')
+    }
   }
 }
 

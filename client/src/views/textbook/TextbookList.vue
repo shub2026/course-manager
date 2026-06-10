@@ -223,6 +223,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue'
+import { useAuthStore } from '../../stores/auth'
 import { getTextbooks, createTextbook, updateTextbook, deleteTextbook, toggleTextbookStatus } from '../../api/textbook'
 
 const list = ref([])
@@ -401,7 +402,13 @@ async function handleBatchSet() {
 }
 
 function downloadTemplate() {
-  window.open('/api/export/template/textbooks', '_blank')
+  const authStore = useAuthStore()
+  const token = authStore.token
+  if (token) {
+    window.open(`/api/export/template/textbooks?token=${token}`, '_blank')
+  } else {
+    ElMessage.warning('请先登录')
+  }
 }
 
 // 导入前拦截，显示选项对话框

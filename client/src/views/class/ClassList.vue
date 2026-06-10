@@ -294,6 +294,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Delete, Edit, Loading } from '@element-plus/icons-vue'
+import { useAuthStore } from '../../stores/auth'
 import { getClasses, createClass, updateClass, deleteClass } from '../../api/class'
 import { getMajors } from '../../api/major'
 import { getPlans } from '../../api/plan'
@@ -604,7 +605,13 @@ async function handleBatchSet() {
 }
 
 function downloadTemplate() {
-  window.open('/api/export/template/classes', '_blank')
+  const authStore = useAuthStore()
+  const token = authStore.token
+  if (token) {
+    window.open(`/api/export/template/classes?token=${token}`, '_blank')
+  } else {
+    ElMessage.warning('请先登录')
+  }
 }
 
 // 导入前拦截，显示选项对话框
