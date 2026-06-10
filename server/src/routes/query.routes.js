@@ -92,9 +92,9 @@ router.get('/semester', async (req, res, next) => {
         plan_courses: {
           include: {
             courses: { select: { id: true, name: true, type: true } },
-            planCourseSemesters: {
+            plan_course_semesters: {
               include: {
-                textbooks: {
+                plan_textbooks: {
                   include: { textbooks: { select: { id: true, title: true, isbn: true, publisher: true } } },
                 },
               },
