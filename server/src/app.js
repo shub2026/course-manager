@@ -17,6 +17,7 @@ import collegeRoutes from './routes/college.routes.js';
 import auditRoutes from './routes/audit.routes.js';
 import { authMiddleware, roleMiddleware } from './middleware/auth.middleware.js';
 import { errorHandler } from './middleware/error.js';
+import { convertResponseNaming } from './middleware/naming.middleware.js';
 
 const app = express();
 
@@ -29,6 +30,9 @@ app.use((req, res, next) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   next();
 });
+
+// 注册响应命名转换中间件（在所有路由之前）
+app.use(convertResponseNaming);
 
 // 公开路由（无需认证）
 app.use('/api/auth', authRoutes);

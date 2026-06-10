@@ -348,7 +348,7 @@ router.get('/:id/courses', async (req, res, next) => {
           plan_course_semesters: {
             include: {
 
-              textbooks: {
+              plan_textbooks: {
                 include: { textbooks: { select: { id: true, title: true, isbn: true, publisher: true } } },
               },
             },
@@ -377,7 +377,7 @@ router.post('/:id/courses', roleMiddleware('admin', 'super_admin'), async (req, 
     // 使用事务确保数据一致性
     const pc = await prisma.$transaction(async (tx) => {
       // 1. 创建 PlanCourse
-      const created = await tx.planCourse.create({
+      const created = await tx.plan_courses.create({
         data: {
           plan_id: Number(id),
           course_id: Number(courseId),
@@ -459,7 +459,7 @@ router.put('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req, r
     // 使用事务确保数据一致性
     const pc = await prisma.$transaction(async (tx) => {
       // 1. 更新 PlanCourse
-      const updated = await tx.planCourse.update({
+      const updated = await tx.plan_courses.update({
         where: { id: Number(id) },
         data: {
           start_semester: newStart,
@@ -467,7 +467,6 @@ router.put('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req, r
           weekly_hours: newWeeklyHours,
           weeks_per_semester: newWeeksPerSemester,
           sort_order: newSortOrder,
-          weeks_per_semester: newWeeksPerSemester,
         },
         include: { courses: true },
       });

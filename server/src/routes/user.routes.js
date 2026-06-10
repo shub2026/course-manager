@@ -82,7 +82,7 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res) => {
       data: {
         username,
         password: hashedPassword,
-        realName,
+        real_name: realName,
         email,
         role
       },
@@ -140,7 +140,7 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res) => {
       return fail(res, '权限不足，管理员只能管理访客账号')
     }
 
-    const updateData = { realName, email }
+    const updateData = { real_name: realName, email }
     
     // admin不能修改用户角色，只有super_admin可以
     if (req.user.role === 'super_admin' && role) {
@@ -204,7 +204,7 @@ router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, re
 
     await prisma.users.update({
       where: { id: parseInt(id) },
-      data: { isActive }
+      data: { is_active: isActive }
     })
 
     await prisma.audit_logs.create({

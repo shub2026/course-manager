@@ -61,9 +61,15 @@
         <el-table-column label="培养层次" width="100">
           <template #default="{ row }">{{ row.training_levels?.name || '-' }}</template>
         </el-table-column>
-        <el-table-column prop="enrollment_year" label="入学年份" width="100" />
-        <el-table-column prop="duration_years" label="学制" width="80" />
-        <el-table-column prop="student_count" label="人数" width="80" />
+        <el-table-column label="入学年份" width="100">
+          <template #default="{ row }">{{ row.enrollment_year || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="学制" width="80">
+          <template #default="{ row }">{{ row.duration_years || '-' }}</template>
+        </el-table-column>
+        <el-table-column label="人数" width="80">
+          <template #default="{ row }">{{ row.student_count || '-' }}</template>
+        </el-table-column>
         <el-table-column label="年级" width="90">
           <template #default="{ row }">
             <el-tag size="small" v-if="calcGrade(row)">{{ calcGrade(row) }}年级</el-tag>
@@ -171,17 +177,17 @@
         <el-row :gutter="20">
           <el-col :span="8">
             <el-form-item label="入学年份" required>
-              <el-input-number v-model="form.enrollment_year" :min="2000" :max="2099" class="full-width" />
+              <el-input-number v-model="form.enrollmentYear" :min="2000" :max="2099" class="full-width" />
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="学制(年)" required>
-              <el-input-number v-model="form.duration_years" :min="1" :max="6" class="full-width" />
+              <el-input-number v-model="form.durationYears" :min="1" :max="6" class="full-width" />
             </el-form-item>
           </el-col>
           <el-col :span="8">
             <el-form-item label="班级人数">
-              <el-input-number v-model="form.student_count" :min="0" class="full-width" />
+              <el-input-number v-model="form.studentCount" :min="0" class="full-width" />
             </el-form-item>
           </el-col>
         </el-row>
@@ -229,10 +235,10 @@
           </el-select>
         </el-form-item>
         <el-form-item v-else-if="batchFormType === 'year'" label="入学年份">
-          <el-input-number v-model="batchForm.enrollment_year" :min="2000" :max="2099" class="full-width" />
+          <el-input-number v-model="batchForm.enrollmentYear" :min="2000" :max="2099" class="full-width" />
         </el-form-item>
         <el-form-item v-else-if="batchFormType === 'duration'" label="学制(年)">
-          <el-input-number v-model="batchForm.duration_years" :min="1" :max="6" class="full-width" />
+          <el-input-number v-model="batchForm.durationYears" :min="1" :max="6" class="full-width" />
         </el-form-item>
         <el-form-item v-else-if="batchFormType === 'status'" label="状态">
           <el-select v-model="batchForm.status" class="full-width">
@@ -331,8 +337,8 @@ const batchForm = ref({
   majorId: null,
   collegeId: null,
   trainingLevelId: null,
-  enrollment_year: null,
-  duration_years: null,
+  enrollmentYear: null,
+  durationYears: null,
   status: 'active',
 })
 
@@ -343,7 +349,7 @@ const pagination = ref({
   total: 0,
 })
 
-const defaultForm = { id: null, name: '', majorId: null, enrollment_year: new Date().getFullYear(), duration_years: 3, collegeId: null, trainingLevelId: null, student_count: 0, status: 'active', customPlanId: null }
+const defaultForm = { id: null, name: '', majorId: null, enrollmentYear: new Date().getFullYear(), durationYears: 3, collegeId: null, trainingLevelId: null, studentCount: 0, status: 'active', customPlanId: null }
 const form = ref({ ...defaultForm })
 
 // 导入相关状态
@@ -432,8 +438,8 @@ async function load() {
       const allRes = await getClasses({ pageSize: 1000 })
       const years = new Set()
       ;(allRes.data?.items || []).forEach(cls => {
-        if (cls.enrollment_year) {
-          years.add(cls.enrollment_year)
+        if (cls.enrollmentYear) {
+          years.add(cls.enrollmentYear)
         }
       })
       allEnrollmentYears.value = Array.from(years)
@@ -470,7 +476,23 @@ async function loadMeta() {
 }
 
 function openDialog(row) {
-  form.value = row ? { ...row, customPlanId: row.training_plans?.id || null, trainingLevelId: row.training_levels?.id || null, collegeId: row.colleges?.id || null } : { ...defaultForm }
+  if (row) {
+    // 将后端返回的下划线命名转换为驼峰命名
+    form.value = {
+      id: row.id,
+      name: row.name,
+      majorId: row.majors?.id || null,
+      enrollmentYear: row.enrollment_year,
+      durationYears: row.duration_years,
+      collegeId: row.colleges?.id || null,
+      trainingLevelId: row.training_levels?.id || null,
+      studentCount: row.student_count,
+      status: row.status,
+      customPlanId: row.training_plans?.id || null
+    }
+  } else {
+    form.value = { ...defaultForm }
+  }
   dialogVisible.value = true
 }
 
@@ -543,8 +565,8 @@ function openBatchSetDialog(type) {
     majorId: null,
     collegeId: null,
     trainingLevelId: null,
-    enrollment_year: new Date().getFullYear(),
-    duration_years: 3,
+    enrollmentYear: new Date().getFullYear(),
+    durationYears: 3,
     status: 'active',
   }
   
@@ -559,10 +581,10 @@ async function handleBatchSet() {
   if (type === 'major' && !batchForm.value.majorId) {
     return ElMessage.warning('请选择专业类别')
   }
-  if (type === 'year' && !batchForm.value.enrollment_year) {
+  if (type === 'year' && !batchForm.value.enrollmentYear) {
     return ElMessage.warning('请设置入学年份')
   }
-  if (type === 'duration' && !batchForm.value.duration_years) {
+  if (type === 'duration' && !batchForm.value.durationYears) {
     return ElMessage.warning('请设置学制')
   }
   
@@ -582,10 +604,10 @@ async function handleBatchSet() {
         updateData.trainingLevelId = batchForm.value.trainingLevelId || null
         break
       case 'year':
-        updateData.enrollment_year = batchForm.value.enrollment_year
+        updateData.enrollmentYear = batchForm.value.enrollmentYear
         break
       case 'duration':
-        updateData.duration_years = batchForm.value.duration_years
+        updateData.durationYears = batchForm.value.durationYears
         break
       case 'status':
         updateData.status = batchForm.value.status
