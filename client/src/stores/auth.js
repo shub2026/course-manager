@@ -124,8 +124,6 @@ export const useAuthStore = defineStore('auth', () => {
   function initAuth() {
     if (token.value) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`
-      // 设置全局引用供路由重定向使用
-      window.__authStoreForRedirect = useAuthStore()
       fetchUserInfo()
     }
   }

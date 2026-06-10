@@ -49,6 +49,7 @@ import { getCourses } from '../api/course'
 import { getTextbooks } from '../api/textbook'
 import { getClasses } from '../api/class'
 import { getPlans } from '../api/plan'
+import { getWithCache } from '../utils/cache'
 
 const settingsStore = useSettingsStore()
 const semesterLabel = computed(() => settingsStore.semesterLabel)
@@ -56,9 +57,17 @@ const stats = ref({ majors: 0, courses: 0, classes: 0, textbooks: 0, plans: 0, t
 
 onMounted(async () => {
   try {
+    // 使用缓存减少重复请求，缓存时间5分钟
+    const CACHE_TTL = 5 * 60 * 1000
+    
     const [majorsRes, coursesRes, textbooksRes, classesRes, plansRes] = await Promise.all([
-      getMajors(), getCourses(), getTextbooks(), getClasses(), getPlans(),
+      getWithCache(() => getMajors(), 'dashboard:majors', CACHE_TTL),
+      getWithCache(() => getCourses(), 'dashboard:courses', CACHE_TTL),
+      getWithCache(() => getTextbooks(), 'dashboard:textbooks', CACHE_TTL),
+      getWithCache(() => getClasses(), 'dashboard:classes', CACHE_TTL),
+      getWithCache(() => getPlans(), 'dashboard:plans', CACHE_TTL),
     ])
+    
     stats.value.majors = majorsRes.data?.length || 0
     stats.value.courses = coursesRes.data?.length || 0
     stats.value.textbooks = textbooksRes.data?.length || 0
@@ -68,7 +77,9 @@ onMounted(async () => {
     stats.value.classes = classesData.length || 0
     stats.value.plans = plansRes.data?.length || 0
     stats.value.totalStudents = classesData.reduce((s, c) => s + (c.studentCount || 0), 0)
-  } catch (e) { console.error(e) }
+  } catch (e) { 
+    console.error('Dashboard data fetch error:', e) 
+  }
 })
 </script>
 

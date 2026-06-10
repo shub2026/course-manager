@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import { prisma } from './lib/prisma.js';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import majorRoutes from './routes/major.routes.js';
@@ -31,8 +32,27 @@ app.use((req, res, next) => {
 
 // 公开路由（无需认证）
 app.use('/api/auth', authRoutes);
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+
+// 健康检查接口 - 增强版
+app.get('/api/health', async (req, res) => {
+  try {
+    // 检查数据库连接
+    await prisma.$queryRaw`SELECT 1`;
+    
+    res.json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      database: 'connected',
+      uptime: Math.round(process.uptime())
+    });
+  } catch (e) {
+    res.status(503).json({ 
+      status: 'error', 
+      timestamp: new Date().toISOString(),
+      database: 'disconnected',
+      error: e.message
+    });
+  }
 });
 
 // 查询接口 - 所有登录用户可访问

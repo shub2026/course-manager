@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Layout from '../components/Layout.vue'
+import { useAuthStore } from '../stores/auth'
 
 const routes = [
   {
@@ -11,9 +12,10 @@ const routes = [
   {
     path: '/',
     component: Layout,
-    redirect: () => {
-      const authStore = window.__authStoreForRedirect
-      if (authStore?.userInfo?.role === 'viewer') {
+    redirect: (to) => {
+      // 使用Pinia store而不是全局变量
+      const authStore = useAuthStore()
+      if (authStore.userInfo?.role === 'viewer') {
         return '/query/semester'
       }
       return '/dashboard'

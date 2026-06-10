@@ -111,47 +111,10 @@
   </el-container>
 
   <!-- 修改密码对话框 -->
-  <el-dialog
+  <ChangePasswordDialog 
     v-model="passwordDialogVisible"
-    title="修改密码"
-    width="500px"
-  >
-    <el-form
-      ref="passwordFormRef"
-      :model="passwordForm"
-      :rules="passwordRules"
-      label-width="100px"
-    >
-      <el-form-item label="原密码" prop="oldPassword">
-        <el-input
-          v-model="passwordForm.oldPassword"
-          type="password"
-          show-password
-          placeholder="请输入原密码"
-        />
-      </el-form-item>
-      <el-form-item label="新密码" prop="newPassword">
-        <el-input
-          v-model="passwordForm.newPassword"
-          type="password"
-          show-password
-          placeholder="请输入新密码（至少8位）"
-        />
-      </el-form-item>
-      <el-form-item label="确认密码" prop="confirmPassword">
-        <el-input
-          v-model="passwordForm.confirmPassword"
-          type="password"
-          show-password
-          placeholder="请再次输入新密码"
-        />
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <el-button @click="passwordDialogVisible = false">取消</el-button>
-      <el-button type="primary" @click="handleChangePassword" :loading="changingPassword">确定</el-button>
-    </template>
-  </el-dialog>
+    @success="handlePasswordChangeSuccess"
+  />
 </template>
 
 <script setup>
@@ -160,7 +123,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useSettingsStore } from '../stores/settings'
 import { useAuthStore } from '../stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { User, Tools, UserFilled } from '@element-plus/icons-vue'
+import ChangePasswordDialog from './ChangePasswordDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -177,28 +140,6 @@ const passwordForm = ref({
   newPassword: '',
   confirmPassword: ''
 })
-
-const validateConfirmPassword = (rule, value, callback) => {
-  if (value !== passwordForm.value.newPassword) {
-    callback(new Error('两次输入的密码不一致'))
-  } else {
-    callback()
-  }
-}
-
-const passwordRules = {
-  oldPassword: [
-    { required: true, message: '请输入原密码', trigger: 'blur' }
-  ],
-  newPassword: [
-    { required: true, message: '请输入新密码', trigger: 'blur' },
-    { min: 8, message: '密码长度至少8位', trigger: 'blur' }
-  ],
-  confirmPassword: [
-    { required: true, message: '请确认新密码', trigger: 'blur' },
-    { validator: validateConfirmPassword, trigger: 'blur' }
-  ]
-}
 
 const activeMenu = computed(() => route.path)
 const currentTitle = computed(() => route.meta?.title || '首页')
@@ -218,12 +159,6 @@ onMounted(() => {
 async function handleCommand(command) {
   if (command === 'password') {
     passwordDialogVisible.value = true
-    // 重置表单
-    passwordForm.value = {
-      oldPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    }
   } else if (command === 'logout') {
     await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
       confirmButtonText: '确定',
@@ -236,43 +171,8 @@ async function handleCommand(command) {
   }
 }
 
-async function handleChangePassword() {
-  if (!passwordFormRef.value) return
-  
-  await passwordFormRef.value.validate(async (valid) => {
-    if (!valid) return
-    
-    changingPassword.value = true
-    
-    try {
-      const result = await authStore.changePassword(
-        passwordForm.value.oldPassword,
-        passwordForm.value.newPassword
-      )
-      
-      if (result.success) {
-        ElMessage.success(result.message)
-        passwordDialogVisible.value = false
-        
-        // 清空表单
-        passwordForm.value = {
-          oldPassword: '',
-          newPassword: '',
-          confirmPassword: ''
-        }
-        
-        // 退出登录，让用户重新登录
-        await authStore.logout()
-        ElMessage.success('密码已修改，请重新登录')
-      } else {
-        ElMessage.error(result.message)
-      }
-    } catch (error) {
-      ElMessage.error('密码修改失败，请稍后重试')
-    } finally {
-      changingPassword.value = false
-    }
-  })
+function handlePasswordChangeSuccess() {
+  // 密码修改成功后的处理（已在子组件中处理登出）
 }
 </script>
 

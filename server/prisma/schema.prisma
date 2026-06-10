@@ -42,6 +42,12 @@ model classes {
   training_levels   training_levels? @relation(fields: [training_level_id], references: [id])
   colleges          colleges?        @relation(fields: [college_id], references: [id])
   majors            majors?          @relation(fields: [major_id], references: [id])
+
+  @@index([status])
+  @@index([enrollment_year])
+  @@index([major_id, status])
+  @@index([training_level_id])
+  @@index([college_id])
 }
 
 model colleges {
@@ -66,6 +72,9 @@ model courses {
   created_at   DateTime       @default(now())
   updated_at   DateTime         @updatedAt
   plan_courses plan_courses[]
+
+  @@index([type])
+  @@index([code])
 }
 
 model majors {
@@ -108,6 +117,9 @@ model plan_courses {
   plan_course_semesters plan_course_semesters[]
   courses               courses                 @relation(fields: [course_id], references: [id])
   training_plans        training_plans          @relation(fields: [plan_id], references: [id], onDelete: Cascade)
+
+  @@index([plan_id])
+  @@index([course_id])
 }
 
 model plan_textbooks {
@@ -143,6 +155,10 @@ model textbooks {
   created_at     DateTime         @default(now())
   updated_at     DateTime         @updatedAt
   plan_textbooks plan_textbooks[]
+
+  @@index([is_active])
+  @@index([category])
+  @@index([isbn])
 }
 
 model training_levels {
