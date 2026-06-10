@@ -59,16 +59,16 @@
           <template #default="{ row }">{{ row.majors?.name || '-' }}</template>
         </el-table-column>
         <el-table-column label="培养层次" width="100">
-          <template #default="{ row }">{{ row.training_levels?.name || '-' }}</template>
+          <template #default="{ row }">{{ row.trainingLevels?.name || '-' }}</template>
         </el-table-column>
         <el-table-column label="入学年份" width="100">
-          <template #default="{ row }">{{ row.enrollment_year || '-' }}</template>
+          <template #default="{ row }">{{ row.enrollmentYear || '-' }}</template>
         </el-table-column>
         <el-table-column label="学制" width="80">
-          <template #default="{ row }">{{ row.duration_years || '-' }}</template>
+          <template #default="{ row }">{{ row.durationYears || '-' }}</template>
         </el-table-column>
         <el-table-column label="人数" width="80">
-          <template #default="{ row }">{{ row.student_count || '-' }}</template>
+          <template #default="{ row }">{{ row.studentCount || '-' }}</template>
         </el-table-column>
         <el-table-column label="年级" width="90">
           <template #default="{ row }">
@@ -85,7 +85,7 @@
         </el-table-column>
         <el-table-column label="当前方案" min-width="130">
           <template #default="{ row }">
-            <el-tag :type="row.training_plans ? 'warning' : 'success'" size="small">
+            <el-tag :type="row.trainingPlans ? 'warning' : 'success'" size="small">
               {{ getCurrentPlanName(row) }}
             </el-tag>
           </template>
@@ -373,8 +373,8 @@ const enrollmentYears = computed(() => {
 // 优先级：1.自定义方案 > 2.根据培养方案的关联类型进行匹配
 function getCurrentPlanName(row) {
   // 1. 优先显示自定义方案
-  if (row.training_plans) {
-    return row.training_plans.name
+  if (row.trainingPlans) {
+    return row.trainingPlans.name
   }
   
   // 2. 遍历所有方案，根据方案的关联类型来匹配
@@ -382,12 +382,12 @@ function getCurrentPlanName(row) {
   // 如果方案是按层次关联的，则检查班级的trainingLevelId是否匹配
   for (const plan of plans.value) {
     // 方案按专业关联：检查班级的专业是否匹配
-    if (plan.major_id && plan.major_id === row.majors?.id) {
+    if (plan.majorId && plan.majorId === row.majors?.id) {
       return plan.name
     }
     
     // 方案按层次关联：检查班级的层次是否匹配
-    if (plan.training_level_id && plan.training_level_id === row.training_levels?.id) {
+    if (plan.trainingLevelId && plan.trainingLevelId === row.trainingLevels?.id) {
       return plan.name
     }
   }
@@ -410,8 +410,8 @@ function calcGrade(cls) {
   const cs = settingsStore.settings.current_semester
   if (!cs) return null
   const startYear = Number(cs.value.split('-')[0])
-  const grade = startYear - cls.enrollment_year + 1
-  if (grade < 1 || grade > cls.duration_years) return null
+  const grade = startYear - cls.enrollmentYear + 1
+  if (grade < 1 || grade > cls.durationYears) return null
   return grade
 }
 
@@ -477,18 +477,18 @@ async function loadMeta() {
 
 function openDialog(row) {
   if (row) {
-    // 将后端返回的下划线命名转换为驼峰命名
+    // 后端返回的已经是驼峰命名（经过中间件转换）
     form.value = {
       id: row.id,
       name: row.name,
       majorId: row.majors?.id || null,
-      enrollmentYear: row.enrollment_year,
-      durationYears: row.duration_years,
+      enrollmentYear: row.enrollmentYear,
+      durationYears: row.durationYears,
       collegeId: row.colleges?.id || null,
-      trainingLevelId: row.training_levels?.id || null,
-      studentCount: row.student_count,
+      trainingLevelId: row.trainingLevels?.id || null,
+      studentCount: row.studentCount,
       status: row.status,
-      customPlanId: row.training_plans?.id || null
+      customPlanId: row.trainingPlans?.id || null
     }
   } else {
     form.value = { ...defaultForm }
