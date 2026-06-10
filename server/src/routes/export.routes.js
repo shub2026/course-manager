@@ -113,22 +113,6 @@ router.get('/semester', async (req, res, next) => {
             },
           },
         },
-        customPlan: {
-          include: {
-            plan_courses: {
-              include: {
-                courses: true,
-                plan_course_semesters: {
-                  include: {
-                    plan_textbooks: {
-                      include: { textbooks: true },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
       },
       orderBy: { enrollment_year: 'desc' },
     });
@@ -168,9 +152,9 @@ router.get('/semester', async (req, res, next) => {
     // 为每个班级找到匹配的培养方案
     // 优先级：1.自定义方案 > 2.根据培养方案的关联类型进行匹配
     function findBestMatchPlan(cls) {
-      // 1. 自定义方案优先
-      if (cls.custom_plan_id && cls.customPlan) {
-        return cls.customPlan;
+      // 1. 自定义方案优先（通过custom_plan_id关联）
+      if (cls.custom_plan_id && cls.training_plans) {
+        return cls.training_plans;
       }
 
       // 2. 遍历所有方案，根据方案的关联类型来匹配
