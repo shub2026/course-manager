@@ -57,17 +57,17 @@ export async function getAuditLogs({ action, module, result, page = 1, pageSize 
     prisma.audit_logs.count({ where }),
   ]);
 
-  // 将下划线命名转换为驼峰命名，保持前端一致
+  // 保持数据库原始字段名（下划线命名），由中间件自动转换为驼峰命名
   const formattedLogs = logs.map(log => ({
     id: log.id,
     action: log.action,
     module: log.module,
-    userId: log.operator_id,
+    operator_id: log.operator_id,
     ip: log.ip,
     details: log.details,
     result: log.result,
     message: log.message,
-    createdAt: log.created_at,
+    created_at: log.created_at,
   }));
 
   return { logs: formattedLogs, total, page, pageSize };
