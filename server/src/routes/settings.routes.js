@@ -45,16 +45,22 @@ router.put('/', roleMiddleware('super_admin'), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-// POST /api/settings/reset/* - 需要super_admin权限
+// POST /api/settings/reset/basic - 清空基础数据（含培养方案）
 router.post('/reset/basic', roleMiddleware('super_admin'), async (req, res, next) => {
   try {
-    // 按依赖关系顺序清空基础数据
-    await prisma.classes.deleteMany();
-    await prisma.textbooks.deleteMany();
-    await prisma.courses.deleteMany();
-    await prisma.majors.deleteMany();
-    await prisma.colleges.deleteMany();
-    await prisma.training_levels.deleteMany();
+    await prisma.$transaction(async (tx) => {
+      // 按依赖关系顺序清空基础数据和培养方案
+      await tx.plan_textbooks.deleteMany();
+      await tx.plan_course_semesters.deleteMany();
+      await tx.plan_courses.deleteMany();
+      await tx.training_plans.deleteMany();
+      await tx.classes.deleteMany();
+      await tx.textbooks.deleteMany();
+      await tx.courses.deleteMany();
+      await tx.majors.deleteMany();
+      await tx.colleges.deleteMany();
+      await tx.training_levels.deleteMany();
+    });
     success(res, null, '基础数据已清空');
   } catch (e) { next(e); }
 });
@@ -68,12 +74,14 @@ router.post('/reset/majors', roleMiddleware('super_admin'), async (req, res, nex
       return fail(res, '系统中存在班级数据，请先清空班级后再清空专业');
     }
     
-    // 按依赖关系从顶向下清空
-    await prisma.plan_textbooks.deleteMany();           // Level 2: 培养方案教材
-    await prisma.plan_course_semesters.deleteMany();     // Level 2: 培养方案课程学期
-    await prisma.plan_courses.deleteMany();             // Level 2: 培养方案课程
-    await prisma.training_plans.deleteMany();           // Level 1: 培养方案
-    await prisma.majors.deleteMany();                  // 清空专业
+    await prisma.$transaction(async (tx) => {
+      // 按依赖关系从顶向下清空
+      await tx.plan_textbooks.deleteMany();
+      await tx.plan_course_semesters.deleteMany();
+      await tx.plan_courses.deleteMany();
+      await tx.training_plans.deleteMany();
+      await tx.majors.deleteMany();
+    });
     success(res, null, '专业数据已清空（已级联清空相关的培养方案）');
   } catch (e) { next(e); }
 });
@@ -87,12 +95,14 @@ router.post('/reset/colleges', roleMiddleware('super_admin'), async (req, res, n
       return fail(res, '系统中存在班级数据，请先清空班级后再清空学院');
     }
     
-    // 按依赖关系从顶向下清空
-    await prisma.plan_textbooks.deleteMany();           // Level 2: 培养方案教材
-    await prisma.plan_course_semesters.deleteMany();     // Level 2: 培养方案课程学期
-    await prisma.plan_courses.deleteMany();             // Level 2: 培养方案课程
-    await prisma.training_plans.deleteMany();           // Level 1: 培养方案
-    await prisma.colleges.deleteMany();                // 清空学院
+    await prisma.$transaction(async (tx) => {
+      // 按依赖关系从顶向下清空
+      await tx.plan_textbooks.deleteMany();
+      await tx.plan_course_semesters.deleteMany();
+      await tx.plan_courses.deleteMany();
+      await tx.training_plans.deleteMany();
+      await tx.colleges.deleteMany();
+    });
     success(res, null, '学院数据已清空（已级联清空相关的培养方案）');
   } catch (e) { next(e); }
 });
@@ -106,12 +116,14 @@ router.post('/reset/levels', roleMiddleware('super_admin'), async (req, res, nex
       return fail(res, '系统中存在班级数据，请先清空班级后再清空层次');
     }
     
-    // 按依赖关系从顶向下清空
-    await prisma.plan_textbooks.deleteMany();           // Level 2: 培养方案教材
-    await prisma.plan_course_semesters.deleteMany();     // Level 2: 培养方案课程学期
-    await prisma.plan_courses.deleteMany();             // Level 2: 培养方案课程
-    await prisma.training_plans.deleteMany();           // Level 1: 培养方案
-    await prisma.training_levels.deleteMany();          // 清空层次
+    await prisma.$transaction(async (tx) => {
+      // 按依赖关系从顶向下清空
+      await tx.plan_textbooks.deleteMany();
+      await tx.plan_course_semesters.deleteMany();
+      await tx.plan_courses.deleteMany();
+      await tx.training_plans.deleteMany();
+      await tx.training_levels.deleteMany();
+    });
     success(res, null, '层次数据已清空（已级联清空相关的培养方案）');
   } catch (e) { next(e); }
 });
@@ -119,11 +131,13 @@ router.post('/reset/levels', roleMiddleware('super_admin'), async (req, res, nex
 // POST /api/settings/reset/courses - 清空课程（级联清空培养方案课程）
 router.post('/reset/courses', roleMiddleware('super_admin'), async (req, res, next) => {
   try {
-    // 先清空引用课程的培养方案课程
-    await prisma.plan_textbooks.deleteMany();           // Level 2: 培养方案教材
-    await prisma.plan_course_semesters.deleteMany();     // Level 2: 培养方案课程学期
-    await prisma.plan_courses.deleteMany();             // Level 2: 培养方案课程（引用课程）
-    await prisma.courses.deleteMany();                 // 清空课程
+    await prisma.$transaction(async (tx) => {
+      // 先清空引用课程的培养方案课程
+      await tx.plan_textbooks.deleteMany();
+      await tx.plan_course_semesters.deleteMany();
+      await tx.plan_courses.deleteMany();
+      await tx.courses.deleteMany();
+    });
     success(res, null, '课程数据已清空（已级联清空相关的培养方案课程）');
   } catch (e) { next(e); }
 });
@@ -131,9 +145,11 @@ router.post('/reset/courses', roleMiddleware('super_admin'), async (req, res, ne
 // POST /api/settings/reset/textbooks - 清空教材（级联清空培养方案教材）
 router.post('/reset/textbooks', roleMiddleware('super_admin'), async (req, res, next) => {
   try {
-    // 先清空引用教材的培养方案教材
-    await prisma.plan_textbooks.deleteMany();           // Level 2: 培养方案教材（引用教材）
-    await prisma.textbooks.deleteMany();               // 清空教材
+    await prisma.$transaction(async (tx) => {
+      // 先清空引用教材的培养方案教材
+      await tx.plan_textbooks.deleteMany();
+      await tx.textbooks.deleteMany();
+    });
     success(res, null, '教材数据已清空（已级联清空相关的培养方案教材）');
   } catch (e) { next(e); }
 });
@@ -149,11 +165,13 @@ router.post('/reset/classes', roleMiddleware('super_admin'), async (req, res, ne
 // POST /api/settings/reset/plans - 清空培养方案
 router.post('/reset/plans', roleMiddleware('super_admin'), async (req, res, next) => {
   try {
-    // 按依赖关系顺序清空培养方案相关数据
-    await prisma.plan_textbooks.deleteMany();
-    await prisma.plan_course_semesters.deleteMany();
-    await prisma.plan_courses.deleteMany();
-    await prisma.training_plans.deleteMany();
+    await prisma.$transaction(async (tx) => {
+      // 按依赖关系顺序清空培养方案相关数据
+      await tx.plan_textbooks.deleteMany();
+      await tx.plan_course_semesters.deleteMany();
+      await tx.plan_courses.deleteMany();
+      await tx.training_plans.deleteMany();
+    });
     success(res, null, '培养方案已清空');
   } catch (e) { next(e); }
 });
@@ -161,27 +179,29 @@ router.post('/reset/plans', roleMiddleware('super_admin'), async (req, res, next
 // POST /api/settings/reset/settings - 系统重置（清空所有业务数据，保留超级管理员）
 router.post('/reset/settings', roleMiddleware('super_admin'), async (req, res, next) => {
   try {
-    // 按依赖关系从顶向下清空所有业务数据
-    
-    // Level 3: 业务数据
-    await prisma.audit_logs.deleteMany();           // 操作日志
-    await prisma.classes.deleteMany();              // 班级
-    
-    // Level 2: 培养方案相关
-    await prisma.plan_textbooks.deleteMany();       // 培养方案教材关联
-    await prisma.plan_course_semesters.deleteMany(); // 培养方案课程学期
-    await prisma.plan_courses.deleteMany();         // 培养方案课程
-    
-    // Level 1: 基础数据
-    await prisma.training_plans.deleteMany();       // 培养方案
-    await prisma.textbooks.deleteMany();            // 教材
-    await prisma.courses.deleteMany();              // 课程
-    await prisma.majors.deleteMany();               // 专业
-    await prisma.colleges.deleteMany();             // 学院
-    await prisma.training_levels.deleteMany();      // 培养层次
-    
-    // Level 0: 系统配置
-    await prisma.system_settings.deleteMany();      // 系统设置
+    await prisma.$transaction(async (tx) => {
+      // 按依赖关系从顶向下清空所有业务数据
+      
+      // Level 3: 业务数据
+      await tx.audit_logs.deleteMany();
+      await tx.classes.deleteMany();
+      
+      // Level 2: 培养方案相关
+      await tx.plan_textbooks.deleteMany();
+      await tx.plan_course_semesters.deleteMany();
+      await tx.plan_courses.deleteMany();
+      
+      // Level 1: 基础数据
+      await tx.training_plans.deleteMany();
+      await tx.textbooks.deleteMany();
+      await tx.courses.deleteMany();
+      await tx.majors.deleteMany();
+      await tx.colleges.deleteMany();
+      await tx.training_levels.deleteMany();
+      
+      // Level 0: 系统配置
+      await tx.system_settings.deleteMany();
+    });
     
     // 注意：不清空 users 表，保留所有用户账号（包括超级管理员）
     

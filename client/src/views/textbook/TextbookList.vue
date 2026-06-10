@@ -65,15 +65,15 @@
                 size="small" 
                 :icon="ArrowUp" 
                 :disabled="$index === 0"
-                @click="handleMoveUp(row, $index)"
+                @click="handleMoveUp(row)"
                 circle
                 title="上移"
               />
               <el-button 
                 size="small" 
                 :icon="ArrowDown" 
-                :disabled="$index === list.length - 1"
-                @click="handleMoveDown(row, $index)"
+                :disabled="$index === filteredlist.length - 1"
+                @click="handleMoveDown(row)"
                 circle
                 title="下移"
               />
@@ -495,18 +495,19 @@ function onImportError(err) {
   ElMessage.error('导入失败，请检查文件格式或联系管理员')
 }
 
-async function handleMoveUp(row, index) {
-  if (index === 0) return
-  
-  const currentTextbook = list.value[index]
-  const prevTextbook = list.value[index - 1]
-  
+async function handleMoveUp(row) {
+  const currentIndex = list.value.findIndex(item => item.id === row.id)
+  if (currentIndex === 0 || currentIndex === -1) return
+
+  const currentTextbook = list.value[currentIndex]
+  const prevTextbook = list.value[currentIndex - 1]
+
   // 保存原始的 id 和 sortOrder
   const currentId = currentTextbook.id
   const prevId = prevTextbook.id
   const currentSortOrder = currentTextbook.sort_order
   const prevSortOrder = prevTextbook.sort_order
-  
+
   try {
     // 交换两个教材的 sortOrder
     await Promise.all([
@@ -521,18 +522,19 @@ async function handleMoveUp(row, index) {
   }
 }
 
-async function handleMoveDown(row, index) {
-  if (index === list.value.length - 1) return
-  
-  const currentTextbook = list.value[index]
-  const nextTextbook = list.value[index + 1]
-  
+async function handleMoveDown(row) {
+  const currentIndex = list.value.findIndex(item => item.id === row.id)
+  if (currentIndex === -1 || currentIndex === list.value.length - 1) return
+
+  const currentTextbook = list.value[currentIndex]
+  const nextTextbook = list.value[currentIndex + 1]
+
   // 保存原始的 id 和 sortOrder
   const currentId = currentTextbook.id
   const nextId = nextTextbook.id
   const currentSortOrder = currentTextbook.sort_order
   const nextSortOrder = nextTextbook.sort_order
-  
+
   try {
     // 交换两个教材的 sortOrder
     await Promise.all([

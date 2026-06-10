@@ -55,15 +55,15 @@
                 size="small" 
                 :icon="ArrowUp" 
                 :disabled="$index === 0"
-                @click="handleMoveUp(row, $index)"
+                @click="handleMoveUp(row)"
                 circle
                 title="上移"
               />
               <el-button 
                 size="small" 
                 :icon="ArrowDown" 
-                :disabled="$index === list.length - 1"
-                @click="handleMoveDown(row, $index)"
+                :disabled="$index === filteredlist.length - 1"
+                @click="handleMoveDown(row)"
                 circle
                 title="下移"
               />
@@ -282,17 +282,18 @@ async function handleDelete(id) {
   load()
 }
 
-async function handleMoveUp(row, index) {
-  if (index === 0) return
-  
-  const currentPlan = list.value[index]
-  const prevPlan = list.value[index - 1]
-  
+async function handleMoveUp(row) {
+  const currentIndex = list.value.findIndex(item => item.id === row.id)
+  if (currentIndex === 0 || currentIndex === -1) return
+
+  const currentPlan = list.value[currentIndex]
+  const prevPlan = list.value[currentIndex - 1]
+
   const currentId = currentPlan.id
   const prevId = prevPlan.id
   const currentSortOrder = currentPlan.sortOrder
   const prevSortOrder = prevPlan.sortOrder
-  
+
   try {
     await Promise.all([
       updatePlan(currentId, { sortOrder: prevSortOrder }),
@@ -306,17 +307,18 @@ async function handleMoveUp(row, index) {
   }
 }
 
-async function handleMoveDown(row, index) {
-  if (index === list.value.length - 1) return
-  
-  const currentPlan = list.value[index]
-  const nextPlan = list.value[index + 1]
-  
+async function handleMoveDown(row) {
+  const currentIndex = list.value.findIndex(item => item.id === row.id)
+  if (currentIndex === -1 || currentIndex === list.value.length - 1) return
+
+  const currentPlan = list.value[currentIndex]
+  const nextPlan = list.value[currentIndex + 1]
+
   const currentId = currentPlan.id
   const nextId = nextPlan.id
   const currentSortOrder = currentPlan.sortOrder
   const nextSortOrder = nextPlan.sortOrder
-  
+
   try {
     await Promise.all([
       updatePlan(currentId, { sortOrder: nextSortOrder }),

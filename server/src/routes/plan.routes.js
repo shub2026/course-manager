@@ -146,9 +146,9 @@ router.post('/', async (req, res, next) => {
     const logDetails = {
       id: plan.id,
       name: plan.name,
-      colleges: plan.college?.name || '未设置',
-      majors: plan.major?.name || '未设置',
-      training_levels: plan.trainingLevel?.name || '未设置',
+      colleges: plan.colleges?.name || '未设置',
+      majors: plan.majors?.name || '未设置',
+      training_levels: plan.training_levels?.name || '未设置',
       version: plan.version,
     };
     
@@ -159,7 +159,7 @@ router.post('/', async (req, res, next) => {
       ip: req.ip,
       result: 'success',
       details: JSON.stringify(logDetails),
-      message: `创建培养方案：${plan.name}${plan.college?.name ? `（使用部门：${plan.college.name}）` : ''}`,
+      message: `创建培养方案：${plan.name}${plan.colleges?.name ? `（使用部门：${plan.colleges.name}）` : ''}`,
     });
     
     success(res, plan, '创建成功');
@@ -229,8 +229,8 @@ router.put('/:id', async (req, res, next) => {
       // 记录使用部门变更
       if (oldPlan?.college_id !== plan.college_id) {
         changes.collegeChange = {
-          from: oldPlan?.college?.name || '未设置',
-          to: plan.college?.name || '未设置',
+          from: oldPlan?.colleges?.name || '未设置',
+          to: plan.colleges?.name || '未设置',
         };
       }
       
@@ -241,7 +241,7 @@ router.put('/:id', async (req, res, next) => {
         ip: req.ip,
         result: 'success',
         details: JSON.stringify(changes),
-        message: `更新培养方案：${plan.name}${plan.college?.name ? `（使用部门：${plan.college.name}）` : ''}`,
+        message: `更新培养方案：${plan.name}${plan.colleges?.name ? `（使用部门：${plan.colleges.name}）` : ''}`,
       });
       
       success(res, plan, '更新成功');
@@ -408,7 +408,7 @@ router.post('/:id/courses', roleMiddleware('admin', 'super_admin'), async (req, 
       ip: req.ip,
       result: 'success',
       message: '为培养方案添加课程',
-      details: `为培养方案添加课程 ID: ${pc.courseId}`,
+      details: `为培养方案添加课程 ID: ${pc.course_id}`,
     });
     
     success(res, pc, '添加成功');
@@ -682,25 +682,27 @@ router.get('/:id/semesters', async (req, res, next) => {
 });
 
 // === 教材关联（关联到学期） ===
-// POST/PUT/DELETE - 需要admin权限
+// POST - 需要admin权限（关联教材到学期，先删后增）
 router.post('/semesters/:id/textbooks', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     const { textbookId, isRequired } = req.body;
     if (!textbookId) return fail(res, '教材为必填项');
 
-    // 该学期只允许关联一本教材：先删后增
-    await prisma.plan_textbooks.deleteMany({
-      where: { semester_id: Number(id) },
-    });
+    // 该学期只允许关联一本教材：先删后增（事务保护）
+    const pt = await prisma.$transaction(async (tx) => {
+      await tx.plan_textbooks.deleteMany({
+        where: { semester_id: Number(id) },
+      });
 
-    const pt = await prisma.plan_textbooks.create({
-      data: {
-        semester_id: Number(id),
-        textbook_id: Number(textbookId),
-        is_required: isRequired !== false,
-      },
-      include: { textbooks: true },
+      return tx.plan_textbooks.create({
+        data: {
+          semester_id: Number(id),
+          textbook_id: Number(textbookId),
+          is_required: isRequired !== false,
+        },
+        include: { textbooks: true },
+      });
     });
     
     await createAuditLog({

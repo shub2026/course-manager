@@ -269,7 +269,7 @@ router.put('/:id', async (req, res, next) => {
           college_id: collegeId !== undefined ? (collegeId ? Number(collegeId) : null) : undefined,
           training_level_id: trainingLevelId !== undefined ? (trainingLevelId ? Number(trainingLevelId) : null) : undefined,
           student_count: studentCount !== undefined ? Number(studentCount) : undefined,
-          custom_plan_id: customPlanId !== undefined && customPlanId !== null ? Number(customPlanId) : null,
+          custom_plan_id: customPlanId !== undefined ? (customPlanId ? Number(customPlanId) : null) : undefined,
           status: autoStatus,
         },
         include: { majors: true, colleges: true, training_levels: true, training_plans: true },
