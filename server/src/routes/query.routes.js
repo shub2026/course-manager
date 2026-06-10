@@ -207,7 +207,7 @@ router.get('/textbook/:id', async (req, res, next) => {
         include: {
           semester: {
             include: {
-              planCourses: {
+              plan_courses: {
                 include: {
                   plan: { include: { majors: true, training_levels: true } },
                   courses: { select: { name: true } },
@@ -244,7 +244,7 @@ router.get('/textbook/:id', async (req, res, next) => {
 
     for (const pt of planTextbooks) {
       const sem = pt.semester;
-      const pc = sem.planCourses;
+      const pc = sem.plan_courses;
       const plan = pc.plan;
       if (sem.semester < pc.start_semester || sem.semester > pc.end_semester) continue;
 
@@ -300,11 +300,11 @@ router.get('/textbooks', async (req, res, next) => {
     const [textbooks, allClasses] = await Promise.all([
       prisma.textbooks.findMany({
         include: {
-          planTextbooks: {
+          plan_textbooks: {
             include: {
               semester: {
                 include: {
-                  planCourses: {
+                  plan_courses: {
                     include: {
                       plan: { include: { majors: true, training_levels: true } },
                       courses: { select: { name: true } },
@@ -340,9 +340,9 @@ router.get('/textbooks', async (req, res, next) => {
       let totalStudents = 0;
       const usedClasses = new Set();
 
-      for (const pt of tb.planTextbooks) {
+      for (const pt of tb.plan_textbooks) {
         const sem = pt.semester;
-        const pc = sem.planCourses;
+        const pc = sem.plan_courses;
         const plan = pc.plan;
         if (sem.semester < pc.start_semester || sem.semester > pc.end_semester) continue;
 

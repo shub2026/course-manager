@@ -105,7 +105,7 @@ router.get('/semester', async (req, res, next) => {
                 plan_course_semesters: {
                   include: {
                     plan_textbooks: {
-                      include: { textbook: true },
+                      include: { textbooks: true },
                     },
                   },
                 },
@@ -139,9 +139,9 @@ router.get('/semester', async (req, res, next) => {
         plan_courses: {
           include: {
             courses: true,
-            planCourseSemesters: {
+            plan_course_semesters: {
               include: {
-                textbooks: { include: { textbook: true } },
+                plan_textbooks: { include: { textbooks: true } },
               },
             },
           },
@@ -227,8 +227,8 @@ router.get('/semester', async (req, res, next) => {
             '课程类型': pc.courses.type === 'public' ? '公共基础课' : '专业课',
             '周课时': weeklyHours,
             '学期总课时': weeklyHours * weeksCount,
-            '使用教材': textbooks.map((pt) => pt.textbook.title).join('、') || '未指定',
-            '书号': textbooks.map((pt) => pt.textbook.isbn || '-').join('、') || '-',
+            '使用教材': textbooks.map((pt) => pt.textbooks.title).join('、') || '未指定',
+            '书号': textbooks.map((pt) => pt.textbooks.isbn || '-').join('、') || '-',
           });
         }
       }
@@ -331,9 +331,9 @@ router.get('/textbook/:id', async (req, res, next) => {
 
     const rows = [];
 
-    for (const pt of textbook.planTextbooks) {
+    for (const pt of textbook.plan_textbooks) {
       const sem = pt.semester;
-      const pc = sem.planCourses;
+      const pc = sem.plan_courses;
       const plan = pc.plan;
 
       for (const cls of allClasses) {

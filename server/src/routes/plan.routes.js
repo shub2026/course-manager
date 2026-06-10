@@ -705,7 +705,7 @@ router.post('/semesters/:id/textbooks', roleMiddleware('admin', 'super_admin'), 
         textbook_id: Number(textbookId),
         is_required: isRequired !== false,
       },
-      include: { textbook: true },
+      include: { textbooks: true },
     });
     
     await createAuditLog({

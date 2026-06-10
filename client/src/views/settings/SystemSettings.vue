@@ -20,7 +20,7 @@
     <!-- 主内容区 -->
     <el-row :gutter="20" class="main-content">
       <!-- 左侧：功能配置区 -->
-      <el-col :xs="24" :sm="24" :md="16" :lg="16">
+      <el-col :xs="24" :sm="24" :md="18" :lg="18">
         <!-- 当前学期设置 -->
         <el-card class="config-card" shadow="hover">
           <template #header>
@@ -89,27 +89,27 @@
           <div class="reset-section">
             <h4 class="section-title">清空基础数据</h4>
             <div class="reset-grid">
-              <el-button type="danger" plain @click="showResetDialog('classes')" :loading="resetting">
+              <el-button type="danger" plain @click="showResetDialog('classes')" :loading="resetting" class="reset-btn">
                 <el-icon><Delete /></el-icon>
                 <span>清空班级</span>
               </el-button>
-              <el-button type="warning" plain @click="showResetDialog('courses')" :loading="resetting">
+              <el-button type="warning" plain @click="showResetDialog('courses')" :loading="resetting" class="reset-btn">
                 <el-icon><Delete /></el-icon>
                 <span>清空课程</span>
               </el-button>
-              <el-button type="warning" plain @click="showResetDialog('textbooks')" :loading="resetting">
+              <el-button type="warning" plain @click="showResetDialog('textbooks')" :loading="resetting" class="reset-btn">
                 <el-icon><Delete /></el-icon>
                 <span>清空教材</span>
               </el-button>
-              <el-button type="info" plain @click="showResetDialog('majors')" :loading="resetting">
+              <el-button type="info" plain @click="showResetDialog('majors')" :loading="resetting" class="reset-btn">
                 <el-icon><Delete /></el-icon>
                 <span>清空专业</span>
               </el-button>
-              <el-button type="info" plain @click="showResetDialog('colleges')" :loading="resetting">
+              <el-button type="info" plain @click="showResetDialog('colleges')" :loading="resetting" class="reset-btn">
                 <el-icon><Delete /></el-icon>
                 <span>清空学院</span>
               </el-button>
-              <el-button type="info" plain @click="showResetDialog('levels')" :loading="resetting">
+              <el-button type="info" plain @click="showResetDialog('levels')" :loading="resetting" class="reset-btn">
                 <el-icon><Delete /></el-icon>
                 <span>清空层次</span>
               </el-button>
@@ -121,7 +121,7 @@
           <!-- 清空培养方案 -->
           <div class="reset-section">
             <h4 class="section-title">清空培养方案</h4>
-            <el-button type="danger" plain @click="showResetDialog('plans')" :loading="resetting">
+            <el-button type="danger" plain @click="showResetDialog('plans')" :loading="resetting" class="reset-btn reset-btn-wide">
               <el-icon><Delete /></el-icon>
               <span>清空培养方案</span>
             </el-button>
@@ -139,7 +139,7 @@
               show-icon
               class="cascade-alert"
             />
-            <el-button type="danger" plain @click="showResetDialog('settings')" :loading="resetting" style="margin-top: 12px;">
+            <el-button type="danger" plain @click="showResetDialog('settings')" :loading="resetting" class="reset-btn reset-btn-wide" style="margin-top: 12px;">
               <el-icon><Delete /></el-icon>
               <span>清空系统设置</span>
             </el-button>
@@ -148,7 +148,7 @@
       </el-col>
 
       <!-- 右侧：帮助说明区 -->
-      <el-col :xs="24" :sm="24" :md="8" :lg="8">
+      <el-col :xs="24" :sm="24" :md="6" :lg="6">
         <el-card class="help-card" shadow="hover">
           <template #header>
             <div class="card-header">
@@ -407,6 +407,8 @@ onMounted(load)
 /* 页面整体布局 */
 .settings-page {
   padding: 20px;
+  max-width: 1600px;
+  margin: 0 auto;
 }
 
 /* 顶部标题卡片 */
@@ -418,6 +420,7 @@ onMounted(load)
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 20px;
 }
 
 .header-left h2 {
@@ -438,11 +441,19 @@ onMounted(load)
 /* 主内容区 */
 .main-content {
   margin-top: 0;
+  align-items: stretch;
 }
 
 /* 配置卡片 */
 .config-card {
   margin-bottom: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.config-card :deep(.el-card__body) {
+  flex: 1;
 }
 
 .card-header {
@@ -500,18 +511,39 @@ onMounted(load)
 
 .reset-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 
-.reset-grid .el-button {
-  height: auto;
-  padding: 12px 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  min-height: 80px;
+/* 统一重置按钮大小 */
+.reset-btn {
+  width: 100% !important;
+  height: 64px !important;
+  min-height: 64px !important;
+  max-height: 64px !important;
+  padding: 8px 4px !important;
+  margin: 0 !important;
+  border-radius: 6px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+}
+
+/* 宽按钮（用于单独一行的按钮） */
+.reset-btn-wide {
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  padding: 0 16px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  text-align: left !important;
 }
 
 .cascade-alert {
@@ -522,10 +554,22 @@ onMounted(load)
 .help-card {
   position: sticky;
   top: 20px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.help-card :deep(.el-card__body) {
+  flex: 1;
+  overflow-y: auto;
 }
 
 .help-tabs :deep(.el-tabs__header) {
   margin-bottom: 16px;
+}
+
+.help-tabs :deep(.el-tabs__content) {
+  overflow: visible;
 }
 
 .help-content {
@@ -634,6 +678,27 @@ onMounted(load)
   
   .reset-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .reset-btn {
+    height: 70px !important;
+    min-width: auto !important;
+  }
+  
+  .reset-btn-wide {
+    max-width: 100% !important;
+  }
+  
+  .help-card {
+    position: static;
+    margin-top: 20px;
+    height: auto;
+  }
+}
+
+@media (max-width: 992px) and (min-width: 769px) {
+  .main-content {
+    flex-direction: column;
   }
   
   .help-card {
