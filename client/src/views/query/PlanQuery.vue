@@ -161,7 +161,7 @@ const planCourses = ref([])
 // 计算最大学期数
 const maxSemester = computed(() => {
   if (!planCourses.value.length) return 8
-  const max = Math.max(...planCourses.value.map(c => c.end_semester), 0)
+  const max = Math.max(...planCourses.value.map(c => c.endSemester), 0)
   return Math.max(max, 8)
 })
 
@@ -174,10 +174,12 @@ const groups = computed(() => {
       id: c.id,
       courseName: c.courses?.name || '未知课程',
       courseCode: c.courses?.code || '',
-      startSemester: c.start_semester,
-      endSemester: c.end_semester,
-      semesters: c.plan_course_semesters || [],
-      sortOrder: c.sort_order ?? 0, // 保存plan_course的排序值
+      startSemester: c.startSemester,
+      endSemester: c.endSemester,
+      weeklyHours: c.weeklyHours,
+      weeksPerSemester: c.weeksPerSemester,
+      semesters: c.planCourseSemesters || [],
+      sortOrder: c.sortOrder ?? 0,
     })
   })
 
@@ -194,9 +196,9 @@ const groups = computed(() => {
 // 获取方案显示标签
 function getPlanLabel(plan) {
   const parts = []
-  if (plan.major?.name) parts.push(plan.major.name)
-  if (plan.college?.name) parts.push(plan.college.name)
-  if (plan.trainingLevel?.name) parts.push(plan.trainingLevel.name)
+  if (plan.majors?.name) parts.push(plan.majors.name)
+  if (plan.colleges?.name) parts.push(plan.colleges.name)
+  if (plan.trainingLevels?.name) parts.push(plan.trainingLevels.name)
   if (plan.version) parts.push(`(${plan.version})`)
   return `${plan.name} ${parts.join(' - ')}`
 }
@@ -209,16 +211,16 @@ function isInRange(course, semester) {
 // 获取某学期周课时
 function getHours(course, semester) {
   const sem = course.semesters.find(s => s.semester === semester)
-  return sem ? sem.weekly_hours : null
+  return sem ? sem.weeklyHours : null
 }
 
 // 获取教材信息
 function getTextbookInfo(course, semester) {
   const sem = course.semesters.find(s => s.semester === semester)
-  if (!sem || !sem.plan_textbooks?.length) return null
+  if (!sem || !sem.planTextbooks?.length) return null
 
-  const tb = sem.plan_textbooks[0]
-  const textbook = tb.textbook
+  const tb = sem.planTextbooks[0]
+  const textbook = tb.textbooks
   if (!textbook) return null
 
   // 生成短标题（最多10个字符）
@@ -232,7 +234,7 @@ function getTextbookInfo(course, semester) {
     publisher: textbook.publisher || '',
     isbn: textbook.isbn || '',
     edition: textbook.edition || '',
-    isRequired: tb.is_required,
+    isRequired: tb.isRequired,
     shortTitle,
   }
 }
@@ -253,12 +255,12 @@ function calcTotalHours(course) {
   for (let s = course.startSemester; s <= course.endSemester; s++) {
     const sem = course.semesters.find(x => x.semester === s)
     if (sem) {
-      const hours = sem.weekly_hours || 0
-      const weeks = sem.weeks_count || 18
+      const hours = sem.weeklyHours || 0
+      const weeks = sem.weeksCount || 18
       total += hours * weeks
     } else {
-      const hours = course.weekly_hours || 0
-      const weeks = course.weeks_per_semester || 18
+      const hours = course.weeklyHours || 0
+      const weeks = course.weeksPerSemester || 18
       total += hours * weeks
     }
   }

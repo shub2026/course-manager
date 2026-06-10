@@ -72,7 +72,7 @@ router.get('/semester', async (req, res, next) => {
       const calc = calcClassSemester(cls, semesterInfo);
       if (!calc) continue;
       if (cls.custom_plan_id) {
-        classPlanMap.set(cls.id, cls.customPlan);
+        classPlanMap.set(cls.id, cls.training_plans);
       } else {
         // 同时收集专业和层次的方案ID
         if (cls.major_id) majorPlanIds.add(cls.major_id);
@@ -156,11 +156,11 @@ router.get('/semester', async (req, res, next) => {
           weeks_per_semester: semRecord?.weeks_count || pc.weeks_per_semester,
           totalHoursThisSemester: (semRecord?.weekly_hours || pc.weekly_hours) * (semRecord?.weeks_count || pc.weeks_per_semester),
           textbooks: (semRecord?.plan_textbooks || []).map((pt) => ({
-            id: pt.textbook.id,
-            title: pt.textbook.title,
-            isbn: pt.textbook.isbn,
-            publisher: pt.textbook.publisher,
-            is_required: pt.is_required,
+            id: pt.textbooks.id,
+            title: pt.textbooks.title,
+            isbn: pt.textbooks.isbn,
+            publisher: pt.textbooks.publisher,
+            isRequired: pt.is_required,
           })),
         };
       });
@@ -205,11 +205,11 @@ router.get('/textbook/:id', async (req, res, next) => {
       prisma.plan_textbooks.findMany({
         where: { textbook_id: Number(id) },
         include: {
-          semester: {
+          plan_course_semesters: {
             include: {
               plan_courses: {
                 include: {
-                  plan: { include: { majors: true, training_levels: true } },
+                  training_plans: { include: { majors: true, training_levels: true } },
                   courses: { select: { name: true } },
                 },
               },
@@ -243,9 +243,9 @@ router.get('/textbook/:id', async (req, res, next) => {
     const classResults = [];
 
     for (const pt of planTextbooks) {
-      const sem = pt.semester;
+      const sem = pt.plan_course_semesters;
       const pc = sem.plan_courses;
-      const plan = pc.plan;
+      const plan = pc.training_plans;
       if (sem.semester < pc.start_semester || sem.semester > pc.end_semester) continue;
 
       const gradeForThisSemester = Math.ceil(sem.semester / 2);
@@ -302,11 +302,11 @@ router.get('/textbooks', async (req, res, next) => {
         include: {
           plan_textbooks: {
             include: {
-              semester: {
+              plan_course_semesters: {
                 include: {
                   plan_courses: {
                     include: {
-                      plan: { include: { majors: true, training_levels: true } },
+                      training_plans: { include: { majors: true, training_levels: true } },
                       courses: { select: { name: true } },
                     },
                   },
@@ -341,9 +341,9 @@ router.get('/textbooks', async (req, res, next) => {
       const usedClasses = new Set();
 
       for (const pt of tb.plan_textbooks) {
-        const sem = pt.semester;
+        const sem = pt.plan_course_semesters;
         const pc = sem.plan_courses;
-        const plan = pc.plan;
+        const plan = pc.training_plans;
         if (sem.semester < pc.start_semester || sem.semester > pc.end_semester) continue;
 
         const gradeForThisSemester = Math.ceil(sem.semester / 2);

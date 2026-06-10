@@ -91,7 +91,7 @@ onMounted(async () => {
   try {
     const res = await getTextbooks()
     // 只显示启用的教材
-    textbooks.value = (res.data || []).filter(t => t.is_active)
+    textbooks.value = (res.data || []).filter(t => t.isActive)
   } catch (e) {
     ElMessage.error('加载教材列表失败')
     textbooks.value = []
