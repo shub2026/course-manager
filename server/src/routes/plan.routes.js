@@ -71,10 +71,8 @@ router.get('/', async (req, res, next) => {
         
         return {
           ...plan,
-          _count: {
-            plan_courses: plan.plan_courses.length,
-            classes: customClassCount + defaultClassCount,
-          },
+          courseCount: plan.plan_courses.length,
+          classCount: customClassCount + defaultClassCount,
         };
       }));
       
@@ -98,10 +96,8 @@ router.get('/', async (req, res, next) => {
         
         return {
           ...plan,
-          _count: {
-            plan_courses: plan.plan_courses.length,
-            classes: customClassCount + defaultClassCount,
-          },
+          courseCount: plan.plan_courses.length,
+          classCount: customClassCount + defaultClassCount,
         };
       }));
       
@@ -450,10 +446,10 @@ router.put('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req, r
     }
 
     // 确定新的学期范围
-    const newStart = startSemester !== undefined ? Number(startSemester) : currentPc.startSemester;
-    const newEnd = endSemester !== undefined ? Number(endSemester) : currentPc.endSemester;
-    const newWeeklyHours = weeklyHours !== undefined ? Number(weeklyHours) : currentPc.weeklyHours;
-    const newWeeksPerSemester = weeksPerSemester !== undefined ? Number(weeksPerSemester) : currentPc.weeksPerSemester;
+    const newStart = startSemester !== undefined ? Number(startSemester) : currentPc.start_semester;
+    const newEnd = endSemester !== undefined ? Number(endSemester) : currentPc.end_semester;
+    const newWeeklyHours = weeklyHours !== undefined ? Number(weeklyHours) : currentPc.weekly_hours;
+    const newWeeksPerSemester = weeksPerSemester !== undefined ? Number(weeksPerSemester) : currentPc.weeks_per_semester;
     const newSortOrder = sortOrder !== undefined ? Number(sortOrder) : currentPc.sort_order;
 
     // 使用事务确保数据一致性

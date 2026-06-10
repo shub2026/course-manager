@@ -293,13 +293,13 @@ const maxSemester = computed(() => {
 // 构建学期周数数组（统一值）
 function buildSemesterWeeks(planSemesters, courses) {
   let defaultWeeks = 18
-  // 优先取第一个课程的 weeks_per_semester
-  if (courses.length > 0 && courses[0].weeks_per_semester) {
-    defaultWeeks = courses[0].weeks_per_semester
+  // 优先取第一个课程的 weeksPerSemester
+  if (courses.length > 0 && courses[0].weeksPerSemester) {
+    defaultWeeks = courses[0].weeksPerSemester
   }
   // 或取学期记录中第一个值
   if (planSemesters.length > 0) {
-    defaultWeeks = planSemesters[0].weeks_count || defaultWeeks
+    defaultWeeks = planSemesters[0].weeksCount || defaultWeeks
   }
   globalWeeks.value = defaultWeeks
   return Array(maxSemester.value).fill(defaultWeeks)
@@ -314,10 +314,12 @@ const groups = computed(() => {
       id: c.id,
       courseName: c.courses?.name || '未知课程',
       courseCode: c.courses?.code || '',
-      startSemester: c.start_semester,
-      endSemester: c.end_semester,
-      semesters: c.plan_course_semesters || [],
-      sortOrder: c.sort_order ?? 0, // 保存plan_course的排序值
+      startSemester: c.startSemester,
+      endSemester: c.endSemester,
+      weeklyHours: c.weeklyHours,
+      weeksPerSemester: c.weeksPerSemester,
+      semesters: c.planCourseSemesters || [],
+      sortOrder: c.sortOrder ?? 0,
     })
   })
   
@@ -339,14 +341,14 @@ function isInRange(course, semester) {
 // 获取某学期周课时
 function getHours(course, semester) {
   const sem = course.semesters.find(s => s.semester === semester)
-  return sem ? sem.weekly_hours : null
+  return sem ? sem.weeklyHours : null
 }
 
 // 获取某学期教材名
 function getTextbookName(course, semester) {
   const sem = course.semesters.find(s => s.semester === semester)
-  if (!sem || !sem.plan_textbooks?.length) return ''
-  return sem.plan_textbooks.map(t => t.textbook?.title).join(', ')
+  if (!sem || !sem.planTextbooks?.length) return ''
+  return sem.planTextbooks.map(t => t.textbooks?.title).join(', ')
 }
 
 // 单元格样式
@@ -366,13 +368,13 @@ function calcTotalHours(course) {
     const sem = course.semesters.find(x => x.semester === s)
     // 如果学期记录存在，使用记录的周课时和周数
     if (sem) {
-      const hours = sem.weekly_hours || 0
-      const weeks = sem.weeks_count || semesterWeeks.value[s - 1] || 18
+      const hours = sem.weeklyHours || 0
+      const weeks = sem.weeksCount || semesterWeeks.value[s - 1] || 18
       total += hours * weeks
     } else {
       // 如果学期记录不存在，使用课程默认的周课时
-      const hours = course.weekly_hours || 0
-      const weeks = course.weeks_per_semester || semesterWeeks.value[s - 1] || 18
+      const hours = course.weeklyHours || 0
+      const weeks = course.weeksPerSemester || semesterWeeks.value[s - 1] || 18
       total += hours * weeks
     }
   }
@@ -440,7 +442,7 @@ async function openEdit(course, semester) {
 
   editingCourse.value = course
   editingSemester.value = { ...sem }
-  editingTextbookId.value = sem.plan_textbooks?.[0]?.textbook_id || null
+  editingTextbookId.value = sem.planTextbooks?.[0]?.textbookId || null
   popoverVisible.value = true
 }
 
@@ -571,25 +573,17 @@ async function handleMoveUp(course, group) {
   const currentCourse = group.courses[index]
   const prevCourse = group.courses[index - 1]
   
-  console.log('上移操作:', {
-    currentIndex: index,
-    currentId: currentCourse.id,
-    currentSortOrder: currentCourse.sort_order,
-    prevId: prevCourse.id,
-    prevSortOrder: prevCourse.sort_order
-  })
-  
   // 保存原始的 id 和 sortOrder
   const currentId = currentCourse.id
   const prevId = prevCourse.id
-  const currentSortOrder = currentCourse.sort_order
-  const prevSortOrder = prevCourse.sort_order
+  const currentSortOrder = currentCourse.sortOrder
+  const prevSortOrder = prevCourse.sortOrder
   
   try {
     // 交换两个课程的 sortOrder
     await Promise.all([
-      updatePlanCourse(currentId, { sort_order: prevSortOrder }),
-      updatePlanCourse(prevId, { sort_order: currentSortOrder })
+      updatePlanCourse(currentId, { sortOrder: prevSortOrder }),
+      updatePlanCourse(prevId, { sortOrder: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
     await loadData()
@@ -607,25 +601,17 @@ async function handleMoveDown(course, group) {
   const currentCourse = group.courses[index]
   const nextCourse = group.courses[index + 1]
   
-  console.log('下移操作:', {
-    currentIndex: index,
-    currentId: currentCourse.id,
-    currentSortOrder: currentCourse.sort_order,
-    nextId: nextCourse.id,
-    nextSortOrder: nextCourse.sort_order
-  })
-  
   // 保存原始的 id 和 sortOrder
   const currentId = currentCourse.id
   const nextId = nextCourse.id
-  const currentSortOrder = currentCourse.sort_order
-  const nextSortOrder = nextCourse.sort_order
+  const currentSortOrder = currentCourse.sortOrder
+  const nextSortOrder = nextCourse.sortOrder
   
   try {
     // 交换两个课程的 sortOrder
     await Promise.all([
-      updatePlanCourse(currentId, { sort_order: nextSortOrder }),
-      updatePlanCourse(nextId, { sort_order: currentSortOrder })
+      updatePlanCourse(currentId, { sortOrder: nextSortOrder }),
+      updatePlanCourse(nextId, { sortOrder: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
     await loadData()

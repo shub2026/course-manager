@@ -43,10 +43,10 @@
         </el-table-column>
         <el-table-column prop="version" label="版本" width="80" />
         <el-table-column label="课程数" width="80">
-          <template #default="{ row }">{{ row._count?.planCourses || 0 }}</template>
+          <template #default="{ row }">{{ row.courseCount || 0 }}</template>
         </el-table-column>
         <el-table-column label="使用班级" width="90">
-          <template #default="{ row }">{{ row._count?.classes || 0 }}</template>
+          <template #default="{ row }">{{ row.classCount || 0 }}</template>
         </el-table-column>
         <el-table-column label="排序" width="120" align="center">
           <template #default="{ row, $index }">
