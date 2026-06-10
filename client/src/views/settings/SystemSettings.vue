@@ -47,6 +47,7 @@
             size="large"
             filterable
             class="semester-select"
+            @change="handleSemesterChange"
           >
             <el-option
               v-for="sem in availableSemesters"
@@ -88,7 +89,7 @@
           </div>
           <div class="preview-footer" v-if="!isCurrentSemesterSaved">
             <el-icon><Warning /></el-icon>
-            <span>尚未保存</span>
+            <span>未生效</span>
           </div>
           <div class="preview-footer saved" v-else>
             <el-icon><CircleCheck /></el-icon>
@@ -494,7 +495,14 @@ const currentSemesterPreview = computed(() => {
   }
 })
 
-const isCurrentSemesterSaved = ref(false)
+// 跟踪当前选中的学期和已保存的学期
+const selectedSemester = ref('')
+const savedSemester = ref('')
+
+const isCurrentSemesterSaved = computed(() => {
+  // 只有当选中的学期与已保存的学期一致时，才认为已生效
+  return selectedSemester.value !== '' && selectedSemester.value === savedSemester.value
+})
 
 // 确认文字映射
 const confirmTextMap = {
@@ -549,8 +557,16 @@ const canConfirm = computed(() => {
 async function load() {
   await settingsStore.load()
   const s = settingsStore.settings
-  form.value.current_semester = s.currentSemester?.value || ''
-  isCurrentSemesterSaved.value = !!form.value.current_semester
+  const semesterValue = s.currentSemester?.value || ''
+  form.value.current_semester = semesterValue
+  selectedSemester.value = semesterValue
+  savedSemester.value = semesterValue
+}
+
+// 监听下拉框选择变化
+function handleSemesterChange() {
+  // 当用户选择新学期时，更新选中状态，但不改变保存状态
+  selectedSemester.value = form.value.current_semester
 }
 
 function handleSave() {
@@ -561,7 +577,8 @@ async function confirmSave() {
   saving.value = true
   try {
     await settingsStore.save(form.value)
-    isCurrentSemesterSaved.value = true
+    // 保存成功后，更新已保存的学期状态
+    savedSemester.value = form.value.current_semester
     ElMessage.success('学期设置已保存')
     saveConfirmVisible.value = false
   } catch (e) {
