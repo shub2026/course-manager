@@ -308,7 +308,7 @@ router.post('/classes', (req, res, next) => {
           colleges: autoCreatedColleges,
         },
       },
-      result: errors.length > 0 ? 'failed' : 'success',
+      result: (imported + overwritten) > 0 ? 'success' : 'failed',
       message: `导入完成：新增${imported}条，覆盖${overwritten}条，失败${errors.length}条`,
     });
 
@@ -419,7 +419,7 @@ router.post('/courses', upload.single('file'), async (req, res, next) => {
         overwritten,
         failed: errors.length,
       },
-      result: errors.length > 0 ? 'failed' : 'success',
+      result: (imported + overwritten) > 0 ? 'success' : 'failed',
       message: `导入完成：新增${imported}条，覆盖${overwritten}条，失败${errors.length}条`,
     });
 
@@ -540,7 +540,7 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
         overwritten,
         failed: errors.length,
       },
-      result: errors.length > 0 ? 'failed' : 'success',
+      result: (imported + overwritten) > 0 ? 'success' : 'failed',
       message: `导入完成：新增${imported}条，覆盖${overwritten}条，失败${errors.length}条`,
     });
 

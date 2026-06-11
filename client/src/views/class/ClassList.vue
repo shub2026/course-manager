@@ -29,6 +29,7 @@
               <el-option label="未关联" value="none" />
               <el-option v-for="p in plans" :key="p.id" :label="p.name" :value="p.id" />
             </el-select>
+            <el-button @click="exportData">数据导出</el-button>
             <el-button @click="downloadTemplate">下载模板</el-button>
             <el-upload 
               :show-file-list="false" 
@@ -610,6 +611,15 @@ async function handleBatchSet() {
   }
 }
 
+function exportData() {
+  const token = authStore.token
+  if (token) {
+    window.open(`/api/export/classes?token=${token}`, '_blank')
+  } else {
+    ElMessage.warning('请先登录')
+  }
+}
+
 function downloadTemplate() {
   const authStore = useAuthStore()
   const token = authStore.token
@@ -770,11 +780,35 @@ function onImportSuccess(res) {
   }
   
   // 根据结果显示不同类型的消息
-  if (data.failed && data.failed > 0) {
-    // 有失败记录，显示警告消息 + 查看详情的按钮
+  if (data.failed > 0 && (data.imported === 0 && data.overwritten === 0)) {
+    // 完全失败：没有任何数据导入成功
+    ElMessage({
+      message: summaryMsg,
+      type: 'error',
+      duration: 5000,
+      showClose: true,
+    })
+    
+    // 显示错误详情对话框
+    ElMessageBox.confirm(
+      `${summaryMsg}\n\n是否查看详细错误信息？`,
+      '导入失败',
+      {
+        confirmButtonText: '查看详情',
+        cancelButtonText: '关闭',
+        type: 'error',
+        draggable: true,
+      }
+    ).then(() => {
+      showErrorsDialog(data.errors)
+    }).catch(() => {
+      // 用户点击"关闭"
+    })
+  } else if (data.failed > 0) {
+    // 部分成功：有数据导入成功，但也有失败的记录
     ElMessageBox.confirm(
       `${summaryMsg}\n\n共有 ${data.failed} 条记录导入失败，是否查看详细错误？`,
-      '导入结果',
+      '部分成功',
       {
         confirmButtonText: '查看详情',
         cancelButtonText: '关闭',
@@ -796,7 +830,7 @@ function onImportSuccess(res) {
       showClose: true,
     })
   } else if (data.imported > 0 || data.overwritten > 0) {
-    // 成功导入，显示成功消息
+    // 全部成功：没有失败记录
     ElMessage({
       message: summaryMsg,
       type: 'success',
@@ -804,7 +838,7 @@ function onImportSuccess(res) {
       showClose: true,
     })
   } else {
-    // 其他情况
+    // 其他情况（没有数据被导入）
     ElMessage({
       message: summaryMsg,
       type: 'info',
