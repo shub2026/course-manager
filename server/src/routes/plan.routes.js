@@ -31,6 +31,7 @@ router.get('/', async (req, res, next) => {
 
     // 检查是否需要重新分配 sortOrder
     const sortOrders = new Set(plans.map(p => p.sort_order));
+    let finalPlans = plans;
     if (sortOrders.size <= 1 && plans.length > 0) {
       await Promise.all(
         plans.map((plan, index) =>
@@ -40,11 +41,9 @@ router.get('/', async (req, res, next) => {
           })
         )
       );
-      // 重新查询获取更新后的数据
-      const updatedPlans = await prisma.training_plans.findMany({
+      finalPlans = await prisma.training_plans.findMany({
         where,
         include: {
-
           majors: { select: { id: true, name: true } },
           colleges: { select: { id: true, name: true } },
           training_levels: { select: { id: true, name: true } },
@@ -52,57 +51,45 @@ router.get('/', async (req, res, next) => {
         },
         orderBy: { sort_order: 'asc' },
       });
-      
-      const plansWithCount = await Promise.all(updatedPlans.map(async (plan) => {
-        const customClassCount = await prisma.classes.count({
-          where: { custom_plan_id: plan.id },
-        });
-        
-        let defaultClassCount = 0;
-        if (plan.major_id) {
-          defaultClassCount = await prisma.classes.count({
-            where: { major_id: plan.major_id, custom_plan_id: null },
-          });
-        } else if (plan.training_level_id) {
-          defaultClassCount = await prisma.classes.count({
-            where: { training_level_id: plan.training_level_id, custom_plan_id: null },
-          });
-        }
-        
-        return {
-          ...plan,
-          courseCount: plan.plan_courses.length,
-          classCount: customClassCount + defaultClassCount,
-        };
-      }));
-      
-      success(res, plansWithCount);
-    } else {
-      const plansWithCount = await Promise.all(plans.map(async (plan) => {
-        const customClassCount = await prisma.classes.count({
-          where: { custom_plan_id: plan.id },
-        });
-        
-        let defaultClassCount = 0;
-        if (plan.major_id) {
-          defaultClassCount = await prisma.classes.count({
-            where: { major_id: plan.major_id, custom_plan_id: null },
-          });
-        } else if (plan.training_level_id) {
-          defaultClassCount = await prisma.classes.count({
-            where: { training_level_id: plan.training_level_id, custom_plan_id: null },
-          });
-        }
-        
-        return {
-          ...plan,
-          courseCount: plan.plan_courses.length,
-          classCount: customClassCount + defaultClassCount,
-        };
-      }));
-      
-      success(res, plansWithCount);
     }
+
+    // 一次性获取所有班级，避免 N+1 查询
+    const allClasses = await prisma.classes.findMany({
+      select: { id: true, major_id: true, training_level_id: true, custom_plan_id: true }
+    });
+
+    // 按 sort_order 优先级为每个班级分配唯一方案（与前端 getCurrentPlanName 逻辑一致）
+    const classCountMap = {};
+    finalPlans.forEach(p => { classCountMap[p.id] = 0; });
+
+    for (const cls of allClasses) {
+      if (cls.custom_plan_id) {
+        // 有自定义方案：精确匹配
+        if (classCountMap[cls.custom_plan_id] !== undefined) {
+          classCountMap[cls.custom_plan_id]++;
+        }
+      } else {
+        // 无自定义方案：按 sort_order 顺序找第一个匹配的方案
+        for (const plan of finalPlans) {
+          if (plan.major_id && cls.major_id === plan.major_id) {
+            classCountMap[plan.id]++;
+            break;
+          }
+          if (plan.training_level_id && cls.training_level_id === plan.training_level_id) {
+            classCountMap[plan.id]++;
+            break;
+          }
+        }
+      }
+    }
+
+    const plansWithCount = finalPlans.map(plan => ({
+      ...plan,
+      courseCount: plan.plan_courses.length,
+      classCount: classCountMap[plan.id] || 0,
+    }));
+
+    success(res, plansWithCount);
   } catch (e) { next(e); }
 });
 
@@ -711,6 +698,11 @@ router.post('/semesters/:id/textbooks', roleMiddleware('admin', 'super_admin'), 
     const { id } = req.params;
     const { textbook_id, is_required } = req.body;
     if (!textbook_id) return fail(res, '教材为必填项');
+
+    // 校验教材是否存在且已启用
+    const textbook = await prisma.textbooks.findUnique({ where: { id: Number(textbook_id) } });
+    if (!textbook) return fail(res, '教材不存在');
+    if (!textbook.is_active) return fail(res, `教材"${textbook.title}"已停用，无法关联`);
 
     // 该学期只允许关联一本教材：先删后增（事务保护）
     const pt = await prisma.$transaction(async (tx) => {

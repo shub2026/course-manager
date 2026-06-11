@@ -70,7 +70,7 @@ onMounted(async () => {
     
     stats.value.majors = majorsRes.data?.length || 0
     stats.value.courses = coursesRes.data?.length || 0
-    stats.value.textbooks = textbooksRes.data?.length || 0
+    stats.value.textbooks = (textbooksRes.data || []).filter(t => t.isActive).length
     
     // 班级API可能返回分页格式 { items: [], total: 0 } 或直接数组
     const classesData = classesRes.data?.items || classesRes.data || []

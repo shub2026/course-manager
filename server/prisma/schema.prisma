@@ -152,7 +152,8 @@ model textbooks {
   publisher      String?
   author         String?
   edition        String?
-  publish_date   DateTime?
+  // publish_date 字段保持 String 类型以匹配现有 SQLite TEXT 列，下次系统重置时可改为 DateTime
+  publish_date   String?
   price          Float?
   category       String?
   description    String?
