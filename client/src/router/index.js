@@ -44,13 +44,7 @@ const routes = [
   // 404 路由 - 必须放在最后
   {
     path: '/:pathMatch(.*)*',
-    redirect: (to) => {
-      const authStore = useAuthStore()
-      if (authStore.isLoggedIn) {
-        return '/query/semester'
-      }
-      return '/login'
-    },
+    component: () => import('@/views/NotFound.vue'),
   },
 ]
 

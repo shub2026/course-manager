@@ -14,7 +14,7 @@ router.get('/logs', validatePagination(100), async (req, res, next) => {
       module,
       result,
       page: Number(page) || 1,
-      pageSize: Math.min(Number(pageSize) || 20, 100),
+      pageSize: Number(pageSize) || 20,
     });
     success(res, logsData);
   } catch (e) {

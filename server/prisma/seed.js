@@ -1,19 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
 
 const prisma = new PrismaClient();
-
-// 生成随机密码
-function generateRandomPassword(length = 16) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-  let password = '';
-  const bytes = crypto.randomBytes(length);
-  for (let i = 0; i < length; i++) {
-    password += chars[bytes[i] % chars.length];
-  }
-  return password;
-}
 
 async function main() {
   // 清空现有数据（按依赖关系顺序）
@@ -36,9 +24,9 @@ async function main() {
   // ==================== 创建超级管理员账号 ====================
   console.log('创建超级管理员账号...');
   
-  // 生成随机密码
-  const randomPassword = generateRandomPassword();
-  const adminPassword = await bcrypt.hash(randomPassword, 10);
+  // 默认密码，生产环境首次登录后应及时修改
+  const defaultPassword = 'admin@123456';
+  const adminPassword = await bcrypt.hash(defaultPassword, 10);
   
   await prisma.users.create({
     data: {
@@ -52,13 +40,12 @@ async function main() {
   });
   
   console.log('═══════════════════════════════════════════════════');
-  console.log('✅ 超级管理员账号已创建');
+  console.log('超级管理员账号已创建');
   console.log('═══════════════════════════════════════════════════');
   console.log(`   用户名: admin`);
-  console.log(`   密码: ${randomPassword}`);
+  console.log(`   密码: ${defaultPassword}`);
   console.log('═══════════════════════════════════════════════════');
-  console.log('⚠️  请立即登录系统并修改密码！');
-  console.log('⚠️  请妥善保管此密码，它只会显示一次！');
+  console.log('提示：生产环境首次登录后请及时修改密码！');
   console.log('═══════════════════════════════════════════════════\n');
 
   console.log('种子数据初始化完成！');

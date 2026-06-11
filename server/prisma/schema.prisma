@@ -129,18 +129,20 @@ model plan_textbooks {
   textbook_id           Int
   is_required           Boolean               @default(true)
   created_at            DateTime              @default(now())
-  updated_at            DateTime              @updatedAt
+  // updated_at 字段需要在下次系统重置时添加
+  // updated_at            DateTime              @updatedAt
   textbooks             textbooks             @relation(fields: [textbook_id], references: [id])
   plan_course_semesters plan_course_semesters @relation(fields: [semester_id], references: [id], onDelete: Cascade)
 }
 
 model system_settings {
-  id          Int      @id @default(autoincrement())
-  key         String   @unique
+  id          Int     @id @default(autoincrement())
+  key         String  @unique
   value       String
   description String?
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  // 注意：created_at 和 updated_at 字段需要在下次系统重置时添加
+  // created_at  DateTime @default(now())
+  // updated_at  DateTime @updatedAt
 }
 
 model textbooks {

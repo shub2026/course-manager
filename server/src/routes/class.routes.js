@@ -60,7 +60,7 @@ router.get('/', validatePagination(100), async (req, res, next) => {
   try {
     const { name, majorId, collegeId, status, trainingLevelId, planId, enrollmentYear, page, pageSize } = req.query;
     const pageNum = page ? Number(page) : 1;
-    const pageSizeNum = pageSize ? Math.min(Number(pageSize), 100) : 20;
+    const pageSizeNum = pageSize ? Number(pageSize) : 20;
     
     const where = {};
     if (name) where.name = { contains: name };

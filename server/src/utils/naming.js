@@ -67,6 +67,7 @@ export function snakeToCamel(obj) {
  */
 export function shallowSnakeToCamel(obj) {
   if (obj === null || obj === undefined || typeof obj !== 'object') return obj;
+  if (obj instanceof Date) return obj;
   
   const result = {};
   for (const [key, value] of Object.entries(obj)) {
@@ -82,6 +83,7 @@ export function shallowSnakeToCamel(obj) {
  */
 export function shallowCamelToSnake(obj) {
   if (obj === null || obj === undefined || typeof obj !== 'object') return obj;
+  if (obj instanceof Date) return obj;
   
   const result = {};
   for (const [key, value] of Object.entries(obj)) {

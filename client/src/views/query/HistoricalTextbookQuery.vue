@@ -132,7 +132,7 @@ async function loadTextbooks() {
   }
 }
 
-function exportExcel() {
+async function exportExcel() {
   if (!selectedTextbook.value || !selectedSemester.value) {
     ElMessage.warning('请先选择学期和教材')
     return
