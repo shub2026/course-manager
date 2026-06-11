@@ -13,6 +13,7 @@
             <el-select v-model="filterPublisher" placeholder="出版社筛选" clearable filterable style="width: 160px" @change="handleFilter">
               <el-option v-for="pub in publishers" :key="pub" :label="pub" :value="pub" />
             </el-select>
+            <el-button @click="exportData">数据导出</el-button>
             <el-button @click="downloadTemplate">下载模板</el-button>
             <el-upload 
               :show-file-list="false" 
@@ -402,6 +403,37 @@ async function handleBatchDelete() {
   } catch (e) {
     console.error('批量删除失败:', e)
     ElMessage.error('批量删除失败')
+  }
+}
+
+async function exportData() {
+  try {
+    const response = await fetch('/api/export/textbooks', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    if (!response.ok) {
+      throw new Error('导出失败')
+    }
+    
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `教材数据_${new Date().getTime()}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+    
+    ElMessage.success('导出成功')
+  } catch (error) {
+    console.error('导出失败:', error)
+    ElMessage.error('导出失败')
   }
 }
 

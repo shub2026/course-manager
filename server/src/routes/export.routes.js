@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import { createWorkbook, workbookToBuffer, createTemplateWorkbook } from '../utils/excel.js';
 import { getCurrentSemesterInfo } from '../services/settings.service.js';
 import { createAuditLog } from '../services/audit.service.js';
+import { getActiveClassFilter } from '../services/class.service.js';
 
 const router = Router();
 
@@ -113,8 +114,9 @@ router.get('/semester', async (req, res, next) => {
       if (!semesterInfo) return res.status(400).json({ success: false, message: '请先设置当前学期' });
     }
 
+    const activeFilter = await getActiveClassFilter();
     const classes = await prisma.classes.findMany({
-      where: { status: 'active' },
+      where: activeFilter,
       include: {
         majors: true,
         colleges: true,
@@ -433,7 +435,7 @@ router.get('/classes', async (req, res, next) => {
       '入学年份': cls.enrollment_year,
       '学制(年)': cls.duration_years,
       '人数': Number(cls.student_count) || 0,
-      '状态': cls.status === 'active' ? '在读' : '已毕业',
+      '状态': cls.is_left_school ? '离校' : (cls.status === 'active' ? '在读' : '已毕业'),
       '培养方案': cls.training_plans?.name || '-',
     }));
 
@@ -508,6 +510,7 @@ router.get('/textbook/:id', async (req, res, next) => {
       if (!semesterInfo) return res.status(400).json({ success: false, message: '请先设置当前学期' });
     }
 
+    const activeFilter = await getActiveClassFilter();
     const [textbook, allClasses] = await Promise.all([
       prisma.textbooks.findUnique({
         where: { id: Number(id) },
@@ -529,7 +532,7 @@ router.get('/textbook/:id', async (req, res, next) => {
         },
       }),
       prisma.classes.findMany({
-        where: { status: 'active' },
+        where: activeFilter,
         include: { majors: true, training_levels: true },
       }),
     ]);

@@ -24,6 +24,7 @@
             <el-select v-model="filterStatus" clearable placeholder="状态" @change="resetPaginationAndLoad" class="filter-small">
               <el-option label="在读" value="active" />
               <el-option label="已毕业" value="graduated" />
+              <el-option label="离校" value="left_school" />
             </el-select>
             <el-select v-model="filterPlan" clearable placeholder="培养方案" @change="resetPaginationAndLoad" class="filter-medium">
               <el-option label="未关联" value="none" />
@@ -78,7 +79,8 @@
         </el-table-column>
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'active' ? 'success' : 'info'">
+            <el-tag v-if="row.status === 'left_school'" type="danger">离校</el-tag>
+            <el-tag v-else :type="row.status === 'active' ? 'success' : 'info'">
               {{ row.status === 'active' ? '在读' : '已毕业' }}
             </el-tag>
           </template>
@@ -123,8 +125,8 @@
         <el-button size="small" @click="openBatchSetDialog('duration')">
           <el-icon><Edit /></el-icon> 批量设置学制
         </el-button>
-        <el-button size="small" @click="openBatchSetDialog('status')">
-          <el-icon><Edit /></el-icon> 批量设置状态
+        <el-button size="small" @click="openBatchSetDialog('leftSchool')">
+          <el-icon><Edit /></el-icon> 批量设置离校
         </el-button>
       </div>
       
@@ -193,11 +195,9 @@
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="状态">
-              <el-select v-model="form.status" class="full-width">
-                <el-option label="在读" value="active" />
-                <el-option label="已毕业" value="graduated" />
-              </el-select>
+            <el-form-item label="特殊状态离校">
+              <el-switch v-model="form.isLeftSchool" />
+              <div class="form-hint">开启后班级状态固定显示"离校"，关闭则由系统自动推算在读/已毕业</div>
             </el-form-item>
           </el-col>
           <el-col :span="12">
@@ -240,10 +240,10 @@
         <el-form-item v-else-if="batchFormType === 'duration'" label="学制(年)">
           <el-input-number v-model="batchForm.durationYears" :min="1" :max="6" class="full-width" />
         </el-form-item>
-        <el-form-item v-else-if="batchFormType === 'status'" label="状态">
-          <el-select v-model="batchForm.status" class="full-width">
-            <el-option label="在读" value="active" />
-            <el-option label="已毕业" value="graduated" />
+        <el-form-item v-else-if="batchFormType === 'leftSchool'" label="离校状态">
+          <el-select v-model="batchForm.isLeftSchool" class="full-width">
+            <el-option label="是（标记为离校）" :value="true" />
+            <el-option label="否（恢复正常状态）" :value="false" />
           </el-select>
         </el-form-item>
       </el-form>
@@ -311,7 +311,7 @@ const filterPlan = ref(null)
 const selectedClasses = ref([])
 const batchDialogVisible = ref(false)
 const batchSaving = ref(false)
-const batchFormType = ref('') // major, college, level, year, duration, status
+const batchFormType = ref('') // major, college, level, year, duration, leftSchool
 const batchDialogTitle = ref('')
 const batchForm = ref({
   majorId: null,
@@ -319,7 +319,7 @@ const batchForm = ref({
   trainingLevelId: null,
   enrollmentYear: null,
   durationYears: null,
-  status: 'active',
+  isLeftSchool: false,
 })
 
 // 分页状态
@@ -329,7 +329,7 @@ const pagination = ref({
   total: 0,
 })
 
-const defaultForm = { id: null, name: '', majorId: null, enrollmentYear: new Date().getFullYear(), durationYears: 3, collegeId: null, trainingLevelId: null, studentCount: 0, status: 'active', customPlanId: null }
+const defaultForm = { id: null, name: '', majorId: null, enrollmentYear: new Date().getFullYear(), durationYears: 3, collegeId: null, trainingLevelId: null, studentCount: 0, isLeftSchool: false, customPlanId: null }
 const form = ref({ ...defaultForm })
 
 // 导入相关状态
@@ -411,14 +411,10 @@ async function load() {
     list.value = res.data?.items || []
     pagination.value.total = res.data?.total || 0
     
-    // #21修复：从当前加载的数据中提取入学年份，避免额外请求1000条记录
-    const years = new Set()
-    ;(list.value).forEach(cls => {
-      if (cls.enrollmentYear) {
-        years.add(cls.enrollmentYear)
-      }
-    })
-    allEnrollmentYears.value = Array.from(years)
+    // 使用后端返回的所有入学年份（不受分页限制）
+    if (res.data?.allEnrollmentYears) {
+      allEnrollmentYears.value = res.data.allEnrollmentYears
+    }
   } finally {
     loading.value = false
   }
@@ -471,7 +467,7 @@ function openDialog(row) {
       collegeId: row.colleges?.id || null,
       trainingLevelId: row.trainingLevels?.id || null,
       studentCount: row.studentCount,
-      status: row.status,
+      isLeftSchool: row.isLeftSchool || false,
       customPlanId: row.trainingPlans?.id || null
     }
   } else {
@@ -541,7 +537,7 @@ function openBatchSetDialog(type) {
     level: '批量设置培养层次',
     year: '批量设置入学年份',
     duration: '批量设置学制',
-    status: '批量设置状态',
+    leftSchool: '批量设置离校',
   }[type]
   
   // 重置表单
@@ -551,7 +547,7 @@ function openBatchSetDialog(type) {
     trainingLevelId: null,
     enrollmentYear: new Date().getFullYear(),
     durationYears: 3,
-    status: 'active',
+    isLeftSchool: false,
   }
   
   batchDialogVisible.value = true
@@ -593,8 +589,8 @@ async function handleBatchSet() {
       case 'duration':
         updateData.durationYears = batchForm.value.durationYears
         break
-      case 'status':
-        updateData.status = batchForm.value.status
+      case 'leftSchool':
+        updateData.isLeftSchool = batchForm.value.isLeftSchool
         break
     }
     

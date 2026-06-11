@@ -1,7 +1,8 @@
 // 班级状态常量
 export const CLASS_STATUS = {
   ACTIVE: 'active',
-  GRADUATED: 'graduated'
+  GRADUATED: 'graduated',
+  LEFT_SCHOOL: 'left_school'
 };
 
 // 用户角色常量

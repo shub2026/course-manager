@@ -36,6 +36,7 @@ model classes {
   student_count     Int
   custom_plan_id    Int?
   status            String           @default("active")
+  is_left_school    Boolean          @default(false)
   created_at        DateTime         @default(now())
   updated_at        DateTime         @updatedAt
   training_plans    training_plans?  @relation(fields: [custom_plan_id], references: [id])

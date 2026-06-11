@@ -5,6 +5,7 @@
         <div class="card-header">
           <span>课程管理</span>
           <div class="card-header-actions">
+            <el-button @click="exportData">数据导出</el-button>
             <el-button @click="downloadTemplate">下载模板</el-button>
             <el-upload 
               :show-file-list="false" 
@@ -149,6 +150,37 @@ async function handleDelete(id) {
   await deleteCourse(id)
   ElMessage.success('删除成功')
   load()
+}
+
+async function exportData() {
+  try {
+    const response = await fetch('/api/export/courses', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    if (!response.ok) {
+      throw new Error('导出失败')
+    }
+    
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `课程数据_${new Date().getTime()}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+    
+    ElMessage.success('导出成功')
+  } catch (error) {
+    console.error('导出失败:', error)
+    ElMessage.error('导出失败')
+  }
 }
 
 async function downloadTemplate() {

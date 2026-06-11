@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { getCurrentSemesterInfo } from '../services/settings.service.js';
+import { getActiveClassFilter } from '../services/class.service.js';
 
 const router = Router();
 
@@ -53,11 +54,17 @@ router.get('/semester', async (req, res, next) => {
     }
 
     const { majorId, collegeId, trainingLevelId, enrollmentYear, grade } = req.query;
-    const classWhere = { status: 'active' };
-    if (majorId) classWhere.major_id = Number(majorId);
-    if (collegeId) classWhere.college_id = Number(collegeId);
-    if (trainingLevelId) classWhere.training_level_id = Number(trainingLevelId);
-    if (enrollmentYear) classWhere.enrollment_year = Number(enrollmentYear);
+    // 动态构建在读班级过滤条件（排除离校和已毕业）
+    const activeFilter = await getActiveClassFilter();
+    const extraConditions = {};
+    if (majorId) extraConditions.major_id = Number(majorId);
+    if (collegeId) extraConditions.college_id = Number(collegeId);
+    if (trainingLevelId) extraConditions.training_level_id = Number(trainingLevelId);
+    if (enrollmentYear) extraConditions.enrollment_year = Number(enrollmentYear);
+
+    const classWhere = Object.keys(extraConditions).length > 0
+      ? { AND: [activeFilter, extraConditions] }
+      : activeFilter;
 
     const classes = await prisma.classes.findMany({
       where: classWhere,
@@ -245,6 +252,7 @@ router.get('/textbook/:id', async (req, res, next) => {
     const textbook = await prisma.textbooks.findUnique({ where: { id: Number(id) } });
     if (!textbook) return fail(res, '教材不存在', 404);
 
+    const activeFilter = await getActiveClassFilter();
     const [planTextbooks, allClasses] = await Promise.all([
       prisma.plan_textbooks.findMany({
         where: { textbook_id: Number(id) },
@@ -262,7 +270,7 @@ router.get('/textbook/:id', async (req, res, next) => {
         },
       }),
       prisma.classes.findMany({
-        where: { status: 'active' },
+        where: activeFilter,
         include: { 
           majors: { select: { name: true } },
           training_levels: true,
@@ -358,6 +366,7 @@ router.get('/textbooks', async (req, res, next) => {
       if (!semesterInfo) return fail(res, '请先设置当前学期');
     }
 
+    const activeFilter = await getActiveClassFilter();
     const [textbooks, allClasses] = await Promise.all([
       prisma.textbooks.findMany({
         include: {
@@ -378,7 +387,7 @@ router.get('/textbooks', async (req, res, next) => {
         },
         orderBy: { id: 'asc' },
       }),
-      prisma.classes.findMany({ where: { status: 'active' } }),
+      prisma.classes.findMany({ where: activeFilter }),
     ]);
 
     // 判断班级是否匹配培养方案（支持按专业和按层次两种方式）

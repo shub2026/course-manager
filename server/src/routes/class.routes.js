@@ -4,6 +4,7 @@ import { success, fail } from '../utils/response.js';
 import { getCurrentSemesterInfo } from '../services/settings.service.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { validatePagination } from '../middleware/pagination.js';
+import { getActiveClassFilter } from '../services/class.service.js';
 
 const router = Router();
 
@@ -30,8 +31,11 @@ function calculateClassStatus(enrollmentYear, durationYears, semesterInfo = null
   // 如果没有提供学期信息，使用系统设置中的当前学期
   let startYear;
   
-  if (semesterInfo && semesterInfo.value) {
-    // 从学期配置中提取起始学年，如 "2025-2026-2" → 2025
+  if (semesterInfo && semesterInfo.startYear) {
+    // getCurrentSemesterInfo() 返回的格式：{ startYear, endYear, semesterIndex, raw, label }
+    startYear = semesterInfo.startYear;
+  } else if (semesterInfo && semesterInfo.value) {
+    // 兼容旧格式：从学期配置字符串中提取起始学年，如 "2025-2026-2" → 2025
     startYear = Number(semesterInfo.value.split('-')[0]);
   } else {
     // 降级方案：使用当前年份估算
@@ -56,6 +60,26 @@ function calculateClassStatus(enrollmentYear, durationYears, semesterInfo = null
   return grade <= durationYears ? 'active' : 'graduated';
 }
 
+/**
+ * GET /api/classes/stats - 轻量级统计接口
+ * 返回在读班级数、在读学生数，供首页概览使用
+ */
+router.get('/stats', async (req, res, next) => {
+  try {
+    const activeFilter = await getActiveClassFilter();
+
+    const activeClasses = await prisma.classes.findMany({
+      where: activeFilter,
+      select: { student_count: true },
+    });
+
+    const totalClasses = activeClasses.length;
+    const totalStudents = activeClasses.reduce((sum, c) => sum + (c.student_count || 0), 0);
+
+    success(res, { totalClasses, totalStudents });
+  } catch (e) { next(e); }
+});
+
 router.get('/', validatePagination(100), async (req, res, next) => {
   try {
     const { name, majorId, collegeId, status, trainingLevelId, planId, enrollmentYear, page, pageSize } = req.query;
@@ -78,10 +102,42 @@ router.get('/', validatePagination(100), async (req, res, next) => {
       where.college_id = Number(collegeId);
     }
     
+    // 状态筛选：基于入学年份和学制动态计算，而非直接过滤数据库字段
+    // 因为数据库中的 status 可能过期，实际状态由 calculateClassStatus() 动态决定
+    // 特殊状态 'left_school' 通过 is_left_school 字段控制
+    let dynamicStatusFilter = null;
     if (status === 'null') {
-      where.status = null;
-    } else if (status) {
-      where.status = status;
+      // 筛选无法计算状态的记录（缺少入学年份或学制，且非离校）
+      dynamicStatusFilter = [
+        { enrollment_year: null, is_left_school: false },
+        { duration_years: null, is_left_school: false },
+      ];
+    } else if (status === 'left_school') {
+      // 离校状态：直接通过 is_left_school 字段过滤
+      dynamicStatusFilter = [{ is_left_school: true }];
+    } else if (status === 'active' || status === 'graduated') {
+      const semesterInfo = await getCurrentSemesterInfo();
+      if (semesterInfo) {
+        const startYear = semesterInfo.startYear;
+        // 获取所有不重复的学制值，用于构建动态过滤条件
+        const durations = await prisma.classes.findMany({
+          select: { duration_years: true },
+          distinct: ['duration_years'],
+        });
+        const durationValues = durations.map(d => d.duration_years).filter(d => d != null);
+        
+        // 根据 calculateClassStatus 的逻辑：
+        // active:    grade <= duration_years → enrollment_year >= startYear - duration_years + 1
+        // graduated: grade > duration_years  → enrollment_year < startYear - duration_years + 1
+        // 同时排除离校班级（is_left_school = false）
+        dynamicStatusFilter = durationValues.map(d => ({
+          duration_years: d,
+          is_left_school: false,
+          enrollment_year: status === 'active'
+            ? { gte: startYear - d + 1 }
+            : { lt: startYear - d + 1 },
+        }));
+      }
     }
     
     if (trainingLevelId === 'null') {
@@ -169,12 +225,24 @@ router.get('/', validatePagination(100), async (req, res, next) => {
       }
     }
     
+    // 将动态状态筛选条件合并到 WHERE 子句中
+    // 使用 AND 组合以避免与 planId 筛选器的 OR 冲突
+    let finalWhere = where;
+    if (dynamicStatusFilter) {
+      finalWhere = {
+        AND: [
+          where,
+          { OR: dynamicStatusFilter },
+        ],
+      };
+    }
+
     // 获取总数
-    const total = await prisma.classes.count({ where });
+    const total = await prisma.classes.count({ where: finalWhere });
     
     // 获取分页数据
     const classes = await prisma.classes.findMany({
-      where,
+      where: finalWhere,
       include: {
         majors: { select: { id: true, name: true } },
         colleges: { select: { id: true, name: true } },
@@ -186,20 +254,45 @@ router.get('/', validatePagination(100), async (req, res, next) => {
       take: pageSizeNum,
     });
     
-    success(res, { items: classes, total });
+    // 动态计算每个班级的状态，确保状态与当前学期配置一致
+    // is_left_school 优先级最高，直接标记为 'left_school'
+    const semesterInfo = await getCurrentSemesterInfo();
+    const classesWithDynamicStatus = classes.map(cls => {
+      if (cls.is_left_school) {
+        cls.status = 'left_school';
+      } else if (cls.enrollment_year && cls.duration_years) {
+        cls.status = calculateClassStatus(cls.enrollment_year, cls.duration_years, semesterInfo);
+      }
+      return cls;
+    });
+
+    // 获取所有不重复的入学年份（用于前端筛选器，不受分页影响）
+    const distinctYears = await prisma.classes.findMany({
+      select: { enrollment_year: true },
+      distinct: ['enrollment_year'],
+      orderBy: { enrollment_year: 'desc' },
+    });
+    const allEnrollmentYears = distinctYears
+      .map(c => c.enrollment_year)
+      .filter(y => y != null);
+
+    success(res, { items: classesWithDynamicStatus, total, allEnrollmentYears });
   } catch (e) { next(e); }
 });
 
 router.post('/', async (req, res, next) => {
   try {
-    const { name, enrollment_year, duration_years, major_id, college_id, training_level_id, student_count, custom_plan_id, status } = req.body;
+    const { name, enrollment_year, duration_years, major_id, college_id, training_level_id, student_count, custom_plan_id, is_left_school } = req.body;
     if (!name || !enrollment_year || !duration_years || !training_level_id) {
       return fail(res, '班级名称、入学年份、学制、培养层次为必填项');
     }
 
-    // 如果未提供状态，则根据入学年份和学制自动计算
-    let autoStatus = status;
-    if (!autoStatus) {
+    // 状态计算：is_left_school 优先级最高，其余由入学年份+学制自动推算
+    const leftSchool = !!is_left_school;
+    let autoStatus;
+    if (leftSchool) {
+      autoStatus = 'left_school';
+    } else {
       const semesterInfo = await getCurrentSemesterInfo();
       autoStatus = calculateClassStatus(Number(enrollment_year), Number(duration_years), semesterInfo);
     }
@@ -215,6 +308,7 @@ router.post('/', async (req, res, next) => {
         student_count: Number(student_count) || 0,
         custom_plan_id: custom_plan_id ? Number(custom_plan_id) : null,
         status: autoStatus,
+        is_left_school: leftSchool,
       },
       include: { majors: true, colleges: true, training_levels: true, training_plans: true },
     });
@@ -247,18 +341,23 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, enrollment_year, duration_years, major_id, college_id, training_level_id, student_count, custom_plan_id, status } = req.body;
+    const { name, enrollment_year, duration_years, major_id, college_id, training_level_id, student_count, custom_plan_id, is_left_school } = req.body;
     try {
       // 获取当前班级信息
       const currentClass = await prisma.classes.findUnique({ where: { id: Number(id) } });
       if (!currentClass) return fail(res, '班级不存在', 404);
 
-      // 始终根据入学年份和学制自动计算状态，忽略前端传来的status
-      // 这样可以确保状态始终与当前的学期配置保持一致
-      const calcEnrollmentYear = enrollment_year ? Number(enrollment_year) : currentClass.enrollment_year;
-      const calcDurationYears = duration_years ? Number(duration_years) : currentClass.duration_years;
-      const semesterInfo = await getCurrentSemesterInfo();
-      const autoStatus = calculateClassStatus(calcEnrollmentYear, calcDurationYears, semesterInfo);
+      // 状态计算：is_left_school 优先级最高，其余由入学年份+学制自动推算
+      const leftSchool = is_left_school !== undefined ? !!is_left_school : currentClass.is_left_school;
+      let autoStatus;
+      if (leftSchool) {
+        autoStatus = 'left_school';
+      } else {
+        const calcEnrollmentYear = enrollment_year ? Number(enrollment_year) : currentClass.enrollment_year;
+        const calcDurationYears = duration_years ? Number(duration_years) : currentClass.duration_years;
+        const semesterInfo = await getCurrentSemesterInfo();
+        autoStatus = calculateClassStatus(calcEnrollmentYear, calcDurationYears, semesterInfo);
+      }
 
       const cls = await prisma.classes.update({
         where: { id: Number(id) },
@@ -272,6 +371,7 @@ router.put('/:id', async (req, res, next) => {
           student_count: student_count !== undefined ? Number(student_count) : undefined,
           custom_plan_id: custom_plan_id !== undefined ? (custom_plan_id ? Number(custom_plan_id) : null) : undefined,
           status: autoStatus,
+          is_left_school: leftSchool,
         },
         include: { majors: true, colleges: true, training_levels: true, training_plans: true },
       });
