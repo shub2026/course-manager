@@ -2,110 +2,157 @@
 
 <div align="center">
 
-面向教学管理人员的轻量级课程管理平台
+**面向教学管理人员的轻量级课程管理系统**
 
 [![Node](https://img.shields.io/badge/node-%3E%3D18.0-green.svg)](https://nodejs.org/)
 [![Vue](https://img.shields.io/badge/vue-3.x-brightgreen.svg)](https://vuejs.org/)
 [![Express](https://img.shields.io/badge/express-5.x-blue.svg)](https://expressjs.com/)
 [![Prisma](https://img.shields.io/badge/prisma-6.x-blue.svg)](https://www.prisma.io/)
+[![License](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
+
+一站式教学管理解决方案 · 前后端分离架构 · 开箱即用
+
+[快速开始](#-快速开始) · [功能特性](#-核心功能) · [技术文档](#-技术架构) · [常见问题](#-常见问题)
 
 </div>
 
 ---
 
-## 平台简介
+## 📋 项目简介
 
-KEC 课程管理平台是一套独立运行的教学管理解决方案，专为中小型教育机构设计。平台采用前后端分离架构，提供课程管理、班级编排、培养方案制定、教材管理等核心功能，支持按学期自动查询开课情况和教材使用统计。
+KEC（Knowledge Education Course）课程管理平台是一套专为中小型教育机构设计的独立教学管理系统。平台提供从基础数据管理、班级编排、培养方案制定到教材调配的完整业务流程支持，帮助教务人员高效管理教学资源。
 
-### 适用场景
+### 🎯 适用场景
 
-- 职业技术学院、技工学校的课程与班级管理
-- 培训机构的培养方案与教材管理
-- 教务部门的开课计划与教学资源调配
+- **职业院校**：职业技术学院、技工学校的课程与班级管理
+- **培训机构**：培训课程的培养方案与教材管理
+- **教务部门**：开课计划制定与教学资源统一调配
 
-### 核心特性
+### ✨ 核心优势
 
-| 特性 | 说明 |
+| 优势 | 说明 |
 |------|------|
-| **三级权限体系** | 超级管理员、管理员、访客三种角色，精细化权限控制 |
-| **自定义系统标识** | 可配置单位名称，登录页动态显示，提升品牌识别度 |
-| **一体化管理** | 学院、专业、层次、课程、教材、班级统一管理 |
-| **智能年级推算** | 根据入学年份和当前学期配置，自动计算班级在读年级和毕业状态 |
-| **灵活培养方案** | 支持按专业或培养层次制定方案，特殊班级可单独指定自定义方案 |
-| **课程矩阵编辑** | 以矩阵视图展示课程-学期分布，直观编辑周课时和关联教材 |
-| **批量导入导出** | Excel 批量导入班级/课程/教材，开课和教材使用情况一键导出 |
-| **操作审计日志** | 全操作链路记录，支持查询和导出，便于安全审计 |
-| **双数据库支持** | 开发环境 SQLite 开箱即用，生产环境可无缝切换到 MySQL |
+| **零依赖部署** | SQLite 数据库开箱即用，无需额外安装 MySQL |
+| **智能自动化** | 年级自动推算、课程矩阵可视化、批量导入导出 |
+| **安全可靠** | JWT 双令牌认证、操作审计日志、细粒度权限控制 |
+| **灵活扩展** | Prisma ORM 支持无缝切换 MySQL，满足业务增长需求 |
 
 ---
 
-## 技术架构
+## 🚀 核心功能
 
-### 技术选型
+### 📊 基础数据管理
 
-| 层级 | 技术 | 版本 | 说明 |
+- **组织架构**：学院、专业、培养层次三级管理体系
+- **用户权限**：超级管理员、管理员、访客三种角色，精细化权限控制
+- **系统配置**：自定义单位名称、学期设置、登录页品牌化
+
+### 🏫 班级与课程管理
+
+- **班级管理**：支持 Excel 批量导入，智能年级推算，毕业状态自动标记
+- **课程库**：公共基础课与专业课分类管理，周课时灵活配置
+- **教材管理**：教材信息维护，与课程关联绑定
+
+### 📚 培养方案
+
+- **方案制定**：按专业或培养层次制定培养方案，支持多版本管理
+- **课程矩阵**：可视化编辑界面，直观展示课程-学期分布
+- **特殊方案**：支持为特殊班级单独指定自定义培养方案
+
+### 📈 查询与统计
+
+- **开课查询**：按学期自动查询开课情况，支持多维度筛选
+- **教材统计**：教材使用情况统计，一键导出 Excel 报表
+- **审计日志**：全操作链路记录，支持查询和导出，便于安全审计
+
+### 📤 数据导入导出
+
+- **批量导入**：Excel 模板下载，批量导入班级/课程/教材数据
+- **一键导出**：开课计划、教材清单、审计报告等关键数据导出
+- **数据校验**：导入时自动校验数据完整性，错误提示清晰明确
+
+---
+
+## 🛠️ 技术架构
+
+### 技术栈
+
+```
+前端                          后端                        数据库
+┌──────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│ Vue 3.5+     │    │ Express 5.1+     │    │ SQLite (开发)   │
+│ Element Plus │◄──►│ Prisma 6.10+     │◄──►│ MySQL (生产)    │
+│ Pinia 3.0+   │    │ JWT 9.0+         │    └─────────────────┘
+│ Vite 5.4+    │    │ Winston 3.19+    │
+└──────────────┘    └──────────────────┘
+```
+
+### 核心技术选型
+
+| 层级 | 技术 | 版本 | 用途 |
 |------|------|------|------|
-| 前端框架 | Vue 3 | 3.5+ | Composition API + `<script setup>` |
-| UI 组件库 | Element Plus | 2.14+ | 企业级组件库，中文国际化 |
-| 构建工具 | Vite | 5.4+ | 极速开发体验，HMR 热更新 |
-| 状态管理 | Pinia | 3.0+ | Vue 3 官方推荐状态管理 |
-| HTTP 客户端 | Axios | 1.17+ | 请求拦截、Token 自动刷新 |
-| 后端框架 | Express | 5.1+ | Node.js Web 框架 |
-| ORM | Prisma | 6.10+ | 类型安全，支持 SQLite/MySQL 切换 |
-| 认证 | JWT | 9.0+ | Access Token + Refresh Token 双令牌机制 |
-| 日志 | Winston | 3.19+ | 结构化日志，文件滚动存储 |
-| Excel | ExcelJS | 4.4+ | 纯 JS 实现，无需额外系统依赖 |
+| **前端框架** | Vue 3 | 3.5+ | Composition API + `<script setup>` |
+| **UI 组件** | Element Plus | 2.14+ | 企业级组件库，中文国际化 |
+| **构建工具** | Vite | 5.4+ | 极速 HMR，秒级热更新 |
+| **状态管理** | Pinia | 3.0+ | Vue 3 官方推荐，类型安全 |
+| **HTTP 客户端** | Axios | 1.17+ | 请求拦截器，Token 自动刷新 |
+| **后端框架** | Express | 5.1+ | 轻量级，中间件生态丰富 |
+| **ORM** | Prisma | 6.10+ | 类型安全，Schema 驱动开发 |
+| **认证** | JWT | 9.0+ | Access + Refresh Token 双令牌 |
+| **日志** | Winston | 3.19+ | 结构化日志，文件滚动存储 |
+| **Excel** | ExcelJS | 4.4+ | 纯 JS 实现，无系统依赖 |
 
-### 系统架构图
+### 系统架构
 
 ```
 ┌───────────────────────────────────────────────────────┐
-│                     浏览器客户端                       │
+│                   浏览器客户端                          │
 │  Vue 3 + Element Plus + Pinia + Vue Router            │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │
 │  │ 基础数据  │ │ 班级管理  │ │ 培养方案  │ │ 查询报表  │  │
 │  └──────────┘ └──────────┘ └──────────┘ └──────────┘  │
 └────────────────────────┬──────────────────────────────┘
-                         │ Axios (REST API + JWT Bearer)
+                         │ REST API + JWT Bearer Token
 ┌────────────────────────┴──────────────────────────────┐
-│                   Express 后端服务                     │
+│                  Express 后端服务                       │
 │  ┌────────┐  ┌──────────┐  ┌────────┐  ┌───────────┐  │
-│  │ 路由层  │→│ 中间件链  │→│ 业务逻辑│→│ Prisma ORM│  │
-│  │14个模块│  │认证/权限  │  │ 服务层  │  │ 数据访问   │  │
-│  └────────┘  │命名转换   │  └────────┘  └───────────┘  │
-│              │审计日志   │                              │
-│              └──────────┘                              │
+│  │ 路由层  │→│ 中间件链  │→│ 业务层  │→│ 数据访问层 │  │
+│  │14个模块│  │认证/审计  │  │Service │  │Prisma ORM │  │
+│  └────────┘  └──────────┘  └────────┘  └───────────┘  │
 └────────────────────────┬──────────────────────────────┘
                          │ Prisma Client
 ┌────────────────────────┴──────────────────────────────┐
-│                数据库 (SQLite / MySQL)                 │
-│  12 张数据表：users, classes, training_plans, ...      │
+│                数据库 (SQLite / MySQL)                  │
+│  12 张表: users, classes, courses, textbooks, ...      │
 └───────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 环境要求
+## 📦 环境要求
 
-- **Node.js**: 18.x 或 20.x LTS
-- **npm**: 8.x+
-- **操作系统**: Windows / macOS / Linux
+- **Node.js**: 18.x 或更高版本（LTS 推荐）
+- **npm**: 8.x 或更高版本
+- **操作系统**: Windows 10+ / macOS 10.15+ / Linux
+- **浏览器**: Chrome 90+ / Edge 90+ / Firefox 88+（仅前端使用）
+
+> 💡 **提示**：本项目仅需 Node.js 环境，无需安装 MySQL 等数据库软件（开发环境使用 SQLite）。
 
 ---
 
-## 快速开始
+## ⚡ 快速开始
 
-### 1. 克隆项目
+### 1️⃣ 克隆项目
 
 ```bash
 git clone https://github.com/shub2026/kec-manager.git
 cd kec-manager
 ```
 
-### 2. 安装依赖
+### 2️⃣ 安装依赖
 
 ```bash
-# 安装根目录依赖（concurrently 用于同时启动前后端）
+# 安装根目录依赖
 npm install
 
 # 安装后端依赖
@@ -115,13 +162,13 @@ cd server && npm install && cd ..
 cd client && npm install && cd ..
 ```
 
-### 3. 初始化数据库
+### 3️⃣ 初始化数据库
 
 ```bash
 cd server
 
 # 执行数据库迁移（创建表结构）
-npx prisma migrate dev
+npx prisma migrate dev --name init
 
 # 生成 Prisma Client
 npx prisma generate
@@ -129,7 +176,7 @@ npx prisma generate
 cd ..
 ```
 
-### 4. 创建超级管理员账号（首次部署必需）
+### 4️⃣ 创建管理员账号
 
 ```bash
 cd server
@@ -137,7 +184,7 @@ npm run db:seed
 cd ..
 ```
 
-此步骤会创建一个超级管理员账号：
+**默认管理员账号**：
 
 | 字段 | 值 |
 |------|-----|
@@ -145,468 +192,317 @@ cd ..
 | 密码 | `admin@123456` |
 | 角色 | `super_admin` |
 
-> 首次登录后请立即修改默认密码。
+> ⚠️ **重要**：首次登录后请立即修改默认密码！
 
-### 5. 启动开发服务器
+**种子数据安全特性**：
+- ✅ 智能检查：只在不存在时创建 admin，不会覆盖已有账号
+- ✅ 生产保护：默认不清空业务数据，可安全重复执行
+- ✅ 多种模式：支持开发测试和强制重置场景
+
+详细用法参见 [种子数据使用指南](server/prisma/SEED_USAGE.md)
+
+### 5️⃣ 启动开发服务器
 
 ```bash
 # 同时启动前后端（推荐）
 npm run dev
-
-# 或分别启动
-npm run dev:server    # 后端 API: http://localhost:3000
-npm run dev:client    # 前端页面: http://localhost:5173
 ```
 
-启动成功后访问：
+或者分别启动：
+
+```bash
+# 仅启动后端
+npm run dev:server
+
+# 仅启动前端
+npm run dev:client
+```
+
+### 6️⃣ 访问系统
+
+启动成功后，在浏览器中访问：
 
 | 地址 | 说明 |
 |------|------|
-| http://localhost:5173 | 前端界面 |
-| http://localhost:3000 | 后端 API |
-| http://localhost:3000/api/health | 健康检查 |
+| http://localhost:5173 | 前端管理界面 |
+| http://localhost:3000 | 后端 API 服务 |
+| http://localhost:3000/api/health | 健康检查接口 |
 
-### 6. 导入基础数据
+使用 admin 账号登录系统。
 
-平台不包含示例数据。首次部署后，使用管理员账号登录，按以下顺序导入基础数据：
+### 7️⃣ 导入基础数据
 
-1. **培养层次** — 如：中专、大专、高技工等
-2. **学院** — 各二级学院
-3. **专业** — 各专业类别
-4. **课程** — 公共基础课与专业课（支持 Excel 批量导入）
-5. **教材** — 教材信息（支持 Excel 批量导入）
-6. **班级** — 班级数据（支持 Excel 批量导入）
-7. **培养方案** — 制定各专业的开课计划
+首次部署后，系统为空数据库。请按以下顺序导入基础数据：
+
+1. **培养层次** → 中专、大专、高技工等
+2. **学院** → 各二级学院
+3. **专业** → 各专业类别
+4. **课程** → 公共基础课与专业课（支持 Excel 批量导入）
+5. **教材** → 教材信息（支持 Excel 批量导入）
+6. **班级** → 班级数据（支持 Excel 批量导入）
+7. **培养方案** → 制定各专业的开课计划
 
 ---
 
-## 项目结构
+## 📁 项目结构
 
 ```
 kec-manager/
-├── client/                              # 前端应用
+├── client/                      # 前端应用
 │   ├── src/
-│   │   ├── api/                         # API 请求封装（9个模块）
-│   │   │   ├── audit.js                 # 审计日志 API
-│   │   │   ├── class.js                 # 班级管理 API
-│   │   │   ├── college.js               # 学院管理 API
-│   │   │   ├── course.js                # 课程管理 API
-│   │   │   ├── major.js                 # 专业管理 API
-│   │   │   ├── plan.js                  # 培养方案 API（13个方法）
-│   │   │   ├── query.js                 # 查询报表 API
-│   │   │   ├── textbook.js              # 教材管理 API
-│   │   │   └── trainingLevel.js         # 培养层次 API
-│   │   ├── components/                  # 通用组件
-│   │   │   ├── Layout.vue               # 主布局（侧边栏+顶栏+内容区）
-│   │   │   ├── ChangePasswordDialog.vue # 修改密码弹窗
-│   │   │   └── CourseMatrix.vue         # 课程矩阵组件（核心）
-│   │   ├── router/
-│   │   │   └── index.js                 # 路由配置（17个路由+权限守卫）
-│   │   ├── stores/                      # Pinia 状态管理
-│   │   │   ├── auth.js                  # 认证状态（登录/Token/用户信息）
-│   │   │   └── settings.js              # 系统设置状态（学期配置+系统标识）
-│   │   ├── utils/
-│   │   │   ├── request.js               # Axios 封装（拦截器+Token刷新）
-│   │   │   └── cache.js                 # API 响应内存缓存
-│   │   ├── views/                       # 页面组件（16个页面）
-│   │   │   ├── Login.vue                # 登录页
-│   │   │   ├── Dashboard.vue            # 首页概览
-│   │   │   ├── class/ClassList.vue      # 班级管理
-│   │   │   ├── college/CollegeList.vue  # 学院管理
-│   │   │   ├── course/CourseList.vue    # 课程管理
-│   │   │   ├── major/MajorList.vue      # 专业管理
-│   │   │   ├── plan/
-│   │   │   │   ├── PlanList.vue         # 培养方案列表
-│   │   │   │   └── PlanDetail.vue       # 方案明细（课程矩阵）
-│   │   │   ├── query/
-│   │   │   │   ├── SemesterQuery.vue    # 当前学期开课查询
-│   │   │   │   ├── PlanQuery.vue        # 培养方案查询
-│   │   │   │   └── TextbookQuery.vue    # 教材使用查询
-│   │   │   ├── textbook/TextbookList.vue# 教材管理
-│   │   │   ├── trainingLevel/           # 培养层次管理
-│   │   │   ├── settings/SystemSettings.vue # 系统设置（学期配置+系统标识+数据重置）
-│   │   │   └── system/
-│   │   │       ├── AuditLog.vue         # 操作日志
-│   │   │       └── UserManagement.vue   # 用户管理
-│   │   ├── App.vue
-│   │   └── main.js
-│   ├── index.html
-│   ├── vite.config.js
-│   └── package.json
+│   │   ├── api/                 # API 接口封装（15个模块）
+│   │   │   ├── audit.js         # 审计日志 API
+│   │   │   ├── class.js         # 班级管理 API
+│   │   │   ├── college.js       # 学院管理 API
+│   │   │   ├── course.js        # 课程管理 API
+│   │   │   ├── major.js         # 专业管理 API
+│   │   │   ├── plan.js          # 培养方案 API
+│   │   │   ├── textbook.js      # 教材管理 API
+│   │   │   └── ...              # 其他业务模块
+│   │   ├── components/          # 公共组件
+│   │   ├── router/              # 路由配置
+│   │   ├── stores/              # Pinia 状态管理
+│   │   │   ├── auth.js          # 认证状态
+│   │   │   └── settings.js      # 系统设置
+│   │   ├── utils/               # 工具函数
+│   │   │   ├── request.js       # Axios 封装
+│   │   │   └── cache.js         # 缓存工具
+│   │   ├── views/               # 页面组件
+│   │   ├── App.vue              # 根组件
+│   │   └── main.js              # 入口文件
+│   ├── index.html               # HTML 模板
+│   ├── vite.config.js           # Vite 配置
+│   └── package.json             # 前端依赖
 │
-├── server/                              # 后端服务
+├── server/                      # 后端服务
 │   ├── prisma/
-│   │   ├── schema.prisma                # 数据模型定义（12个模型）
-│   │   ├── migrations/                  # 数据库迁移文件
-│   │   └── seed.js                      # 种子数据脚本
+│   │   ├── schema.prisma        # 数据模型定义（12个模型）
+│   │   ├── migrations/          # 数据库迁移文件
+│   │   ├── seed.js              # 种子数据脚本
+│   │   └── SEED_USAGE.md        # 种子数据使用指南
 │   ├── src/
-│   │   ├── routes/                      # API 路由（14个模块）
-│   │   │   ├── auth.routes.js           # 认证（登录/登出/刷新Token/改密）
-│   │   │   ├── user.routes.js           # 用户管理（CRUD+启禁用）
-│   │   │   ├── major.routes.js          # 专业管理
-│   │   │   ├── college.routes.js        # 学院管理
-│   │   │   ├── trainingLevel.routes.js  # 培养层次管理
-│   │   │   ├── course.routes.js         # 课程管理
-│   │   │   ├── textbook.routes.js       # 教材管理
-│   │   │   ├── class.routes.js          # 班级管理（含状态自动计算）
-│   │   │   ├── plan.routes.js           # 培养方案（14个端点）
-│   │   │   ├── query.routes.js          # 查询报表
-│   │   │   ├── import.routes.js         # Excel 导入（班级/课程/教材）
-│   │   │   ├── export.routes.js         # Excel 导出
-│   │   │   ├── settings.routes.js       # 系统设置+数据重置
-│   │   │   └── audit.routes.js          # 审计日志查询
-│   │   ├── services/                    # 业务逻辑层
-│   │   │   ├── auth.service.js          # 认证服务（JWT签发/验证/改密）
-│   │   │   ├── audit.service.js         # 审计日志服务
-│   │   │   └── settings.service.js      # 系统设置服务（学期解析）
-│   │   ├── middleware/
-│   │   │   ├── auth.middleware.js        # JWT认证+角色权限中间件
-│   │   │   ├── naming.middleware.js      # 响应命名转换（snake→camel）
-│   │   │   ├── audit.js                 # 审计日志中间件
-│   │   │   ├── validation.js            # 请求验证规则
-│   │   │   └── error.js                 # 全局错误处理
-│   │   ├── utils/
-│   │   │   ├── naming.js                # 命名转换工具（camelCase⇄snake_case）
-│   │   │   ├── excel.js                 # Excel 读写工具
-│   │   │   ├── response.js              # 统一响应格式
-│   │   │   └── error.js                 # 错误类定义
-│   │   ├── config/
-│   │   │   ├── auth.config.js           # JWT 配置
-│   │   │   └── logger.js                # Winston 日志配置
-│   │   ├── constants/
-│   │   │   └── index.js                 # 全局常量
-│   │   ├── lib/
-│   │   │   └── prisma.js                # Prisma Client 单例
-│   │   ├── app.js                       # Express 应用（路由挂载+中间件注册）
-│   │   └── server.js                    # 服务入口（端口监听+优雅关闭）
-│   ├── uploads/                         # 文件上传临时目录
-│   ├── .env                             # 环境变量
-│   └── package.json
+│   │   ├── routes/              # API 路由（14个模块）
+│   │   │   ├── auth.routes.js   # 认证路由
+│   │   │   ├── user.routes.js   # 用户管理
+│   │   │   ├── class.routes.js  # 班级管理
+│   │   │   ├── course.routes.js # 课程管理
+│   │   │   ├── plan.routes.js   # 培养方案
+│   │   │   ├── export.routes.js # 数据导出
+│   │   │   ├── import.routes.js # 数据导入
+│   │   │   └── ...              # 其他业务路由
+│   │   ├── services/            # 业务逻辑层
+│   │   ├── middleware/          # 中间件
+│   │   │   ├── auth.middleware.js  # JWT 认证
+│   │   │   ├── audit.js         # 审计日志
+│   │   │   ├── validation.js    # 参数校验
+│   │   │   └── error.js         # 错误处理
+│   │   ├── config/              # 配置文件
+│   │   ├── utils/               # 工具函数
+│   │   ├── lib/                 # 第三方库封装
+│   │   ├── app.js               # Express 应用
+│   │   └── server.js            # 服务入口
+│   ├── uploads/                 # 文件上传目录
+│   ├── .env                     # 环境变量
+│   ├── .env.example             # 环境变量示例
+│   └── package.json             # 后端依赖
 │
-├── docs/                                # 文档目录
+├── docs/                        # 项目文档
+│   ├── semester-calculation.md  # 学期计算逻辑说明
+│   └── ...                      # 其他技术文档
 │
-├── package.json                         # 根目录脚本（concurrently）
-└── README.md
+├── package.json                 # 根级别脚本
+└── README.md                    # 项目说明文档
 ```
 
 ---
 
-## 功能模块
+## 🔧 配置说明
 
-### 权限体系
+### 环境变量
 
-系统采用三级权限管理：
+后端配置文件：`server/.env`
 
-| 角色 | 标识 | 权限范围 |
-|------|------|----------|
-| 超级管理员 | `super_admin` | 所有功能，含系统设置、用户管理、操作日志、数据重置 |
-| 管理员 | `admin` | 基础数据 CRUD、培养方案管理、班级管理、导入导出、用户管理（仅限访客） |
-| 访客 | `viewer` | 查询报表只读（开课查询、方案查询、教材查询、导出） |
-
-### 1. 基础数据管理
-
-| 模块 | 功能 |
-|------|------|
-| **学院管理** | 学院 CRUD、排序、显示班级数统计 |
-| **专业管理** | 专业 CRUD、排序、显示班级数和方案数统计 |
-| **培养层次** | 层次 CRUD、排序、显示班级数统计（如中专/大专/高技工） |
-| **课程管理** | 课程 CRUD、按类型筛选（公共基础课/专业课/选修课）、排序、Excel 导入 |
-| **教材管理** | 教材 CRUD、启用/停用切换、按类别/出版社筛选、批量操作、Excel 导入 |
-
-### 2. 班级管理
-
-- 班级基本信息：名称、入学年份、学制、人数
-- 关联学院、专业、培养层次
-- 自定义培养方案（为特殊班级单独指定）
-- **自动计算**在读年级和班级状态（在读/已毕业）
-- 丰富的筛选条件（名称/学院/专业/层次/入学年份/状态/方案）
-- 服务端分页
-- 批量操作：删除、设置专业/学院/层次/入学年份/学制/状态
-- Excel 模板下载和批量导入（支持跳过/覆盖重复策略）
-
-### 3. 培养方案
-
-- **三种关联方式**（二选一或自定义）：
-  - 按专业关联 — 该专业所有班级默认使用
-  - 按培养层次关联 — 跨专业通用
-  - 自定义方案 — 为特定班级单独指定
-- 方案课程管理：添加课程、设置开课学期范围、配置周课时
-- **课程矩阵视图**：以二维矩阵展示课程-学期分布，支持在线编辑
-- 学期明细：每个学期可配置独立的周课时和周数
-- 教材关联：为每门课程的每个学期指定教材（必订/选订）
-- 按学院筛选方案列表
-
-### 4. 查询报表
-
-| 报表 | 说明 |
-|------|------|
-| **当前学期开课查询** | 按学院/专业/层次/入学年份/年级筛选，展开行查看课程明细和教材，导出 Excel |
-| **培养方案查询** | 选择方案后显示完整课程矩阵，按公共课/专业课分组，显示周课时/教材/总课时 |
-| **教材使用查询** | 搜索教材后显示使用详情（班级/课程/专业/年级/人数/是否必订），导出 Excel |
-
-### 5. 系统管理
-
-| 功能 | 说明 |
-|------|------|
-| **用户管理** | 创建/编辑/禁用/删除用户，管理员只能管理访客账号 |
-| **操作日志** | 按操作类型/模块/结果筛选，分页查看详情 |
-| **系统设置** | 当前学期配置、系统标识（单位名称）设置、数据重置（支持按模块单独清空或全量重置） |
-
-**系统标识设置**：在"系统设置"页面可配置系统标识（单位名称），该标识将显示在登录页顶部。默认为"欢迎回来"，填写后将显示自定义的单位名称。
-
-### 6. 导入导出
-
-| 类型 | 功能 |
-|------|------|
-| **Excel 导入** | 班级、课程、教材批量导入，支持模板下载，重复数据处理策略 |
-| **Excel 导出** | 当前学期开课情况导出、单个教材使用情况导出、导入模板下载 |
-
----
-
-## 数据库设计
-
-### 数据模型概览
-
-| 模型 | 说明 | 关键字段 |
-|------|------|----------|
-| `users` | 用户表 | username, password, role, real_name, is_active |
-| `audit_logs` | 审计日志 | action, module, operator_id, result, created_at |
-| `colleges` | 学院 | name, code, sort_order |
-| `majors` | 专业 | name, code, sort_order |
-| `training_levels` | 培养层次 | name, code, sort_order |
-| `courses` | 课程 | name, code, type (public/professional/elective) |
-| `textbooks` | 教材 | title, isbn, publisher, author, category, is_active |
-| `training_plans` | 培养方案 | name, major_id?, training_level_id?, college_id? |
-| `plan_courses` | 方案课程 | plan_id, course_id, start_semester, end_semester, weekly_hours |
-| `plan_course_semesters` | 学期记录 | plan_course_id, semester, weekly_hours, weeks_count |
-| `plan_textbooks` | 方案教材 | semester_id, textbook_id, is_required |
-| `classes` | 班级 | name, enrollment_year, duration_years, major_id?, college_id?, custom_plan_id? |
-| `system_settings` | 系统设置 | key (unique), value |
-
-### 数据关系
-
-```
-colleges ──1:N──→ classes
-colleges ──1:N──→ training_plans
-
-majors ──1:N──→ classes
-majors ──1:N──→ training_plans
-
-training_levels ──1:N──→ classes
-training_levels ──1:N──→ training_plans
-
-training_plans ──1:N──→ plan_courses ──1:N──→ plan_course_semesters ──1:N──→ plan_textbooks
-                                    ↕                              ↕
-                                courses                        textbooks
-
-training_plans ←──1:N── classes (via custom_plan_id，自定义方案关联)
-```
-
-**班级培养方案匹配优先级：**
-1. 自定义方案（`classes.custom_plan_id`） — 最高优先
-2. 按专业匹配（`training_plans.major_id = classes.major_id`）
-3. 按培养层次匹配（`training_plans.training_level_id = classes.training_level_id`）
-
-### 年级推算逻辑
-
-```javascript
-// 当前学期配置：startYear=2025, semesterIndex=2
-// 年级 = 当前学年起始年份 - 入学年份 + 1
-const grade = startYear - enrollmentYear + 1;
-
-// 当前学期序号 = (年级 - 1) × 2 + 学期索引
-const currentSemesterNum = (grade - 1) * 2 + semesterIndex;
-// semesterIndex: 1=秋季(上学期), 2=春季(下学期)
-
-// 示例（当前学期: 2025-2026学年第2学期）:
-// 2024年入学 → grade=2 → 第4学期
-// 2025年入学 → grade=1 → 第2学期
-```
-
----
-
-## API 接口文档
-
-### 认证接口 `/api/auth`（公开）
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| POST | `/api/auth/login` | 用户登录 |
-| POST | `/api/auth/refresh` | 刷新 Access Token |
-| POST | `/api/auth/logout` | 用户登出 |
-| GET | `/api/auth/me` | 获取当前用户信息 |
-| PUT | `/api/auth/password` | 修改密码 |
-
-### 用户管理 `/api/users`（admin + super_admin）
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/users` | 用户列表（admin 仅可见访客） |
-| POST | `/api/users` | 创建用户（admin 仅可创建访客） |
-| PUT | `/api/users/:id` | 更新用户 |
-| PUT | `/api/users/:id/status` | 激活/禁用用户 |
-| DELETE | `/api/users/:id` | 删除用户 |
-
-### 基础数据接口（GET 需登录，写操作需 admin）
-
-| 模块 | GET 列表 | POST 创建 | PUT 更新 | DELETE 删除 |
-|------|---------|----------|---------|------------|
-| 学院 `/api/colleges` | 含班级数统计 | 名称唯一约束 | | 有班级时禁止 |
-| 专业 `/api/majors` | 含班级数+方案数 | | | 有班级时禁止 |
-| 培养层次 `/api/training-levels` | 含班级数统计 | | | 有班级时禁止 |
-| 课程 `/api/courses` | 可按 type 筛选 | | | 被方案使用时禁止 |
-| 教材 `/api/textbooks` | | | | 被方案引用时禁止 |
-
-教材额外接口：`POST /api/textbooks/:id/toggle-status`（切换启用/停用）
-
-### 班级管理 `/api/classes`（GET 需登录，写操作需 admin）
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/classes` | 分页列表（page/pageSize），支持多条件筛选 |
-| POST | `/api/classes` | 创建班级（自动计算状态） |
-| PUT | `/api/classes/:id` | 更新班级（自动重算状态） |
-| DELETE | `/api/classes/:id` | 删除班级 |
-
-**筛选参数**：`name`、`majorId`、`collegeId`、`trainingLevelId`、`enrollmentYear`、`status`、`planId`（特殊值 `"null"` 筛选空值，`"none"` 筛选未关联方案的班级）
-
-### 培养方案 `/api/plans`（GET 需登录，写操作需 admin）
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/plans` | 方案列表（含课程数+班级数统计） |
-| POST | `/api/plans` | 创建方案 |
-| PUT | `/api/plans/:id` | 更新方案 |
-| DELETE | `/api/plans/:id` | 删除方案 |
-| GET | `/api/plans/:id/courses` | 方案课程列表（含学期+教材） |
-| POST | `/api/plans/:id/courses` | 添加课程到方案 |
-| PUT | `/api/plans/courses/:id` | 更新方案课程 |
-| DELETE | `/api/plans/courses/:id` | 删除方案课程 |
-| GET | `/api/plans/:id/semesters` | 获取方案学期列表 |
-| POST | `/api/plans/:planId/courses/:courseId/semesters` | 添加/更新学期安排 |
-| PUT | `/api/plans/semesters/:id` | 更新学期安排 |
-| POST | `/api/plans/semesters/:id/textbooks` | 关联教材到学期 |
-| DELETE | `/api/plans/semesters/:id/textbooks` | 取消教材关联 |
-| DELETE | `/api/plans/textbooks/:id` | 删除教材关联 |
-
-### 查询报表 `/api/query`（需登录）
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/query/semester` | 当前学期开课查询 |
-| GET | `/api/query/textbook/:id` | 单个教材使用情况 |
-| GET | `/api/query/textbooks` | 所有教材使用概览 |
-
-**开课查询参数**：`majorId`、`collegeId`、`trainingLevelId`、`enrollmentYear`、`grade`
-
-### Excel 导入导出 `/api/import` `/api/export`（导出需登录，导入需 admin）
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/export/template/:type` | 下载导入模板（classes/courses/textbooks） |
-| GET | `/api/export/semester` | 导出当前学期开课情况 |
-| GET | `/api/export/textbook/:id` | 导出教材使用情况 |
-| POST | `/api/import/classes` | 批量导入班级（Excel） |
-| POST | `/api/import/courses` | 批量导入课程（Excel） |
-| POST | `/api/import/textbooks` | 批量导入教材（Excel） |
-
-### 系统设置 `/api/settings`（GET 公开访问，PUT/重置需 super_admin）
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/settings` | 获取系统设置（公开访问，用于登录页读取系统标识） |
-| PUT | `/api/settings` | 更新系统设置（学期配置、系统标识等） |
-| POST | `/api/settings/reset/basic` | 清空所有基础数据 |
-| POST | `/api/settings/reset/majors` | 清空专业（级联清空方案） |
-| POST | `/api/settings/reset/colleges` | 清空学院（级联清空方案） |
-| POST | `/api/settings/reset/levels` | 清空层次（级联清空方案） |
-| POST | `/api/settings/reset/courses` | 清空课程（级联清空方案课程） |
-| POST | `/api/settings/reset/textbooks` | 清空教材（级联清空方案教材） |
-| POST | `/api/settings/reset/classes` | 清空班级 |
-| POST | `/api/settings/reset/plans` | 清空培养方案 |
-| POST | `/api/settings/reset/settings` | 系统重置（清空所有业务数据，保留用户） |
-| POST | `/api/settings/reset/audit-logs` | 清空操作日志 |
-
-**系统设置字段：**
-- `current_semester`: 当前学期配置（格式：起始学年-结束学年-学期序号）
-- `organization_name`: 系统标识（单位名称），用于首页登录框上方展示，默认为"欢迎回来"
-
-### 审计日志 `/api/audit`（super_admin）
-
-| 方法 | 路径 | 说明 |
-|------|------|------|
-| GET | `/api/audit/logs` | 分页查询操作日志（筛选：action/module/result） |
-
-### 响应格式
-
-**成功响应：**
-```json
-{
-  "success": true,
-  "message": "操作成功",
-  "data": { ... }
-}
-```
-
-**分页响应：**
-```json
-{
-  "success": true,
-  "message": "查询成功",
-  "items": [ ... ],
-  "total": 100
-}
-```
-
-**错误响应：**
-```json
-{
-  "success": false,
-  "message": "错误描述"
-}
-```
-
-> 响应字段名自动从 snake_case 转换为 camelCase（通过命名转换中间件）。
-
----
-
-## 部署指南
-
-### 1. 环境变量配置
-
-编辑 `server/.env`：
-
-```env
-# 数据库连接（开发环境使用 SQLite）
+```bash
+# 数据库配置
+# 开发环境使用 SQLite（默认）
 DATABASE_URL="file:./dev.db"
 
-# 生产环境使用 MySQL
-# DATABASE_URL="mysql://username:password@host:3306/course_management"
+# 生产环境切换到 MySQL
+# DATABASE_URL="mysql://user:password@localhost:3306/kec_manager"
 
-# 服务端口
+# JWT 密钥（生产环境请修改为强随机字符串）
+JWT_SECRET="your-super-secret-jwt-key-change-in-production"
+JWT_REFRESH_SECRET="your-super-secret-refresh-key-change-in-production"
+
+# JWT 过期时间
+JWT_EXPIRES_IN="15m"
+JWT_REFRESH_EXPIRES_IN="7d"
+
+# 服务器端口
 PORT=3000
 
-# JWT 密钥（生产环境请替换为高强度随机字符串）
-JWT_SECRET=your-production-secret-key
+# 日志级别：error, warn, info, debug
+LOG_LEVEL="info"
+
+# 文件上传大小限制（MB）
+MAX_FILE_SIZE=10
 ```
 
-### 2. 数据库迁移
+### 前端代理配置
+
+前端开发环境通过 Vite 代理转发 API 请求到后端：
+
+```javascript
+// client/vite.config.js
+export default defineConfig({
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true
+      }
+    }
+  }
+})
+```
+
+---
+
+## 📝 常用命令
+
+### 根目录
 
 ```bash
-cd server
-npx prisma migrate deploy    # 生产环境迁移
-npx prisma generate          # 生成 Prisma Client
-npm run db:seed              # 创建管理员账号
+npm run dev              # 同时启动前后端开发服务器
+npm run dev:server       # 仅启动后端（端口 3000）
+npm run dev:client       # 仅启动前端（端口 5173）
+npm run db:migrate       # 执行数据库迁移
+npm run db:generate      # 生成 Prisma Client
 ```
 
-### 3. 构建前端
+### 后端 (server/)
 
 ```bash
-cd client
-npm run build                # 输出到 dist/ 目录
+npm run dev              # 启动后端（--watch 模式，自动重启）
+npm start                # 启动后端（生产模式）
+npm run db:migrate       # 执行 Prisma 迁移
+npm run db:generate      # 生成 Prisma Client
+npm run db:seed          # 初始化超级管理员（安全，可重复执行）
+npm run db:seed:dev      # 开发模式：清空数据 + 创建测试数据
+npm run db:seed:reset    # ⚠️ 强制重置：清空所有数据（危险！）
 ```
 
-### 4. Nginx 配置
+### 前端 (client/)
+
+```bash
+npm run dev              # 启动 Vite 开发服务器
+npm run build            # 构建生产版本
+npm run preview          # 预览构建结果
+```
+
+---
+
+## 🗄️ 数据库模型
+
+系统包含 12 张核心数据表：
+
+| 表名 | 说明 | 主要字段 |
+|------|------|---------|
+| `users` | 用户账号 | username, password, role, real_name |
+| `colleges` | 学院 | name, code, description |
+| `training_levels` | 培养层次 | name, duration_years |
+| `majors` | 专业 | name, code, college_id, training_level_id |
+| `courses` | 课程 | name, code, type, total_hours |
+| `textbooks` | 教材 | name, isbn, publisher, author |
+| `classes` | 班级 | name, major_id, enrollment_year, grade |
+| `training_plans` | 培养方案 | name, major_id, training_level_id |
+| `plan_courses` | 方案课程关联 | plan_id, course_id, semester, weekly_hours |
+| `plan_textbooks` | 方案教材关联 | plan_course_id, textbook_id |
+| `system_settings` | 系统设置 | key, value, description |
+| `audit_logs` | 审计日志 | user_id, action, resource, ip_address |
+
+详细模型定义参见：[`server/prisma/schema.prisma`](server/prisma/schema.prisma)
+
+---
+
+## 🔐 安全特性
+
+### 认证与授权
+
+- **JWT 双令牌机制**：Access Token（15分钟）+ Refresh Token（7天）
+- **密码加密存储**：bcryptjs 加盐哈希，10轮迭代
+- **Token 自动刷新**：前端无感知刷新，用户体验流畅
+- **细粒度权限控制**：基于角色的路由守卫和操作权限校验
+
+### 数据安全
+
+- **SQL 注入防护**：Prisma ORM 参数化查询，杜绝 SQL 注入
+- **XSS 防护**：Vue 3 自动转义输出，Element Plus 组件安全渲染
+- **CORS 配置**：严格限制跨域来源，生产环境需配置白名单
+- **文件上传校验**：文件类型、大小双重校验，防止恶意上传
+
+### 审计追踪
+
+- **全操作记录**：登录、增删改查等关键操作自动记录
+- **IP 地址追踪**：记录操作来源 IP，便于安全审计
+- **日志导出功能**：支持按时间、用户、操作类型筛选导出
+
+---
+
+## 🚢 生产部署
+
+### 方式一：传统部署（推荐中小规模）
+
+#### 1. 准备服务器
+
+- 操作系统：Ubuntu 20.04 LTS / CentOS 8 / Windows Server 2019
+- 配置建议：2核 CPU / 4GB 内存 / 50GB 硬盘
+- 软件要求：Node.js 18+ / Nginx / PM2
+
+#### 2. 后端部署
+
+```bash
+# 克隆代码
+git clone https://github.com/shub2026/kec-manager.git
+cd kec-manager/server
+
+# 安装依赖
+npm install --production
+
+# 配置生产环境变量
+cp .env.example .env
+vim .env  # 修改 DATABASE_URL 为 MySQL 连接字符串
+
+# 执行数据库迁移
+npx prisma migrate deploy
+npx prisma generate
+
+# 创建管理员账号
+npm run db:seed
+
+# 使用 PM2 启动服务
+npm install -g pm2
+pm2 start src/server.js --name kec-server
+pm2 save
+pm2 startup
+```
+
+#### 3. 前端部署
+
+```bash
+cd ../client
+
+# 安装依赖
+npm install
+
+# 构建生产版本
+npm run build
+
+# dist 目录部署到 Nginx
+sudo cp -r dist/* /var/www/kec-manager/
+```
+
+#### 4. Nginx 配置
 
 ```nginx
 server {
@@ -615,134 +511,231 @@ server {
 
     # 前端静态文件
     location / {
-        root /path/to/client/dist;
+        root /var/www/kec-manager;
         try_files $uri $uri/ /index.html;
-
-        location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
-            expires 1y;
-            add_header Cache-Control "public, immutable";
-        }
     }
 
-    # 后端 API 代理
+    # 后端 API 反向代理
     location /api/ {
-        proxy_pass http://127.0.0.1:3000;
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        client_max_body_size 10M;
+        proxy_cache_bypass $http_upgrade;
     }
 }
 ```
 
-### 5. PM2 进程管理
+### 方式二：Docker 部署（推荐大规模）
+
+> 💡 Docker 部署方案将在后续版本提供，欢迎贡献 PR。
+
+---
+
+## ❓ 常见问题
+
+### 一般问题
+
+<details>
+<summary><strong>Q: 忘记了 admin 密码怎么办？</strong></summary>
+
+**A**: 不要重新执行种子脚本（会清空数据）！有两种方法：
+
+1. **通过数据库直接重置**（推荐）：
+   ```bash
+   # 进入 server 目录
+   cd server
+
+   # 使用 Prisma Studio（可视化数据库管理工具）
+   npx prisma studio
+   # 在浏览器中找到 users 表，手动修改密码哈希值
+   ```
+
+2. **生成新的密码哈希并更新**：
+   ```javascript
+   // 在 server 目录下执行
+   node -e "import('bcryptjs').then(b => b.default.hash('新密码', 10).then(h => console.log(h)))"
+
+   # 复制输出的哈希值，通过 Prisma Studio 或数据库工具更新
+   ```
+</details>
+
+<details>
+<summary><strong>Q: 如何从 SQLite 切换到 MySQL？</strong></summary>
+
+**A**: 三步完成切换：
+
+1. 修改 `server/.env`：
+   ```bash
+   DATABASE_URL="mysql://user:password@localhost:3306/kec_manager"
+   ```
+
+2. 执行迁移：
+   ```bash
+   cd server
+   npx prisma migrate deploy
+   npx prisma generate
+   ```
+
+3. 初始化管理员：
+   ```bash
+   npm run db:seed
+   ```
+
+Prisma 会自动处理数据库差异，无需手动建表。
+</details>
+
+<details>
+<summary><strong>Q: 生产环境执行种子脚本会删除我的数据吗？</strong></summary>
+
+**A**: **不会！** 重构后的种子脚本具有生产环境保护机制：
+
+- 默认模式（`npm run db:seed`）：**不清空任何数据**，仅检查并创建 admin（如果不存在）
+- 多次执行完全安全，不会覆盖已有账号
+- 只有显式使用 `FORCE_RESET=true` 才会清空数据
+
+详细参见：[种子数据使用指南](server/prisma/SEED_USAGE.md)
+</details>
+
+<details>
+<summary><strong>Q: 如何备份数据库？</strong></summary>
+
+**A**: 
+
+**SQLite 备份**：
+```bash
+# 直接复制数据库文件
+cp server/dev.db server/dev.db.backup.$(date +%Y%m%d)
+```
+
+**MySQL 备份**：
+```bash
+mysqldump -u username -p kec_manager > backup_$(date +%Y%m%d).sql
+
+# 恢复
+mysql -u username -p kec_manager < backup_20260611.sql
+```
+</details>
+
+### 技术问题
+
+<details>
+<summary><strong>Q: 启动时报错 "Prisma Client not generated"</strong></summary>
+
+**A**: 需要生成 Prisma Client：
 
 ```bash
-npm install -g pm2
-
 cd server
-pm2 start src/server.js --name kec-api
-
-pm2 save
-pm2 startup
-
-# 常用命令
-pm2 status               # 查看状态
-pm2 logs kec-api         # 查看日志
-pm2 restart kec-api      # 重启服务
+npx prisma generate
 ```
+</details>
+
+<details>
+<summary><strong>Q: 前端访问后端 API 报 CORS 错误</strong></summary>
+
+**A**: 检查后端 CORS 配置：
+
+```javascript
+// server/src/app.js
+app.use(cors({
+  origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+  credentials: true
+}))
+```
+
+生产环境需配置正确的域名。
+</details>
+
+<details>
+<summary><strong>Q: Excel 导入失败，提示格式错误</strong></summary>
+
+**A**: 请确保：
+
+1. 使用系统提供的最新模板（可能字段有更新）
+2. 必填字段不能为空
+3. 日期格式正确（YYYY-MM-DD）
+4. 外键关联的数据已存在（如学院、专业等）
+
+查看后端日志获取详细错误信息。
+</details>
+
+更多问题参见：[完整 FAQ 文档](docs/FAQ.md)（待完善）
 
 ---
 
-## 常见问题
+## 📚 开发文档
 
-### 班级年级是如何计算的？
+### 后端开发
 
-```
-年级 = 当前学年起始年份 - 班级入学年份 + 1
-当前学期序号 = (年级 - 1) × 2 + 学期索引 (1=秋季, 2=春季)
-```
+- [API 接口文档](docs/API.md) - RESTful API 详细说明
+- [数据模型设计](docs/DATABASE.md) - Prisma Schema 设计思路
+- [中间件开发](docs/MIDDLEWARE.md) - 自定义中间件指南
+- [种子数据管理](server/prisma/SEED_USAGE.md) - 测试数据管理
 
-班级状态（在读/已毕业）由系统根据入学年份、学制和当前学期配置自动计算，每次创建或更新班级时自动重算。
+### 前端开发
 
-### 培养方案的匹配规则是什么？
+- [组件开发规范](docs/COMPONENTS.md) - Vue 组件最佳实践
+- [状态管理](docs/STATE.md) - Pinia Store 使用指南
+- [API 调用封装](docs/API_CLIENT.md) - Axios 拦截器配置
 
-系统按以下优先级为班级匹配培养方案：
+### 部署运维
 
-1. **自定义方案** — 班级编辑时手动指定的方案（最高优先级）
-2. **按专业匹配** — 培养方案的 `major_id` 与班级的 `major_id` 一致
-3. **按培养层次匹配** — 培养方案的 `training_level_id` 与班级的 `training_level_id` 一致
-
-### Excel 导入失败怎么办？
-
-1. 确保使用系统提供的最新模板（点击"下载模板"获取）
-2. 检查必填字段（带 * 号的列）是否完整
-3. 课程类型请使用标准名称：`公共基础课`、`专业课`、`选修课`
-4. 导入班级时，如果专业/学院/层次不存在，系统会自动创建
-5. 重复数据处理策略：`skip`（跳过）或 `overwrite`（覆盖）
-
-### 遇到数据库字段缺失错误怎么办？
-
-如果提示类似 `column 'sort_order' does not exist` 的错误：
-
-```bash
-cd server
-npx prisma migrate reset --force   # 重置数据库并重新应用迁移
-npx prisma generate                # 重新生成 Prisma Client
-npm run db:seed                    # 重新创建管理员账号
-```
-
-### 如何从 SQLite 切换到 MySQL？
-
-1. 修改 `server/.env` 中的 `DATABASE_URL` 为 MySQL 连接字符串
-2. 运行 `npx prisma migrate deploy` 创建表结构
-3. 运行 `npm run db:seed` 创建管理员账号
-
-Prisma 会自动处理数据库差异。
+- [生产部署指南](docs/DEPLOYMENT.md) - 详细部署步骤
+- [性能优化](docs/PERFORMANCE.md) - 前后端性能调优
+- [监控与日志](docs/MONITORING.md) - 系统监控方案
 
 ---
 
-## npm scripts
+## 🤝 贡献指南
 
-### 根目录
+欢迎贡献代码、报告问题或提出新功能建议！
 
-| 命令 | 说明 |
-|------|------|
-| `npm run dev` | 同时启动前后端开发服务器 |
-| `npm run dev:server` | 仅启动后端（端口 3000） |
-| `npm run dev:client` | 仅启动前端（端口 5173） |
-| `npm run db:migrate` | 执行数据库迁移 |
-| `npm run db:generate` | 生成 Prisma Client |
+### 提交 Issue
 
-### 后端 (server/)
+- 🐛 **Bug 报告**：详细描述问题、复现步骤、预期行为
+- 💡 **功能建议**：说明使用场景和期望效果
+- 📖 **文档改进**：指出文档不清晰或错误的地方
 
-| 命令 | 说明 |
-|------|------|
-| `npm run dev` | 启动后端（--watch 模式） |
-| `npm start` | 启动后端（生产模式） |
-| `npm run db:migrate` | 执行 Prisma 迁移 |
-| `npm run db:generate` | 生成 Prisma Client |
-| `npm run db:seed` | 执行种子数据脚本 |
+### 提交 PR
 
-### 前端 (client/)
+1. Fork 本仓库
+2. 创建特性分支：`git checkout -b feature/amazing-feature`
+3. 提交更改：`git commit -m 'Add some amazing feature'`
+4. 推送到分支：`git push origin feature/amazing-feature`
+5. 提交 Pull Request
 
-| 命令 | 说明 |
-|------|------|
-| `npm run dev` | 启动 Vite 开发服务器 |
-| `npm run build` | 构建生产版本 |
-| `npm run preview` | 预览构建结果 |
+### 代码规范
+
+- 遵循 ESLint 和 Prettier 配置
+- 提交前运行 `npm run lint` 检查代码风格
+- 为新功能编写单元测试
+- 更新相关文档
 
 ---
 
-## 许可证
+## 📄 开源协议
 
-MIT License
+本项目采用 [MIT License](LICENSE) 开源协议。
 
 ---
 
-## 联系方式
+## 🙏 致谢
 
-如有问题或建议，请提交 Issue 或 Pull Request。
+感谢以下开源项目为本平台提供支持：
 
-**项目地址**: https://github.com/shub2026/kec-manager
+- [Vue.js](https://vuejs.org/) - 渐进式 JavaScript 框架
+- [Element Plus](https://element-plus.org/) - Vue 3 组件库
+- [Express](https://expressjs.com/) - Node.js Web 框架
+- [Prisma](https://www.prisma.io/) - 下一代 ORM
+- [Vite](https://vitejs.dev/) - 下一代前端构建工具
+
+---
+
+<div align="center">
+
+**KEC 课程管理平台** © 2026
+
+Made with ❤️ for educators
+
+</div>
