@@ -37,7 +37,6 @@ router.post('/classes', (req, res, next) => {
   console.log('[班级导入] 请求收到:', {
     hasFile: !!req.file,
     file: req.file ? { originalname: req.file.originalname, mimetype: req.file.mimetype, size: req.file.size } : null,
-    onDuplicate: req.body.onDuplicate,
     user: req.user ? { id: req.user.id, username: req.user.username, role: req.user.role } : null
   });
   
@@ -47,7 +46,6 @@ router.post('/classes', (req, res, next) => {
       return fail(res, '请上传文件');
     }
     
-    const onDuplicate = req.body.onDuplicate || 'skip'; // 'skip' | 'overwrite'
     console.log('[班级导入] 开始读取Excel文件:', req.file.path);
     const rows = await readWorkbook(req.file.path);
     console.log('[班级导入] Excel读取完成,行数:', rows.length, '前3行示例:', rows.slice(0, 3));
@@ -55,10 +53,9 @@ router.post('/classes', (req, res, next) => {
     cleanupFile(req.file.path);
     const errors = [];
     let imported = 0;
-    let skipped = 0;
     let overwritten = 0;
 
-    console.log('[班级导入] 读取到', rows.length, '行数据, onDuplicate:', onDuplicate);
+    console.log('[班级导入] 读取到', rows.length, '行数据');
 
     // 预加载现有数据
     let majors = await prisma.majors.findMany();
@@ -219,38 +216,33 @@ router.post('/classes', (req, res, next) => {
       }
 
       try {
-        // 检测重复：按班级名称
+        // 检测重复：按班级名称（第一列）
         const existingClass = await prisma.classes.findFirst({
           where: { name: String(name).trim() }
         });
 
         if (existingClass) {
-          if (onDuplicate === 'skip') {
-            skipped++;
-            console.log(`[班级导入] 第${i + 2}行: 跳过重复数据 "${name}"`);
-            continue;
-          } else if (onDuplicate === 'overwrite') {
-            const updateData = {
-              name: String(name).trim(),
-              enrollment_year: Number(enrollmentYear),
-              duration_years: Number(durationYears),
-              student_count: studentCount ? Number(studentCount) : 0,
-              status,
-            };
-            
-            // 添加关系连接(如果存在)
-            if (majorId) updateData.majors = { connect: { id: majorId } };
-            if (collegeId) updateData.colleges = { connect: { id: collegeId } };
-            if (trainingLevelId) updateData.training_levels = { connect: { id: trainingLevelId } };
-            
-            await prisma.classes.update({
-              where: { id: existingClass.id },
-              data: updateData,
-            });
-            overwritten++;
-            console.log(`[班级导入] 第${i + 2}行: 覆盖更新 "${name}"`);
-            continue;
-          }
+          // 已存在则覆盖更新
+          const updateData = {
+            name: String(name).trim(),
+            enrollment_year: Number(enrollmentYear),
+            duration_years: Number(durationYears),
+            student_count: studentCount ? Number(studentCount) : 0,
+            status,
+          };
+          
+          // 添加关系连接(如果存在)
+          if (majorId) updateData.majors = { connect: { id: majorId } };
+          if (collegeId) updateData.colleges = { connect: { id: collegeId } };
+          if (trainingLevelId) updateData.training_levels = { connect: { id: trainingLevelId } };
+          
+          await prisma.classes.update({
+            where: { id: existingClass.id },
+            data: updateData,
+          });
+          overwritten++;
+          console.log(`[班级导入] 第${i + 2}行: 覆盖更新 "${name}"`);
+          continue;
         }
 
         // 不存在则创建
@@ -281,7 +273,6 @@ router.post('/classes', (req, res, next) => {
 
     const result = {
       imported,
-      skipped,
       overwritten,
       failed: errors.length,
       total: rows.length,
@@ -293,7 +284,6 @@ router.post('/classes', (req, res, next) => {
       },
     };
     let message = `导入完成：新增${imported}条`;
-    if (skipped > 0) message += `，跳过${skipped}条`;
     if (overwritten > 0) message += `，覆盖${overwritten}条`;
     if (errors.length > 0) message += `，失败${errors.length}条`;
     if (autoCreatedLevels > 0 || autoCreatedMajors > 0 || autoCreatedColleges > 0) {
@@ -310,7 +300,6 @@ router.post('/classes', (req, res, next) => {
       details: {
         total: rows.length,
         imported,
-        skipped,
         overwritten,
         failed: errors.length,
         autoCreated: {
@@ -320,7 +309,7 @@ router.post('/classes', (req, res, next) => {
         },
       },
       result: errors.length > 0 ? 'failed' : 'success',
-      message: `导入完成：新增${imported}条，跳过${skipped}条，覆盖${overwritten}条，失败${errors.length}条`,
+      message: `导入完成：新增${imported}条，覆盖${overwritten}条，失败${errors.length}条`,
     });
 
     success(res, result, message);
@@ -346,15 +335,13 @@ router.post('/courses', upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) return fail(res, '请上传文件');
     
-    const onDuplicate = req.body.onDuplicate || 'skip'; // 'skip' | 'overwrite'
     const rows = await readWorkbook(req.file.path);
     cleanupFile(req.file.path);
     const errors = [];
     let imported = 0;
-    let skipped = 0;
     let overwritten = 0;
 
-    console.log('[课程导入] 读取到', rows.length, '行数据, onDuplicate:', onDuplicate);
+    console.log('[课程导入] 读取到', rows.length, '行数据');
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -371,29 +358,24 @@ router.post('/courses', upload.single('file'), async (req, res, next) => {
       }
 
       try {
-        // 检测重复：按课程名称
+        // 检测重复：按课程名称（第一列）
         const existingCourse = await prisma.courses.findFirst({
           where: { name: String(name).trim() }
         });
 
         if (existingCourse) {
-          if (onDuplicate === 'skip') {
-            skipped++;
-            console.log(`[课程导入] 第${i + 2}行: 跳过重复数据 "${name}"`);
-            continue;
-          } else if (onDuplicate === 'overwrite') {
-            await prisma.courses.update({
-              where: { id: existingCourse.id },
-              data: {
-                name: String(name).trim(),
-                code: code ? String(code).trim() : null,
-                type,
-              },
-            });
-            overwritten++;
-            console.log(`[课程导入] 第${i + 2}行: 覆盖更新 "${name}"`);
-            continue;
-          }
+          // 已存在则覆盖更新
+          await prisma.courses.update({
+            where: { id: existingCourse.id },
+            data: {
+              name: String(name).trim(),
+              code: code ? String(code).trim() : null,
+              type,
+            },
+          });
+          overwritten++;
+          console.log(`[课程导入] 第${i + 2}行: 覆盖更新 "${name}"`);
+          continue;
         }
 
         // 不存在则创建
@@ -415,14 +397,12 @@ router.post('/courses', upload.single('file'), async (req, res, next) => {
 
     const result = {
       imported,
-      skipped,
       overwritten,
       failed: errors.length,
       total: rows.length,
       errors,
     };
     let message = `导入完成：新增${imported}条`;
-    if (skipped > 0) message += `，跳过${skipped}条`;
     if (overwritten > 0) message += `，覆盖${overwritten}条`;
     if (errors.length > 0) message += `，失败${errors.length}条`;
 
@@ -436,12 +416,11 @@ router.post('/courses', upload.single('file'), async (req, res, next) => {
       details: {
         total: rows.length,
         imported,
-        skipped,
         overwritten,
         failed: errors.length,
       },
       result: errors.length > 0 ? 'failed' : 'success',
-      message: `导入完成：新增${imported}条，跳过${skipped}条，覆盖${overwritten}条，失败${errors.length}条`,
+      message: `导入完成：新增${imported}条，覆盖${overwritten}条，失败${errors.length}条`,
     });
 
     success(res, result, message);
@@ -466,15 +445,13 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) return fail(res, '请上传文件');
     
-    const onDuplicate = req.body.onDuplicate || 'skip'; // 'skip' | 'overwrite'
     const rows = await readWorkbook(req.file.path);
     cleanupFile(req.file.path);
     const errors = [];
     let imported = 0;
-    let skipped = 0;
     let overwritten = 0;
 
-    console.log('[教材导入] 读取到', rows.length, '行数据, onDuplicate:', onDuplicate);
+    console.log('[教材导入] 读取到', rows.length, '行数据');
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
@@ -494,40 +471,28 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
       }
 
       try {
-        // 检测重复：按书名+书号（如果书号存在）
-        let existingTextbook = null;
-        if (isbn) {
-          existingTextbook = await prisma.textbooks.findFirst({
-            where: { OR: [{ title: String(title).trim() }, { isbn: String(isbn).trim() }] }
-          });
-        } else {
-          existingTextbook = await prisma.textbooks.findFirst({
-            where: { title: String(title).trim() }
-          });
-        }
+        // 检测重复：按书名（第一列）
+        const existingTextbook = await prisma.textbooks.findFirst({
+          where: { title: String(title).trim() }
+        });
 
         if (existingTextbook) {
-          if (onDuplicate === 'skip') {
-            skipped++;
-            console.log(`[教材导入] 第${i + 2}行: 跳过重复数据 "${title}"`);
-            continue;
-          } else if (onDuplicate === 'overwrite') {
-            await prisma.textbooks.update({
-              where: { id: existingTextbook.id },
-              data: {
-                title: String(title).trim(),
-                isbn: isbn ? String(isbn).trim() : null,
-                publisher: publisher ? String(publisher).trim() : null,
-                author: author ? String(author).trim() : null,
-                edition: edition ? String(edition).trim() : null,
-                price: price && !isNaN(price) ? price : null,
-                category: String(category).trim() || '技工',
-              },
-            });
-            overwritten++;
-            console.log(`[教材导入] 第${i + 2}行: 覆盖更新 "${title}"`);
-            continue;
-          }
+          // 已存在则覆盖更新
+          await prisma.textbooks.update({
+            where: { id: existingTextbook.id },
+            data: {
+              title: String(title).trim(),
+              isbn: isbn ? String(isbn).trim() : null,
+              publisher: publisher ? String(publisher).trim() : null,
+              author: author ? String(author).trim() : null,
+              edition: edition ? String(edition).trim() : null,
+              price: price && !isNaN(price) ? price : null,
+              category: String(category).trim() || '技工',
+            },
+          });
+          overwritten++;
+          console.log(`[教材导入] 第${i + 2}行: 覆盖更新 "${title}"`);
+          continue;
         }
 
         // 不存在则创建
@@ -553,14 +518,12 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
 
     const result = {
       imported,
-      skipped,
       overwritten,
       failed: errors.length,
       total: rows.length,
       errors,
     };
     let message = `导入完成：新增${imported}条`;
-    if (skipped > 0) message += `，跳过${skipped}条`;
     if (overwritten > 0) message += `，覆盖${overwritten}条`;
     if (errors.length > 0) message += `，失败${errors.length}条`;
 
@@ -574,12 +537,11 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
       details: {
         total: rows.length,
         imported,
-        skipped,
         overwritten,
         failed: errors.length,
       },
       result: errors.length > 0 ? 'failed' : 'success',
-      message: `导入完成：新增${imported}条，跳过${skipped}条，覆盖${overwritten}条，失败${errors.length}条`,
+      message: `导入完成：新增${imported}条，覆盖${overwritten}条，失败${errors.length}条`,
     });
 
     success(res, result, message);

@@ -35,7 +35,6 @@
               accept=".xlsx,.xls" 
               action="/api/import/classes" 
               name="file" 
-              :data="{ onDuplicate: importMode }"
               :on-success="onImportSuccess" 
               :on-error="onImportError"
               :before-upload="beforeImport"
@@ -253,26 +252,6 @@
       </template>
     </el-dialog>
 
-    <!-- 导入选项对话框 -->
-    <el-dialog v-model="importDialogVisible" title="导入选项" width="400px">
-      <el-form label-width="100px">
-        <el-form-item label="重复数据处理">
-          <el-radio-group v-model="importMode">
-            <el-radio value="skip">跳过重复</el-radio>
-            <el-radio value="overwrite">覆盖更新</el-radio>
-          </el-radio-group>
-          <div class="form-hint">
-            跳过重复：如果数据库中已存在则跳过不导入<br>
-            覆盖更新：如果数据库中已存在则更新该条数据
-          </div>
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="importDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="confirmImport">确认导入</el-button>
-      </template>
-    </el-dialog>
-
     <!-- 导入进度对话框 -->
     <el-dialog v-model="progressDialogVisible" title="正在导入" width="500px" :close-on-click-modal="false" :show-close="false">
       <div class="progress-container">
@@ -353,8 +332,6 @@ const defaultForm = { id: null, name: '', majorId: null, enrollmentYear: new Dat
 const form = ref({ ...defaultForm })
 
 // 导入相关状态
-const importDialogVisible = ref(false)
-const importMode = ref('skip') // 'skip' | 'overwrite'
 const pendingFile = ref(null)
 
 // 导入进度状态
@@ -643,18 +620,37 @@ function downloadTemplate() {
   }
 }
 
-// 导入前拦截，显示选项对话框
-function beforeImport(file) {
+// 导入前拦截，显示确认提示
+async function beforeImport(file) {
+  const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls')
+  if (!isExcel) {
+    ElMessage.error('请上传Excel文件')
+    return false
+  }
+  
   pendingFile.value = file
-  importMode.value = 'skip' // 默认跳过重复
-  importDialogVisible.value = true
+  
+  try {
+    await ElMessageBox.confirm(
+      '导入将以数据第一列（班级名称）进行匹配，已存在的班级将被覆盖更新，确定继续导入吗？',
+      '导入确认',
+      {
+        confirmButtonText: '确定导入',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+    confirmImport()
+  } catch {
+    // 用户取消
+    pendingFile.value = null
+  }
+  
   return false // 阻止自动上传
 }
 
 // 确认导入
 function confirmImport() {
-  importDialogVisible.value = false
-  
   // 显示进度对话框
   progressDialogVisible.value = true
   progressPercent.value = 0
@@ -665,7 +661,6 @@ function confirmImport() {
   // 创建 FormData 并手动上传
   const formData = new FormData()
   formData.append('file', pendingFile.value)
-  formData.append('onDuplicate', importMode.value)
   
   // 使用 XMLHttpRequest 来监控上传进度
   const xhr = new XMLHttpRequest()

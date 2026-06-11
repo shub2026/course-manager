@@ -21,11 +21,7 @@ export const PAGINATION = {
 // 导入配置
 export const IMPORT = {
   MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
-  ALLOWED_FILE_TYPES: ['xlsx', 'xls'],
-  DUPLICATE_ACTIONS: {
-    SKIP: 'skip',
-    OVERWRITE: 'overwrite'
-  }
+  ALLOWED_FILE_TYPES: ['xlsx', 'xls']
 };
 
 // 密码策略

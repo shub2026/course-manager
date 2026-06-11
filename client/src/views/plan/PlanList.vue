@@ -98,8 +98,8 @@
         
         <el-form-item label="关联方式" required>
           <el-radio-group v-model="relationMode" @change="handleModeChange" class="relation-mode-group">
-            <el-radio label="major">按专业</el-radio>
-            <el-radio label="trainingLevel">按层次</el-radio>
+            <el-radio value="major">按专业</el-radio>
+            <el-radio value="trainingLevel">按层次</el-radio>
           </el-radio-group>
           <div class="mode-tip">
             <span v-if="relationMode === 'major'">该方案关联特定专业，适用于同一专业的培养方案</span>

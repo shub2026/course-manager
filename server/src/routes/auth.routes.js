@@ -23,13 +23,13 @@ router.post('/login', async (req, res) => {
 
 router.post('/refresh', async (req, res) => {
   try {
-    const { refreshToken } = req.body
+    const { refresh_token } = req.body
 
-    if (!refreshToken) {
+    if (!refresh_token) {
       return fail(res, '请提供Refresh Token')
     }
 
-    const result = await AuthService.refreshToken(refreshToken)
+    const result = await AuthService.refreshToken(refresh_token)
     success(res, result)
   } catch (error) {
     fail(res, error.message)
@@ -77,17 +77,17 @@ router.get('/me', authMiddleware, async (req, res) => {
 
 router.put('/password', authMiddleware, async (req, res) => {
   try {
-    const { oldPassword, newPassword } = req.body
+    const { old_password, new_password } = req.body
 
-    if (!oldPassword || !newPassword) {
+    if (!old_password || !new_password) {
       return fail(res, '请提供原密码和新密码')
     }
 
-    if (newPassword.length < 8) {
+    if (new_password.length < 8) {
       return fail(res, '新密码长度至少8位')
     }
 
-    await AuthService.changePassword(req.user.id, oldPassword, newPassword)
+    await AuthService.changePassword(req.user.id, old_password, new_password)
     success(res, null, '密码修改成功')
   } catch (error) {
     fail(res, error.message)

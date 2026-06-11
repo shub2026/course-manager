@@ -131,14 +131,14 @@ router.get('/:id', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    const { name, collegeId, majorId, trainingLevelId, version, description } = req.body;
+    const { name, college_id, major_id, training_level_id, version, description } = req.body;
     if (!name) return fail(res, '方案名称为必填项');
     
     // 验证：专业类别和培养层次只能选择一项（二选一）
-    if (majorId && trainingLevelId) {
+    if (major_id && training_level_id) {
       return fail(res, '专业类别和培养层次只能选择一项');
     }
-    if (!majorId && !trainingLevelId) {
+    if (!major_id && !training_level_id) {
       return fail(res, '请选择专业类别或培养层次');
     }
     
@@ -151,9 +151,9 @@ router.post('/', async (req, res, next) => {
     const plan = await prisma.training_plans.create({
       data: { 
         name, 
-        college_id: collegeId ? Number(collegeId) : null,
-        major_id: majorId ? Number(majorId) : null,
-        training_level_id: trainingLevelId ? Number(trainingLevelId) : null,
+        college_id: college_id ? Number(college_id) : null,
+        major_id: major_id ? Number(major_id) : null,
+        training_level_id: training_level_id ? Number(training_level_id) : null,
         version, 
         description,
         sort_order: newSortOrder,
@@ -202,28 +202,28 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, collegeId, majorId, trainingLevelId, version, description, sortOrder } = req.body;
+    const { name, college_id, major_id, training_level_id, version, description, sort_order } = req.body;
     
     // 验证：专业类别和培养层次只能选择一项（二选一）
-    if (majorId && trainingLevelId) {
+    if (major_id && training_level_id) {
       return fail(res, '专业类别和培养层次只能选择一项');
     }
-    if (!majorId && !trainingLevelId) {
+    if (!major_id && !training_level_id) {
       return fail(res, '请选择专业类别或培养层次');
     }
     
     const updateData = { 
       name, 
-      college_id: collegeId ? Number(collegeId) : null,
-      major_id: majorId ? Number(majorId) : null,
-      training_level_id: trainingLevelId ? Number(trainingLevelId) : null,
+      college_id: college_id ? Number(college_id) : null,
+      major_id: major_id ? Number(major_id) : null,
+      training_level_id: training_level_id ? Number(training_level_id) : null,
       version, 
       description,
     };
     
-    // 如果传入了 sortOrder，则更新它
-    if (sortOrder !== undefined) {
-      updateData.sort_order = Number(sortOrder);
+    // 如果传入了 sort_order，则更新它
+    if (sort_order !== undefined) {
+      updateData.sort_order = Number(sort_order);
     }
     
     try {
@@ -387,11 +387,11 @@ router.get('/:id/courses', async (req, res, next) => {
 router.post('/:id/courses', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { courseId, startSemester, endSemester, weeklyHours, weeksPerSemester } = req.body;
-    if (!courseId || startSemester === undefined || endSemester === undefined || !weeklyHours) {
+    const { course_id, start_semester, end_semester, weekly_hours, weeks_per_semester } = req.body;
+    if (!course_id || start_semester === undefined || end_semester === undefined || !weekly_hours) {
       return fail(res, '课程、开课学期、周课时为必填项');
     }
-    const weeks = weeksPerSemester ? Number(weeksPerSemester) : 18;
+    const weeks = weeks_per_semester ? Number(weeks_per_semester) : 18;
     
     // 使用事务确保数据一致性
     const pc = await prisma.$transaction(async (tx) => {
@@ -399,22 +399,22 @@ router.post('/:id/courses', roleMiddleware('admin', 'super_admin'), async (req, 
       const created = await tx.plan_courses.create({
         data: {
           plan_id: Number(id),
-          course_id: Number(courseId),
-          start_semester: Number(startSemester),
-          end_semester: Number(endSemester),
-          weekly_hours: Number(weeklyHours),
+          course_id: Number(course_id),
+          start_semester: Number(start_semester),
+          end_semester: Number(end_semester),
+          weekly_hours: Number(weekly_hours),
           weeks_per_semester: weeks,
         },
         include: { courses: true },
       });
 
       // 2. 自动创建学期记录
-      for (let s = Number(startSemester); s <= Number(endSemester); s++) {
+      for (let s = Number(start_semester); s <= Number(end_semester); s++) {
         await tx.plan_course_semesters.create({
           data: {
             plan_course_id: created.id,
             semester: s,
-            weekly_hours: Number(weeklyHours),
+            weekly_hours: Number(weekly_hours),
             weeks_count: weeks,
           },
         });
@@ -456,7 +456,7 @@ router.post('/:id/courses', roleMiddleware('admin', 'super_admin'), async (req, 
 router.put('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { startSemester, endSemester, weeklyHours, weeksPerSemester, sortOrder } = req.body;
+    const { start_semester, end_semester, weekly_hours, weeks_per_semester, sort_order } = req.body;
 
     // 先获取当前课程信息
     const currentPc = await prisma.plan_courses.findUnique({
@@ -469,11 +469,11 @@ router.put('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req, r
     }
 
     // 确定新的学期范围
-    const newStart = startSemester !== undefined ? Number(startSemester) : currentPc.start_semester;
-    const newEnd = endSemester !== undefined ? Number(endSemester) : currentPc.end_semester;
-    const newWeeklyHours = weeklyHours !== undefined ? Number(weeklyHours) : currentPc.weekly_hours;
-    const newWeeksPerSemester = weeksPerSemester !== undefined ? Number(weeksPerSemester) : currentPc.weeks_per_semester;
-    const newSortOrder = sortOrder !== undefined ? Number(sortOrder) : currentPc.sort_order;
+    const newStart = start_semester !== undefined ? Number(start_semester) : currentPc.start_semester;
+    const newEnd = end_semester !== undefined ? Number(end_semester) : currentPc.end_semester;
+    const newWeeklyHours = weekly_hours !== undefined ? Number(weekly_hours) : currentPc.weekly_hours;
+    const newWeeksPerSemester = weeks_per_semester !== undefined ? Number(weeks_per_semester) : currentPc.weeks_per_semester;
+    const newSortOrder = sort_order !== undefined ? Number(sort_order) : currentPc.sort_order;
 
     // 使用事务确保数据一致性
     const pc = await prisma.$transaction(async (tx) => {
@@ -577,9 +577,9 @@ router.delete('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req
 router.post('/:planId/courses/:courseId/semesters', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { planId, courseId } = req.params;
-    const { semester, weeklyHours, weeksCount } = req.body;
+    const { semester, weekly_hours, weeks_count } = req.body;
 
-    if (!semester || !weeklyHours) {
+    if (!semester || !weekly_hours) {
       return fail(res, '学期和周课时为必填项');
     }
 
@@ -604,14 +604,14 @@ router.post('/:planId/courses/:courseId/semesters', roleMiddleware('admin', 'sup
         },
       },
       update: {
-        weekly_hours: Number(weeklyHours),
-        weeks_count: weeksCount ? Number(weeksCount) : planCourse.weeks_per_semester,
+        weekly_hours: Number(weekly_hours),
+        weeks_count: weeks_count ? Number(weeks_count) : planCourse.weeks_per_semester,
       },
       create: {
         plan_course_id: Number(courseId),
         semester: Number(semester),
-        weekly_hours: Number(weeklyHours),
-        weeks_count: weeksCount ? Number(weeksCount) : planCourse.weeks_per_semester,
+        weekly_hours: Number(weekly_hours),
+        weeks_count: weeks_count ? Number(weeks_count) : planCourse.weeks_per_semester,
       },
     });
 
@@ -644,10 +644,10 @@ router.post('/:planId/courses/:courseId/semesters', roleMiddleware('admin', 'sup
 router.put('/semesters/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { weeklyHours, weeksCount } = req.body;
+    const { weekly_hours, weeks_count } = req.body;
     const data = {};
-    if (weeklyHours !== undefined) data.weekly_hours = Number(weeklyHours);
-    if (weeksCount !== undefined) data.weeks_count = Number(weeksCount);
+    if (weekly_hours !== undefined) data.weekly_hours = Number(weekly_hours);
+    if (weeks_count !== undefined) data.weeks_count = Number(weeks_count);
 
     const sem = await prisma.plan_course_semesters.update({
       where: { id: Number(id) },
@@ -709,8 +709,8 @@ router.get('/:id/semesters', async (req, res, next) => {
 router.post('/semesters/:id/textbooks', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { textbookId, isRequired } = req.body;
-    if (!textbookId) return fail(res, '教材为必填项');
+    const { textbook_id, is_required } = req.body;
+    if (!textbook_id) return fail(res, '教材为必填项');
 
     // 该学期只允许关联一本教材：先删后增（事务保护）
     const pt = await prisma.$transaction(async (tx) => {
@@ -721,8 +721,8 @@ router.post('/semesters/:id/textbooks', roleMiddleware('admin', 'super_admin'), 
       return tx.plan_textbooks.create({
         data: {
           semester_id: Number(id),
-          textbook_id: Number(textbookId),
-          is_required: isRequired !== false,
+          textbook_id: Number(textbook_id),
+          is_required: is_required !== false,
         },
         include: { textbooks: true },
       });
@@ -735,7 +735,7 @@ router.post('/semesters/:id/textbooks', roleMiddleware('admin', 'super_admin'), 
       ip: req.ip,
       result: 'success',
       message: '添加教材',
-      details: `为学期 ID: ${id} 添加教材 ID: ${textbookId}`,
+      details: `为学期 ID: ${id} 添加教材 ID: ${textbook_id}`,
     });
     
     success(res, pt, '关联成功');

@@ -191,8 +191,8 @@ router.get('/', async (req, res, next) => {
 
 router.post('/', async (req, res, next) => {
   try {
-    const { name, enrollmentYear, durationYears, majorId, collegeId, trainingLevelId, studentCount, customPlanId, status } = req.body;
-    if (!name || !enrollmentYear || !durationYears || !trainingLevelId) {
+    const { name, enrollment_year, duration_years, major_id, college_id, training_level_id, student_count, custom_plan_id, status } = req.body;
+    if (!name || !enrollment_year || !duration_years || !training_level_id) {
       return fail(res, '班级名称、入学年份、学制、培养层次为必填项');
     }
 
@@ -200,19 +200,19 @@ router.post('/', async (req, res, next) => {
     let autoStatus = status;
     if (!autoStatus) {
       const semesterInfo = await getCurrentSemesterInfo();
-      autoStatus = calculateClassStatus(Number(enrollmentYear), Number(durationYears), semesterInfo);
+      autoStatus = calculateClassStatus(Number(enrollment_year), Number(duration_years), semesterInfo);
     }
 
     const cls = await prisma.classes.create({
       data: {
         name,
-        enrollment_year: Number(enrollmentYear),
-        duration_years: Number(durationYears),
-        major_id: majorId ? Number(majorId) : null,
-        college_id: collegeId ? Number(collegeId) : null,
-        training_level_id: Number(trainingLevelId),
-        student_count: Number(studentCount) || 0,
-        custom_plan_id: customPlanId ? Number(customPlanId) : null,
+        enrollment_year: Number(enrollment_year),
+        duration_years: Number(duration_years),
+        major_id: major_id ? Number(major_id) : null,
+        college_id: college_id ? Number(college_id) : null,
+        training_level_id: Number(training_level_id),
+        student_count: Number(student_count) || 0,
+        custom_plan_id: custom_plan_id ? Number(custom_plan_id) : null,
         status: autoStatus,
       },
       include: { majors: true, colleges: true, training_levels: true, training_plans: true },
@@ -246,7 +246,7 @@ router.post('/', async (req, res, next) => {
 router.put('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, enrollmentYear, durationYears, majorId, collegeId, trainingLevelId, studentCount, customPlanId, status } = req.body;
+    const { name, enrollment_year, duration_years, major_id, college_id, training_level_id, student_count, custom_plan_id, status } = req.body;
     try {
       // 获取当前班级信息
       const currentClass = await prisma.classes.findUnique({ where: { id: Number(id) } });
@@ -254,8 +254,8 @@ router.put('/:id', async (req, res, next) => {
 
       // 始终根据入学年份和学制自动计算状态，忽略前端传来的status
       // 这样可以确保状态始终与当前的学期配置保持一致
-      const calcEnrollmentYear = enrollmentYear ? Number(enrollmentYear) : currentClass.enrollment_year;
-      const calcDurationYears = durationYears ? Number(durationYears) : currentClass.duration_years;
+      const calcEnrollmentYear = enrollment_year ? Number(enrollment_year) : currentClass.enrollment_year;
+      const calcDurationYears = duration_years ? Number(duration_years) : currentClass.duration_years;
       const semesterInfo = await getCurrentSemesterInfo();
       const autoStatus = calculateClassStatus(calcEnrollmentYear, calcDurationYears, semesterInfo);
 
@@ -263,13 +263,13 @@ router.put('/:id', async (req, res, next) => {
         where: { id: Number(id) },
         data: {
           name,
-          enrollment_year: enrollmentYear ? Number(enrollmentYear) : undefined,
-          duration_years: durationYears ? Number(durationYears) : undefined,
-          major_id: majorId !== undefined ? (majorId ? Number(majorId) : null) : undefined,
-          college_id: collegeId !== undefined ? (collegeId ? Number(collegeId) : null) : undefined,
-          training_level_id: trainingLevelId !== undefined ? (trainingLevelId ? Number(trainingLevelId) : null) : undefined,
-          student_count: studentCount !== undefined ? Number(studentCount) : undefined,
-          custom_plan_id: customPlanId !== undefined ? (customPlanId ? Number(customPlanId) : null) : undefined,
+          enrollment_year: enrollment_year ? Number(enrollment_year) : undefined,
+          duration_years: duration_years ? Number(duration_years) : undefined,
+          major_id: major_id !== undefined ? (major_id ? Number(major_id) : null) : undefined,
+          college_id: college_id !== undefined ? (college_id ? Number(college_id) : null) : undefined,
+          training_level_id: training_level_id !== undefined ? (training_level_id ? Number(training_level_id) : null) : undefined,
+          student_count: student_count !== undefined ? Number(student_count) : undefined,
+          custom_plan_id: custom_plan_id !== undefined ? (custom_plan_id ? Number(custom_plan_id) : null) : undefined,
           status: autoStatus,
         },
         include: { majors: true, colleges: true, training_levels: true, training_plans: true },

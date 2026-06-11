@@ -49,10 +49,10 @@ router.get('/', async (req, res, next) => {
 // POST/PUT/DELETE - 需要admin权限
 router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
-    const { name, code, description, sortOrder } = req.body;
+    const { name, code, description, sort_order } = req.body;
     if (!name) return fail(res, '学院名称不能为空');
     const college = await prisma.colleges.create({
-      data: { name, code, description, sort_order: sortOrder || 0 },
+      data: { name, code, description, sort_order: sort_order || 0 },
     });
     
     await createAuditLog({
@@ -84,11 +84,11 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
 router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, code, description, sortOrder } = req.body;
+    const { name, code, description, sort_order } = req.body;
     try {
       const college = await prisma.colleges.update({
         where: { id: Number(id) },
-        data: { name, code, description, sort_order: sortOrder },
+        data: { name, code, description, sort_order },
       });
       
       await createAuditLog({

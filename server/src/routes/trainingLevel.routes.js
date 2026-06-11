@@ -48,10 +48,10 @@ router.get('/', async (req, res, next) => {
 // POST/PUT/DELETE - 需要admin权限
 router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
-    const { name, code, description, sortOrder } = req.body;
+    const { name, code, description, sort_order } = req.body;
     if (!name) return fail(res, '层次名称不能为空');
     const level = await prisma.training_levels.create({
-      data: { name, code, description, sort_order: sortOrder || 0 },
+      data: { name, code, description, sort_order: sort_order || 0 },
     });
     success(res, level, '创建成功');
   } catch (e) {
@@ -63,11 +63,11 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
 router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, code, description, sortOrder } = req.body;
+    const { name, code, description, sort_order } = req.body;
     try {
       const level = await prisma.training_levels.update({
         where: { id: Number(id) },
-        data: { name, code, description, sortOrder },
+        data: { name, code, description, sort_order },
       });
       success(res, level, '更新成功');
     } catch (e) {

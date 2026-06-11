@@ -47,7 +47,7 @@ router.get('/', roleMiddleware('admin', 'super_admin'), async (req, res) => {
  */
 router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res) => {
   try {
-    const { username, password, realName, email, role } = req.body
+    const { username, password, real_name, email, role } = req.body
 
     // 验证必填字段
     if (!username || !password) {
@@ -81,7 +81,7 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res) => {
       data: {
         username,
         password: hashedPassword,
-        real_name: realName,
+        real_name,
         email,
         role
       },
@@ -119,7 +119,7 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res) => {
 router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res) => {
   try {
     const { id } = req.params
-    const { realName, email, role } = req.body
+    const { real_name, email, role } = req.body
 
     // 不能修改自己的角色
     if (parseInt(id) === req.user.id && role) {
@@ -139,7 +139,7 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res) => {
       return fail(res, '权限不足，管理员只能管理访客账号')
     }
 
-    const updateData = { real_name: realName, email }
+    const updateData = { real_name, email }
     
     // admin不能修改用户角色，只有super_admin可以
     if (req.user.role === 'super_admin' && role) {
@@ -181,7 +181,7 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res) => {
 router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, res) => {
   try {
     const { id } = req.params
-    const { isActive } = req.body
+    const { is_active } = req.body
 
     // 不能禁用自己
     if (parseInt(id) === req.user.id) {
@@ -203,7 +203,7 @@ router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, re
 
     await prisma.users.update({
       where: { id: parseInt(id) },
-      data: { is_active: isActive }
+      data: { is_active }
     })
 
     await prisma.audit_logs.create({
@@ -212,11 +212,11 @@ router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, re
         module: 'user',
         operator_id: req.user.id,
         result: 'success',
-        message: `${isActive ? '激活' : '禁用'}用户：${user.username}`
+        message: `${is_active ? '激活' : '禁用'}用户：${user.username}`
       }
     })
 
-    success(res, null, `${isActive ? '激活' : '禁用'}成功`)
+    success(res, null, `${is_active ? '激活' : '禁用'}成功`)
   } catch (error) {
     fail(res, error.message)
   }
