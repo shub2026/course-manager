@@ -106,15 +106,8 @@
                   <el-tag type="danger" size="small" effect="dark">管理员</el-tag>
                   <code>admin</code>
                   <span>/</span>
-                  <code>见控制台输出</code>
+                  <code>admin@123456</code>
                 </div>
-                <el-alert
-                  title="首次运行请查看控制台获取初始密码"
-                  type="warning"
-                  :closable="false"
-                  show-icon
-                  class="hint-warning"
-                />
               </div>
             </el-collapse-item>
           </el-collapse>
