@@ -13,21 +13,24 @@
                 :value="sem.value" 
               />
             </el-select>
-            <el-select v-model="filterCollege" clearable placeholder="按学院筛选" @change="load" class="filter-select">
+            <el-select v-model="filterCollege" clearable placeholder="按学院筛选" @change="load" class="filter-select" :disabled="!selectedSemester">
               <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
-            <el-select v-model="filterMajor" clearable placeholder="按专业筛选" @change="load" class="filter-select">
+            <el-select v-model="filterMajor" clearable placeholder="按专业筛选" @change="load" class="filter-select" :disabled="!selectedSemester">
               <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />
             </el-select>
-            <el-select v-model="filterLevel" clearable placeholder="按层次筛选" @change="load" class="filter-select">
+            <el-select v-model="filterLevel" clearable placeholder="按层次筛选" @change="load" class="filter-select" :disabled="!selectedSemester">
               <el-option v-for="l in levels" :key="l.id" :label="l.name" :value="l.id" />
             </el-select>
-            <el-select v-model="filterEnrollmentYear" clearable placeholder="按入学年份筛选" @change="load" class="filter-select">
+            <el-select v-model="filterEnrollmentYear" clearable placeholder="按入学年份筛选" @change="load" class="filter-select" :disabled="!selectedSemester">
               <el-option v-for="year in enrollmentYears" :key="year" :label="year + '年'" :value="year" />
             </el-select>
-            <el-select v-model="filterGrade" clearable placeholder="按年级筛选" @change="load" class="filter-select">
+            <el-select v-model="filterGrade" clearable placeholder="按年级筛选" @change="load" class="filter-select" :disabled="!selectedSemester">
               <el-option v-for="g in grades" :key="g" :label="g + '年级'" :value="g" />
             </el-select>
+            <el-button type="warning" @click="resetFilters">
+              <el-icon><RefreshRight /></el-icon> 重置
+            </el-button>
             <el-button type="success" @click="exportExcel">
               <el-icon><Download /></el-icon> 导出Excel
             </el-button>
@@ -172,6 +175,18 @@ async function load() {
     ElMessage.error('查询失败')
   }
   finally { loading.value = false }
+}
+
+function resetFilters() {
+  filterCollege.value = null
+  filterMajor.value = null
+  filterLevel.value = null
+  filterEnrollmentYear.value = null
+  filterGrade.value = null
+  selectedSemester.value = ''
+  data.value = []
+  semesterLabel.value = ''
+  totalClasses.value = 0
 }
 
 function exportExcel() {

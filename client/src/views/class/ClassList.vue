@@ -205,7 +205,7 @@
               <el-select v-model="form.customPlanId" clearable placeholder="默认使用专业方案" class="full-width">
                 <el-option v-for="p in plans" :key="p.id" :label="p.name" :value="p.id" />
               </el-select>
-              <div class="form-hint">不设置则使用该专业的默认培养方案</div>
+              <div class="form-hint">不设置则使用培养方案类型进行关联</div>
             </el-form-item>
           </el-col>
         </el-row>

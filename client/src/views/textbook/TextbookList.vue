@@ -162,29 +162,29 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="作者">
-              <el-input v-model="form.author" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-row :gutter="16">
-          <el-col :span="8">
             <el-form-item label="版次">
               <el-input v-model="form.edition" placeholder="如：第3版" />
             </el-form-item>
           </el-col>
-          <el-col :span="8">
+        </el-row>
+        <el-row :gutter="16">
+          <el-col :span="12">
             <el-form-item label="出版日期">
               <el-input v-model="form.publishDate" />
             </el-form-item>
           </el-col>
-          <el-col :span="8">
+          <el-col :span="12">
             <el-form-item label="定价">
-              <el-input-number v-model="form.price" :min="0" :precision="2" />
+              <el-input-number v-model="form.price" :min="0" :precision="2" style="width: 100%" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="作者">
+              <el-input v-model="form.author" />
+            </el-form-item>
+          </el-col>
           <el-col :span="12">
             <el-form-item label="类别">
               <el-select v-model="form.category" style="width: 100%">

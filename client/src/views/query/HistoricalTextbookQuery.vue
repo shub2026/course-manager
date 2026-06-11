@@ -24,9 +24,13 @@
           placeholder="搜索并选择教材" 
           @change="loadDetail" 
           class="textbook-select"
+          :disabled="!selectedSemester"
         >
           <el-option v-for="tb in textbooks" :key="tb.id" :label="`${tb.title} - ${tb.publisher || '未知出版社'}`" :value="tb.id" />
         </el-select>
+        <el-button type="warning" @click="resetFilters">
+          <el-icon><RefreshRight /></el-icon> 重置
+        </el-button>
         <el-button type="success" :disabled="!selectedTextbook || !selectedSemester" @click="exportExcel">
           <el-icon><Download /></el-icon> 导出Excel
         </el-button>
@@ -117,6 +121,12 @@ async function loadDetail(id) {
 
 function onSemesterChange() {
   // 切换学期时清空已选教材和详情
+  selectedTextbook.value = null
+  detail.value = null
+}
+
+function resetFilters() {
+  selectedSemester.value = ''
   selectedTextbook.value = null
   detail.value = null
 }
