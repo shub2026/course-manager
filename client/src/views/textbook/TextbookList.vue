@@ -109,6 +109,13 @@
         <el-button size="small" @click="openBatchSetDialog('category')">
           <el-icon><Edit /></el-icon> 批量设置类别
         </el-button>
+        <el-popconfirm title="确定批量删除选中的教材？" @confirm="handleBatchDelete">
+          <template #reference>
+            <el-button size="small" type="danger">
+              <el-icon><Delete /></el-icon> 批量删除
+            </el-button>
+          </template>
+        </el-popconfirm>
       </div>
     </el-card>
 
@@ -323,8 +330,10 @@ async function handleDelete(id) {
 
 async function handleToggleStatus(row) {
   try {
-    await toggleTextbookStatus(row.id)
-    ElMessage.success(row.is_active ? '已停用' : '已启用')
+    const res = await toggleTextbookStatus(row.id)
+    // 使用后端返回的最新状态
+    const newStatus = res.data?.is_active
+    ElMessage.success(newStatus ? '已启用' : '已停用')
     load()
   } catch (e) {
     ElMessage.error('操作失败')
@@ -399,6 +408,23 @@ async function handleBatchSet() {
     ElMessage.error('批量更新失败')
   } finally {
     batchSaving.value = false
+  }
+}
+
+// 批量删除
+async function handleBatchDelete() {
+  if (selectedTextbooks.value.length === 0) return
+  
+  const ids = selectedTextbooks.value.map(t => t.id)
+  
+  try {
+    await Promise.all(ids.map(id => deleteTextbook(id)))
+    ElMessage.success(`已删除 ${ids.length} 个教材`)
+    selectedTextbooks.value = []
+    load()
+  } catch (e) {
+    console.error('批量删除失败:', e)
+    ElMessage.error('批量删除失败')
   }
 }
 
