@@ -21,8 +21,12 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   async function load() {
+    console.log('[Settings Store] 开始加载设置...')
     const res = await request.get('/settings')
+    console.log('[Settings Store] API 响应:', JSON.stringify(res.data, null, 2))
     settings.value = res.data
+    console.log('[Settings Store] settings.value 已更新:', Object.keys(settings.value))
+    console.log('[Settings Store] organizationName 字段:', settings.value.organizationName)
     const cs = settings.value.currentSemester
     if (cs) {
       const parts = cs.value.split('-')

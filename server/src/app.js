@@ -85,8 +85,8 @@ app.use('/api/plans', authMiddleware, planRoutes);
 // 导入接口 - admin和super_admin可访问
 app.use('/api/import', authMiddleware, roleMiddleware('admin', 'super_admin'), importRoutes);
 
-// 系统设置 - GET所有登录用户可访问，PUT需要super_admin权限
-app.use('/api/settings', authMiddleware, settingsRoutes);
+// 系统设置 - GET公开访问（登录页需要），其他操作需要super_admin权限
+app.use('/api/settings', settingsRoutes);
 
 // 审计日志 - 仅超级管理员可访问
 app.use('/api/audit', authMiddleware, roleMiddleware('super_admin'), auditRoutes);

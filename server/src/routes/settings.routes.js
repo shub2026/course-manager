@@ -2,18 +2,20 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { getCurrentSemesterInfo } from '../services/settings.service.js';
-import { roleMiddleware } from '../middleware/auth.middleware.js';
+import { authMiddleware, roleMiddleware } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
 const DEFAULT_SETTINGS = {
   current_semester: { value: '2025-2026-2', description: '当前学期（格式：起始学年-结束学年-学期序号，如 2025-2026-2 表示2025-2026学年第2学期）' },
+  organization_name: { value: '欢迎回来', description: '系统标识（单位名称），用于首页展示' },
 };
 
-// GET - 所有登录用户可访问
+// GET - 公开访问（登录页需要读取系统标识）
 router.get('/', async (req, res, next) => {
   try {
     const settings = await prisma.system_settings.findMany();
+    console.log('[Settings API] 从数据库读取的设置:', settings.map(s => ({ key: s.key, value: s.value })));
     const map = {};
     settings.forEach((s) => {
       map[s.key] = { value: s.value, description: s.description };
@@ -26,12 +28,13 @@ router.get('/', async (req, res, next) => {
         map[key] = { value: created.value, description: created.description };
       }
     }
+    console.log('[Settings API] 返回给前端的数据（转换前）:', Object.keys(map));
     success(res, map);
   } catch (e) { next(e); }
 });
 
-// PUT - 需要super_admin权限
-router.put('/', roleMiddleware('super_admin'), async (req, res, next) => {
+// PUT - 需要登录且为super_admin权限
+router.put('/', authMiddleware, roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     const updates = req.body;
     for (const [key, value] of Object.entries(updates)) {
@@ -46,7 +49,7 @@ router.put('/', roleMiddleware('super_admin'), async (req, res, next) => {
 });
 
 // POST /api/settings/reset/basic - 清空基础数据（含培养方案）
-router.post('/reset/basic', roleMiddleware('super_admin'), async (req, res, next) => {
+router.post('/reset/basic', authMiddleware, roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     await prisma.$transaction(async (tx) => {
       // 按依赖关系顺序清空基础数据和培养方案
@@ -66,7 +69,7 @@ router.post('/reset/basic', roleMiddleware('super_admin'), async (req, res, next
 });
 
 // POST /api/settings/reset/majors - 清空专业（检查班级依赖）
-router.post('/reset/majors', roleMiddleware('super_admin'), async (req, res, next) => {
+router.post('/reset/majors', authMiddleware, roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     // 检查是否有班级存在
     const classCount = await prisma.classes.count();
@@ -87,7 +90,7 @@ router.post('/reset/majors', roleMiddleware('super_admin'), async (req, res, nex
 });
 
 // POST /api/settings/reset/colleges - 清空学院（检查班级依赖）
-router.post('/reset/colleges', roleMiddleware('super_admin'), async (req, res, next) => {
+router.post('/reset/colleges', authMiddleware, roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     // 检查是否有班级存在
     const classCount = await prisma.classes.count();
@@ -108,7 +111,7 @@ router.post('/reset/colleges', roleMiddleware('super_admin'), async (req, res, n
 });
 
 // POST /api/settings/reset/levels - 清空层次（检查班级依赖）
-router.post('/reset/levels', roleMiddleware('super_admin'), async (req, res, next) => {
+router.post('/reset/levels', authMiddleware, roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     // 检查是否有班级存在
     const classCount = await prisma.classes.count();
@@ -129,7 +132,7 @@ router.post('/reset/levels', roleMiddleware('super_admin'), async (req, res, nex
 });
 
 // POST /api/settings/reset/courses - 清空课程（级联清空培养方案课程）
-router.post('/reset/courses', roleMiddleware('super_admin'), async (req, res, next) => {
+router.post('/reset/courses', authMiddleware, roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     await prisma.$transaction(async (tx) => {
       // 先清空引用课程的培养方案课程
@@ -143,7 +146,7 @@ router.post('/reset/courses', roleMiddleware('super_admin'), async (req, res, ne
 });
 
 // POST /api/settings/reset/textbooks - 清空教材（级联清空培养方案教材）
-router.post('/reset/textbooks', roleMiddleware('super_admin'), async (req, res, next) => {
+router.post('/reset/textbooks', authMiddleware, roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     await prisma.$transaction(async (tx) => {
       // 先清空引用教材的培养方案教材
@@ -155,7 +158,7 @@ router.post('/reset/textbooks', roleMiddleware('super_admin'), async (req, res, 
 });
 
 // POST /api/settings/reset/classes - 清空班级
-router.post('/reset/classes', roleMiddleware('super_admin'), async (req, res, next) => {
+router.post('/reset/classes', authMiddleware, roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     await prisma.classes.deleteMany();
     success(res, null, '班级数据已清空');
@@ -163,7 +166,7 @@ router.post('/reset/classes', roleMiddleware('super_admin'), async (req, res, ne
 });
 
 // POST /api/settings/reset/plans - 清空培养方案
-router.post('/reset/plans', roleMiddleware('super_admin'), async (req, res, next) => {
+router.post('/reset/plans', authMiddleware, roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     await prisma.$transaction(async (tx) => {
       // 按依赖关系顺序清空培养方案相关数据
@@ -177,7 +180,7 @@ router.post('/reset/plans', roleMiddleware('super_admin'), async (req, res, next
 });
 
 // POST /api/settings/reset/settings - 系统重置（清空所有业务数据，保留超级管理员）
-router.post('/reset/settings', roleMiddleware('super_admin'), async (req, res, next) => {
+router.post('/reset/settings', authMiddleware, roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     await prisma.$transaction(async (tx) => {
       // 按依赖关系从顶向下清空所有业务数据
@@ -210,7 +213,7 @@ router.post('/reset/settings', roleMiddleware('super_admin'), async (req, res, n
 });
 
 // POST /api/settings/reset/audit-logs - 清空操作日志（需要super_admin权限）
-router.post('/reset/audit-logs', roleMiddleware('super_admin'), async (req, res, next) => {
+router.post('/reset/audit-logs', authMiddleware, roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     await prisma.audit_logs.deleteMany();
     success(res, null, '操作日志已清空');

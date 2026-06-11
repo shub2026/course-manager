@@ -68,6 +68,23 @@
             <el-icon><InfoFilled /></el-icon>
             <span>用于计算班级年级、查询当前学期开课情况。建议每学期初更新。</span>
           </div>
+
+          <!-- 系统标识设置 -->
+          <div class="organization-section">
+            <label class="field-label">系统标识（单位）</label>
+            <el-input
+              v-model="form.organization_name"
+              placeholder="请输入单位名称，如：某某职业技术学院"
+              size="large"
+              maxlength="50"
+              show-word-limit
+              clearable
+            />
+            <div class="semester-hint">
+              <el-icon><InfoFilled /></el-icon>
+              <span>用于首页登录框上方展示。默认为"欢迎回来"，填写后将显示此内容。</span>
+            </div>
+          </div>
         </div>
 
         <!-- 右侧：学期预览 -->
@@ -436,7 +453,7 @@
       width="450px"
       :close-on-click-modal="false"
     >
-      <p class="confirm-text">确定要保存当前学期设置吗？</p>
+      <p class="confirm-text">确定要保存当前配置吗？这将更新学期设置和系统标识。</p>
       <template #footer>
         <el-button @click="saveConfirmVisible = false">取消</el-button>
         <el-button type="primary" @click="confirmSave" :loading="saving">
@@ -458,6 +475,7 @@ const saving = ref(false)
 const resetting = ref(false)
 const form = ref({
   current_semester: '',
+  organization_name: '',
 })
 const activeResetTab = ref('basic')
 
@@ -558,7 +576,9 @@ async function load() {
   await settingsStore.load()
   const s = settingsStore.settings
   const semesterValue = s.currentSemester?.value || ''
+  const orgName = s.organizationName?.value || '欢迎回来'
   form.value.current_semester = semesterValue
+  form.value.organization_name = orgName
   selectedSemester.value = semesterValue
   savedSemester.value = semesterValue
 }
@@ -806,6 +826,17 @@ onMounted(load)
   color: #409eff;
   flex-shrink: 0;
   margin-top: 1px;
+}
+
+/* 系统标识设置区域 */
+.organization-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e5e6eb;
+}
+
+.organization-section :deep(.el-input) {
+  margin-top: 8px;
 }
 
 /* 学期预览卡片 */

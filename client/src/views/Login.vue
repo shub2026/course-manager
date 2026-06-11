@@ -50,7 +50,7 @@
           <div class="head-icon">
             <el-icon :size="24"><UserFilled /></el-icon>
           </div>
-          <h2>欢迎回来</h2>
+          <h2>{{ organizationName }}</h2>
           <p>请登录您的账号以继续</p>
         </div>
 
@@ -131,18 +131,21 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useSettingsStore } from '@/stores/settings'
 import { ElMessage } from 'element-plus'
 import { User, Lock } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
+const settingsStore = useSettingsStore()
 
 const formRef = ref(null)
 const loading = ref(false)
+const organizationName = ref('欢迎回来')
 
 const loginForm = reactive({
   username: '',
@@ -184,6 +187,37 @@ async function handleLogin() {
     }
   })
 }
+
+// 加载系统标识
+async function loadOrganizationName() {
+  try {
+    console.log('[登录页] 开始加载系统标识...')
+    await settingsStore.load()
+    console.log('[登录页] Settings Store 加载完成')
+    console.log('[登录页] settings.value 类型:', typeof settingsStore.settings)
+    console.log('[登录页] settings.value 内容:', JSON.stringify(settingsStore.settings, null, 2))
+    
+    const orgName = settingsStore.settings.organizationName?.value
+    console.log('[登录页] organizationName 字段:', orgName)
+    
+    // 如果有设置值且不为空，则使用；否则使用默认值
+    if (orgName && orgName.trim() !== '') {
+      organizationName.value = orgName
+      console.log('[登录页] 已设置组织名称为:', orgName)
+    } else {
+      organizationName.value = '欢迎回来'
+      console.log('[登录页] 未找到有效组织名称，使用默认值"欢迎回来"')
+    }
+  } catch (e) {
+    // 如果加载失败，使用默认值
+    console.error('加载系统标识失败:', e)
+    organizationName.value = '欢迎回来'
+  }
+}
+
+onMounted(() => {
+  loadOrganizationName()
+})
 </script>
 
 <style scoped>
