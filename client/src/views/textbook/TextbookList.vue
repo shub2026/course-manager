@@ -331,8 +331,8 @@ async function handleDelete(id) {
 async function handleToggleStatus(row) {
   try {
     const res = await toggleTextbookStatus(row.id)
-    // 使用后端返回的最新状态
-    const newStatus = res.data?.is_active
+    // 使用后端返回的最新状态（经过命名转换中间件后是isActive）
+    const newStatus = res.data?.isActive ?? res.data?.is_active
     ElMessage.success(newStatus ? '已启用' : '已停用')
     load()
   } catch (e) {
