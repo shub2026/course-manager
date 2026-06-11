@@ -88,8 +88,30 @@ router.get('/template/:type', async (req, res, next) => {
 // GET /api/export/semester - 导出当前学期开课情况
 router.get('/semester', async (req, res, next) => {
   try {
-    const semesterInfo = await getCurrentSemesterInfo();
-    if (!semesterInfo) return res.status(400).json({ success: false, message: '请先设置当前学期' });
+    const { semester } = req.query;
+    
+    // 优先使用传入的学期参数，否则使用全局设置
+    let semesterInfo;
+    if (semester) {
+      const parts = semester.split('-');
+      const startYear = Number(parts[0]);
+      const endYear = Number(parts[1]);
+      const semesterIndex = Number(parts[2]);
+      
+      if (isNaN(startYear) || isNaN(endYear) || isNaN(semesterIndex)) {
+        return res.status(400).json({ success: false, message: '学期格式错误，应为 YYYY-YYYY-N' });
+      }
+      
+      // 生成学期标签
+      const season = semesterIndex === 1 ? '秋季' : '春季';
+      const displayYear = semesterIndex === 1 ? startYear : endYear;
+      const label = `${displayYear}年${season}(第${semesterIndex}学期)`;
+      
+      semesterInfo = { startYear, endYear, semesterIndex, raw: semester, label };
+    } else {
+      semesterInfo = await getCurrentSemesterInfo();
+      if (!semesterInfo) return res.status(400).json({ success: false, message: '请先设置当前学期' });
+    }
 
     const classes = await prisma.classes.findMany({
       where: { status: 'active' },
@@ -280,12 +302,211 @@ router.get('/semester', async (req, res, next) => {
   }
 });
 
+// GET /api/export/courses - 导出课程数据
+router.get('/courses', async (req, res, next) => {
+  try {
+    const courses = await prisma.courses.findMany({
+      orderBy: { sort_order: 'asc' },
+    });
+
+    const rows = courses.map((course) => ({
+      '课程名称': course.name,
+      '编码': course.code || '-',
+      '类型': course.type === 'public' ? '公共基础课' : '专业课',
+      '描述': course.description || '-',
+    }));
+
+    const headers = [
+      { label: '课程名称', key: '课程名称', width: 30 },
+      { label: '编码', key: '编码', width: 20 },
+      { label: '类型', key: '类型', width: 15 },
+      { label: '描述', key: '描述', width: 40 },
+    ];
+
+    const workbook = await createWorkbook(headers, rows);
+    const buffer = await workbookToBuffer(workbook);
+    const filename = `课程数据_${new Date().toISOString().split('T')[0]}.xlsx`;
+    
+    // 记录操作日志
+    await createAuditLog({
+      action: 'export',
+      module: 'course',
+      userId: req.user?.id,
+      details: { rowCount: rows.length },
+      result: 'success',
+      message: `导出课程数据，共${rows.length}条记录`,
+    });
+    
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.send(buffer);
+  } catch (e) {
+    // 记录错误日志
+    await createAuditLog({
+      action: 'export',
+      module: 'course',
+      userId: req.user?.id,
+      result: 'failed',
+      message: `导出课程数据失败: ${e.message}`,
+    });
+    next(e);
+  }
+});
+
+// GET /api/export/textbooks - 导出教材数据
+router.get('/textbooks', async (req, res, next) => {
+  try {
+    const textbooks = await prisma.textbooks.findMany({
+      orderBy: { sort_order: 'asc' },
+    });
+
+    const rows = textbooks.map((textbook) => ({
+      '书名': textbook.title,
+      '书号': textbook.isbn || '-',
+      '出版社': textbook.publisher || '-',
+      '作者': textbook.author || '-',
+      '版次': textbook.edition || '-',
+      '定价': textbook.price ? `¥${textbook.price}` : '-',
+      '类别': textbook.category || '-',
+      '状态': textbook.is_active ? '启用' : '停用',
+    }));
+
+    const headers = [
+      { label: '书名', key: '书名', width: 30 },
+      { label: '书号', key: '书号', width: 25 },
+      { label: '出版社', key: '出版社', width: 25 },
+      { label: '作者', key: '作者', width: 15 },
+      { label: '版次', key: '版次', width: 10 },
+      { label: '定价', key: '定价', width: 10 },
+      { label: '类别', key: '类别', width: 10 },
+      { label: '状态', key: '状态', width: 10 },
+    ];
+
+    const workbook = await createWorkbook(headers, rows);
+    const buffer = await workbookToBuffer(workbook);
+    const filename = `教材数据_${new Date().toISOString().split('T')[0]}.xlsx`;
+    
+    // 记录操作日志
+    await createAuditLog({
+      action: 'export',
+      module: 'textbook',
+      userId: req.user?.id,
+      details: { rowCount: rows.length },
+      result: 'success',
+      message: `导出教材数据，共${rows.length}条记录`,
+    });
+    
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.send(buffer);
+  } catch (e) {
+    // 记录错误日志
+    await createAuditLog({
+      action: 'export',
+      module: 'textbook',
+      userId: req.user?.id,
+      result: 'failed',
+      message: `导出教材数据失败: ${e.message}`,
+    });
+    next(e);
+  }
+});
+
+// GET /api/export/classes - 导出班级数据
+router.get('/classes', async (req, res, next) => {
+  try {
+    const classes = await prisma.classes.findMany({
+      include: {
+        colleges: true,
+        majors: true,
+        training_levels: true,
+        training_plans: true,
+      },
+      orderBy: { enrollment_year: 'desc' },
+    });
+
+    const rows = classes.map((cls) => ({
+      '班级名称': cls.name,
+      '二级学院': cls.colleges?.name || '-',
+      '专业': cls.majors?.name || '-',
+      '培养层次': cls.training_levels?.name || '-',
+      '入学年份': cls.enrollment_year,
+      '学制(年)': cls.duration_years,
+      '人数': Number(cls.student_count) || 0,
+      '状态': cls.status === 'active' ? '在读' : '已毕业',
+      '培养方案': cls.training_plans?.name || '-',
+    }));
+
+    const headers = [
+      { label: '班级名称', key: '班级名称', width: 25 },
+      { label: '二级学院', key: '二级学院', width: 15 },
+      { label: '专业', key: '专业', width: 15 },
+      { label: '培养层次', key: '培养层次', width: 12 },
+      { label: '入学年份', key: '入学年份', width: 12 },
+      { label: '学制(年)', key: '学制(年)', width: 10 },
+      { label: '人数', key: '人数', width: 8 },
+      { label: '状态', key: '状态', width: 10 },
+      { label: '培养方案', key: '培养方案', width: 30 },
+    ];
+
+    const workbook = await createWorkbook(headers, rows);
+    const buffer = await workbookToBuffer(workbook);
+    const filename = `班级数据_${new Date().toISOString().split('T')[0]}.xlsx`;
+    
+    // 记录操作日志
+    await createAuditLog({
+      action: 'export',
+      module: 'class',
+      userId: req.user?.id,
+      details: { rowCount: rows.length },
+      result: 'success',
+      message: `导出班级数据，共${rows.length}条记录`,
+    });
+    
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.send(buffer);
+  } catch (e) {
+    // 记录错误日志
+    await createAuditLog({
+      action: 'export',
+      module: 'class',
+      userId: req.user?.id,
+      result: 'failed',
+      message: `导出班级数据失败: ${e.message}`,
+    });
+    next(e);
+  }
+});
+
 // GET /api/export/textbook/:id - 导出教材使用情况
 router.get('/textbook/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
-    const semesterInfo = await getCurrentSemesterInfo();
-    if (!semesterInfo) return res.status(400).json({ success: false, message: '请先设置当前学期' });
+    const { semester } = req.query;
+    
+    // 优先使用传入的学期参数，否则使用全局设置
+    let semesterInfo;
+    if (semester) {
+      const parts = semester.split('-');
+      const startYear = Number(parts[0]);
+      const endYear = Number(parts[1]);
+      const semesterIndex = Number(parts[2]);
+      
+      if (isNaN(startYear) || isNaN(endYear) || isNaN(semesterIndex)) {
+        return res.status(400).json({ success: false, message: '学期格式错误，应为 YYYY-YYYY-N' });
+      }
+      
+      // 生成学期标签
+      const season = semesterIndex === 1 ? '秋季' : '春季';
+      const displayYear = semesterIndex === 1 ? startYear : endYear;
+      const label = `${displayYear}年${season}(第${semesterIndex}学期)`;
+      
+      semesterInfo = { startYear, endYear, semesterIndex, raw: semester, label };
+    } else {
+      semesterInfo = await getCurrentSemesterInfo();
+      if (!semesterInfo) return res.status(400).json({ success: false, message: '请先设置当前学期' });
+    }
 
     const [textbook, allClasses] = await Promise.all([
       prisma.textbooks.findUnique({
