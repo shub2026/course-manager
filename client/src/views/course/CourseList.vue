@@ -151,12 +151,34 @@ async function handleDelete(id) {
   load()
 }
 
-function downloadTemplate() {
-  const token = authStore.token
-  if (token) {
-    window.open(`/api/export/template/courses?token=${token}`, '_blank')
-  } else {
-    ElMessage.warning('请先登录')
+async function downloadTemplate() {
+  try {
+    const response = await fetch('/api/export/template/courses', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    if (!response.ok) {
+      throw new Error('下载模板失败')
+    }
+    
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = '课程导入模板.xlsx'
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+    
+    ElMessage.success('模板下载成功')
+  } catch (error) {
+    console.error('下载模板失败:', error)
+    ElMessage.error('下载模板失败')
   }
 }
 

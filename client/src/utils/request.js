@@ -79,7 +79,7 @@ request.interceptors.response.use(
       } else {
         processQueue(error, null)
         ElMessage.error('登录已过期，请重新登录')
-        authStore.logout()
+        await authStore.logout()
         return Promise.reject(error)
       }
     }

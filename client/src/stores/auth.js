@@ -6,7 +6,18 @@ import request from '@/utils/request'
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || '')
   const refreshToken = ref(localStorage.getItem('refreshToken') || '')
-  const userInfo = ref(JSON.parse(localStorage.getItem('userInfo') || 'null'))
+  
+  // 添加 try-catch 防止 localStorage 被篡改导致应用崩溃
+  let parsedUserInfo = null
+  try {
+    const userInfoStr = localStorage.getItem('userInfo')
+    parsedUserInfo = userInfoStr ? JSON.parse(userInfoStr) : null
+  } catch (error) {
+    console.error('Failed to parse userInfo from localStorage:', error)
+    // 清除损坏的数据
+    localStorage.removeItem('userInfo')
+  }
+  const userInfo = ref(parsedUserInfo)
 
   const isLoggedIn = computed(() => !!token.value)
   const isAdmin = computed(() => ['admin', 'super_admin'].includes(userInfo.value?.role))
@@ -75,7 +86,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  async function fetchUserInfo() {
+  async function fetchUserInfo(retryCount = 0) {
     try {
       const response = await request.get('/auth/me')
       userInfo.value = response.data
@@ -83,9 +94,16 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('userInfo', JSON.stringify(response.data))
       return true
     } catch (error) {
+      // 防止无限递归，最多重试1次
+      if (retryCount >= 1) {
+        clearAuth()
+        router.push('/login')
+        return false
+      }
+
       const refreshed = await refreshAccessToken()
       if (refreshed) {
-        return fetchUserInfo()
+        return fetchUserInfo(retryCount + 1)
       }
       return false
     }

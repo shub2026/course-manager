@@ -15,7 +15,6 @@ const DEFAULT_SETTINGS = {
 router.get('/', async (req, res, next) => {
   try {
     const settings = await prisma.system_settings.findMany();
-    console.log('[Settings API] 从数据库读取的设置:', settings.map(s => ({ key: s.key, value: s.value })));
     const map = {};
     settings.forEach((s) => {
       map[s.key] = { value: s.value, description: s.description };
@@ -28,7 +27,6 @@ router.get('/', async (req, res, next) => {
         map[key] = { value: created.value, description: created.description };
       }
     }
-    console.log('[Settings API] 返回给前端的数据（转换前）:', Object.keys(map));
     success(res, map);
   } catch (e) { next(e); }
 });

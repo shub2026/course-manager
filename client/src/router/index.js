@@ -41,6 +41,17 @@ const routes = [
       { path: 'users', name: 'Users', component: () => import('../views/system/UserManagement.vue'), meta: { title: '用户管理', requiresAdmin: true } },
     ],
   },
+  // 404 路由 - 必须放在最后
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: (to) => {
+      const authStore = useAuthStore()
+      if (authStore.isLoggedIn) {
+        return '/query/semester'
+      }
+      return '/login'
+    },
+  },
 ]
 
 const router = createRouter({
@@ -105,12 +116,6 @@ router.beforeEach(async (to, from, next) => {
     const hasAdminRole = userRole === 'admin' || userRole === 'super_admin'
     
     if (to.meta.requiresAdmin && !hasAdminRole) {
-      console.log('权限检查失败:', {
-        path: to.path,
-        requiresAdmin: to.meta.requiresAdmin,
-        userRole: userRole,
-        hasAdminRole: hasAdminRole
-      })
       sessionStorage.setItem('permissionWarning', '您没有权限访问此页面')
       next('/query/semester')
       return

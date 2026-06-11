@@ -97,8 +97,8 @@
           </el-form-item>
         </el-form>
 
-        <!-- 账号提示 -->
-        <div class="account-hint">
+        <!-- 账号提示（仅开发环境显示） -->
+        <div v-if="showTestAccounts" class="account-hint">
           <el-collapse>
             <el-collapse-item title="测试账号" name="1">
               <div class="hint-body">
@@ -106,16 +106,10 @@
                   <el-tag type="danger" size="small" effect="dark">管理员</el-tag>
                   <code>admin</code>
                   <span>/</span>
-                  <code>admin@123456</code>
-                </div>
-                <div class="hint-row">
-                  <el-tag type="info" size="small" effect="dark">访客</el-tag>
-                  <code>guest</code>
-                  <span>/</span>
-                  <code>guest@123456</code>
+                  <code>见控制台输出</code>
                 </div>
                 <el-alert
-                  title="请及时修改默认密码"
+                  title="首次运行请查看控制台获取初始密码"
                   type="warning"
                   :closable="false"
                   show-icon
@@ -146,6 +140,8 @@ const settingsStore = useSettingsStore()
 const formRef = ref(null)
 const loading = ref(false)
 const organizationName = ref('欢迎回来')
+// 仅开发环境显示测试账号提示
+const showTestAccounts = import.meta.env.DEV
 
 const loginForm = reactive({
   username: '',
@@ -191,22 +187,15 @@ async function handleLogin() {
 // 加载系统标识
 async function loadOrganizationName() {
   try {
-    console.log('[登录页] 开始加载系统标识...')
     await settingsStore.load()
-    console.log('[登录页] Settings Store 加载完成')
-    console.log('[登录页] settings.value 类型:', typeof settingsStore.settings)
-    console.log('[登录页] settings.value 内容:', JSON.stringify(settingsStore.settings, null, 2))
     
     const orgName = settingsStore.settings.organizationName?.value
-    console.log('[登录页] organizationName 字段:', orgName)
     
     // 如果有设置值且不为空，则使用；否则使用默认值
     if (orgName && orgName.trim() !== '') {
       organizationName.value = orgName
-      console.log('[登录页] 已设置组织名称为:', orgName)
     } else {
       organizationName.value = '欢迎回来'
-      console.log('[登录页] 未找到有效组织名称，使用默认值"欢迎回来"')
     }
   } catch (e) {
     // 如果加载失败，使用默认值

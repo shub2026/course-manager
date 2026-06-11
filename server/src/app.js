@@ -21,8 +21,23 @@ import { convertResponseNaming, convertRequestNaming } from './middleware/naming
 
 const app = express();
 
+// CORS 配置：生产环境使用白名单，开发环境允许 localhost
+const allowedOrigins = process.env.CORS_ORIGINS 
+  ? process.env.CORS_ORIGINS.split(',')
+  : ['http://localhost:5173', 'http://localhost:3000'];
+
 app.use(cors({
-  origin: true,
+  origin: function (origin, callback) {
+    // 允许无 origin 的请求（如移动应用、Postman）
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked request from origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
@@ -47,8 +62,7 @@ app.get('/api/health', async (req, res) => {
     res.json({ 
       status: 'ok', 
       timestamp: new Date().toISOString(),
-      database: 'connected',
-      uptime: Math.round(process.uptime())
+      database: 'connected'
     });
   } catch (e) {
     // #23修复：健康检查错误不泄露数据库内部详情
