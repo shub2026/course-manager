@@ -277,6 +277,15 @@ async function load() {
   }
 }
 
+async function silentReload() {
+  try {
+    const res = await getTextbooks()
+    list.value = res.data || []
+  } catch (e) {
+    // silently ignore
+  }
+}
+
 function handleFilter() {
   // 筛选由computed自动处理
 }
@@ -297,7 +306,7 @@ async function handleSave() {
     }
     ElMessage.success('保存成功')
     dialogVisible.value = false
-    load()
+    await silentReload()
   } finally {
     saving.value = false
   }
@@ -307,7 +316,7 @@ async function handleDelete(id) {
   try {
     await deleteTextbook(id)
     ElMessage.success('删除成功')
-    load()
+    await silentReload()
   } catch (e) {
     console.error('删除教材失败:', e)
     ElMessage.error('删除失败，请重试')
@@ -320,7 +329,7 @@ async function handleToggleStatus(row) {
     // 使用后端返回的最新状态（经过命名转换中间件后是isActive）
     const newStatus = res.data?.isActive ?? res.data?.is_active
     ElMessage.success(newStatus ? '已启用' : '已停用')
-    load()
+    await silentReload()
   } catch (e) {
     ElMessage.error('操作失败')
   }
@@ -388,7 +397,7 @@ async function handleBatchSet() {
     ElMessage.success(`已成功更新 ${ids.length} 个教材`)
     batchDialogVisible.value = false
     selectedTextbooks.value = []
-    load()
+    await silentReload()
   } catch (e) {
     console.error('批量更新失败:', e)
     ElMessage.error('批量更新失败')
@@ -407,7 +416,7 @@ async function handleBatchDelete() {
     await Promise.all(ids.map(id => deleteTextbook(id)))
     ElMessage.success(`已删除 ${ids.length} 个教材`)
     selectedTextbooks.value = []
-    load()
+    await silentReload()
   } catch (e) {
     console.error('批量删除失败:', e)
     ElMessage.error('批量删除失败')
@@ -570,7 +579,7 @@ function onImportSuccess(res) {
       showClose: true,
     })
   }
-  load()
+  silentReload()
 }
 
 function onImportError(err) {
@@ -591,7 +600,7 @@ async function handleMoveUp(row) {
       updateTextbook(prevItem.id, { sortOrder: currentItem.sortOrder })
     ])
     ElMessage.success('排序已更新')
-    await load()
+    await silentReload()
   } catch (e) {
     console.error('排序更新失败:', e)
     ElMessage.error('排序更新失败')
@@ -611,7 +620,7 @@ async function handleMoveDown(row) {
       updateTextbook(nextItem.id, { sortOrder: currentItem.sortOrder })
     ])
     ElMessage.success('排序已更新')
-    await load()
+    await silentReload()
   } catch (e) {
     console.error('排序更新失败:', e)
     ElMessage.error('排序更新失败')

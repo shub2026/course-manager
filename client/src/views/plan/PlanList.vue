@@ -4,25 +4,23 @@
       <template #header>
         <div class="card-header">
           <span>培养方案管理</span>
-          <el-button type="primary" @click="openDialog()">
-            <el-icon><Plus /></el-icon> 新增方案
-          </el-button>
+          <div class="card-header-actions">
+            <el-select 
+              v-model="filterCollegeId" 
+              placeholder="选择使用部门" 
+              clearable 
+              class="filter-medium"
+              @change="handleFilterChange"
+            >
+              <el-option label="全部部门" value="" />
+              <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
+            </el-select>
+            <el-button type="primary" @click="openDialog()">
+              <el-icon><Plus /></el-icon> 新增方案
+            </el-button>
+          </div>
         </div>
       </template>
-      <el-row :gutter="16" style="margin-bottom: 16px;">
-        <el-col :span="4">
-          <el-select 
-            v-model="filterCollegeId" 
-            placeholder="选择使用部门" 
-            clearable 
-            class="full-width"
-            @change="handleFilterChange"
-          >
-            <el-option label="全部部门" value="" />
-            <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
-          </el-select>
-        </el-col>
-      </el-row>
       <el-table :data="filteredlist" stripe v-loading="loading" row-key="id">
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="name" label="方案名称" min-width="200" />
@@ -182,6 +180,23 @@ async function load() {
   }
 }
 
+// 静默刷新：不显示 loading 遮罩，避免表格跳动
+async function silentReload() {
+  try {
+    const res = await getPlans()
+    list.value = res.data || []
+    // 重新应用筛选条件
+    if (!filterCollegeId.value || filterCollegeId.value === '') {
+      filteredlist.value = list.value
+    } else {
+      filteredlist.value = list.value.filter(item => item.collegeId === Number(filterCollegeId.value))
+    }
+  } catch (e) {
+    // 静默刷新失败时回退到带 loading 的 load
+    await load()
+  }
+}
+
 async function loadMeta() {
   const [majorsRes, levelsRes, collegesRes] = await Promise.all([
     getMajors(),
@@ -270,7 +285,7 @@ async function handleSave() {
     }
     ElMessage.success('保存成功')
     dialogVisible.value = false
-    load()
+    await silentReload()
   } finally {
     saving.value = false
   }
@@ -280,7 +295,7 @@ async function handleDelete(id) {
   try {
     await deletePlan(id)
     ElMessage.success('删除成功')
-    load()
+    await silentReload()
   } catch (e) {
     console.error('删除培养方案失败:', e)
     ElMessage.error('删除失败，请重试')
@@ -360,6 +375,14 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+.card-header-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.filter-medium {
+  width: 160px;
 }
 .full-width {
   width: 100%;

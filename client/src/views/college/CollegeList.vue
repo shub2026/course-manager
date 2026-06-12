@@ -94,6 +94,15 @@ async function load() {
   }
 }
 
+async function silentReload() {
+  try {
+    const res = await getColleges()
+    list.value = res.data || []
+  } catch (e) {
+    console.error('刷新数据失败:', e)
+  }
+}
+
 function openDialog(row) {
   form.value = row ? { ...row } : { id: null, name: '', code: '', description: '' }
   dialogVisible.value = true
@@ -110,7 +119,7 @@ async function handleSave() {
     }
     ElMessage.success('保存成功')
     dialogVisible.value = false
-    load()
+    await silentReload()
   } finally {
     saving.value = false
   }
@@ -120,7 +129,7 @@ async function handleDelete(id) {
   try {
     await deleteCollege(id)
     ElMessage.success('删除成功')
-    load()
+    await silentReload()
   } catch (e) {
     console.error('删除学院失败:', e)
     ElMessage.error('删除失败，请重试')
@@ -144,7 +153,7 @@ async function handleMoveUp(row, index) {
       updateCollege(prevId, { sortOrder: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
-    await load()
+    await silentReload()
   } catch (e) {
     console.error('排序更新失败:', e)
     ElMessage.error('排序更新失败')
@@ -168,7 +177,7 @@ async function handleMoveDown(row, index) {
       updateCollege(nextId, { sortOrder: currentSortOrder })
     ])
     ElMessage.success('排序已更新')
-    await load()
+    await silentReload()
   } catch (e) {
     console.error('排序更新失败:', e)
     ElMessage.error('排序更新失败')

@@ -49,7 +49,7 @@
           </div>
         </div>
       </template>
-      <el-table :data="list" stripe v-loading="loading" @selection-change="handleSelectionChange">
+      <el-table :data="list" stripe v-loading="loading" row-key="id" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="45" />
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="name" label="班级名称" min-width="180" show-overflow-tooltip />
@@ -79,9 +79,8 @@
         </el-table-column>
         <el-table-column label="状态" min-width="65">
           <template #default="{ row }">
-            <el-tag v-if="row.status === 'left_school'" type="danger">离校</el-tag>
-            <el-tag v-else :type="row.status === 'active' ? 'success' : 'info'">
-              {{ row.status === 'active' ? '在读' : '已毕业' }}
+            <el-tag :type="row.status === 'left_school' ? 'danger' : row.status === 'active' ? 'success' : 'info'">
+              {{ row.status === 'left_school' ? '离校' : row.status === 'active' ? '在读' : '已毕业' }}
             </el-tag>
           </template>
         </el-table-column>
@@ -481,15 +480,51 @@ async function handleSave() {
   saving.value = true
   try {
     if (form.value.id) {
-      await updateClass(form.value.id, form.value)
+      const res = await updateClass(form.value.id, form.value)
+      ElMessage.success('保存成功')
+      dialogVisible.value = false
+      // 局部更新：只修改当前行数据，避免整行列表重新渲染导致跳动
+      const updatedRow = res.data
+      if (updatedRow) {
+        const idx = list.value.findIndex(item => item.id === updatedRow.id)
+        if (idx !== -1) {
+          list.value[idx] = { ...list.value[idx], ...updatedRow }
+        }
+      }
     } else {
       await createClass(form.value)
+      ElMessage.success('创建成功')
+      dialogVisible.value = false
+      await silentReload()
     }
-    ElMessage.success('保存成功')
-    dialogVisible.value = false
-    load()
   } finally {
     saving.value = false
+  }
+}
+
+// 静默刷新：不显示 loading 遮罩，避免表格跳动
+async function silentReload() {
+  try {
+    const params = {
+      page: pagination.value.page,
+      pageSize: pagination.value.pageSize,
+    }
+    if (filterName.value) params.name = filterName.value
+    if (filterYear.value) params.enrollmentYear = filterYear.value
+    if (filterCollege.value) params.collegeId = filterCollege.value
+    if (filterMajor.value) params.majorId = filterMajor.value
+    if (filterLevel.value) params.trainingLevelId = filterLevel.value
+    if (filterStatus.value) params.status = filterStatus.value
+    if (filterPlan.value) params.planId = filterPlan.value
+    const res = await getClasses(params)
+    list.value = res.data?.items || []
+    pagination.value.total = res.data?.total || 0
+    if (res.data?.allEnrollmentYears) {
+      allEnrollmentYears.value = res.data.allEnrollmentYears
+    }
+  } catch (e) {
+    // 静默刷新失败时回退到带 loading 的 load
+    await load()
   }
 }
 
@@ -497,7 +532,7 @@ async function handleDelete(id) {
   try {
     await deleteClass(id)
     ElMessage.success('删除成功')
-    load()
+    await silentReload()
   } catch (e) {
     console.error('删除班级失败:', e)
     ElMessage.error('删除失败，请重试')
@@ -524,7 +559,7 @@ async function handleBatchDelete() {
     await Promise.all(ids.map(id => deleteClass(id)))
     ElMessage.success(`已删除 ${ids.length} 个班级`)
     selectedClasses.value = []
-    load()
+    await silentReload()
   } catch (e) {
     if (e !== 'cancel') {
       console.error('批量删除失败:', e)
@@ -603,7 +638,7 @@ async function handleBatchSet() {
     ElMessage.success(`已成功更新 ${ids.length} 个班级`)
     batchDialogVisible.value = false
     selectedClasses.value = []
-    load()
+    await silentReload()
   } catch (e) {
     console.error('批量更新失败:', e)
     ElMessage.error('批量更新失败')

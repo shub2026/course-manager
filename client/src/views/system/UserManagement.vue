@@ -21,7 +21,7 @@
       />
 
       <!-- 用户列表 -->
-      <el-table :data="users" v-loading="loading" stripe>
+      <el-table :data="users" v-loading="loading" stripe row-key="id">
         <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column prop="username" label="用户名" min-width="120" />
         <el-table-column prop="realName" label="姓名" min-width="100" />
@@ -206,6 +206,15 @@ async function loadUsers() {
   }
 }
 
+async function silentReload() {
+  try {
+    const response = await request.get('/users')
+    users.value = response.data
+  } catch (error) {
+    ElMessage.error('加载用户列表失败：' + (error.message || '未知错误'))
+  }
+}
+
 function showCreateDialog() {
   isEdit.value = false
   formData.value = {
@@ -253,7 +262,7 @@ async function handleSubmit() {
       }
 
       dialogVisible.value = false
-      await loadUsers()
+      await silentReload()
     } catch (error) {
       ElMessage.error(error.message || '操作失败')
     } finally {
@@ -275,7 +284,7 @@ async function toggleUserStatus(user) {
       isActive: !user.isActive
     })
     ElMessage.success(`${action}成功`)
-    await loadUsers()
+    await silentReload()
   } catch (error) {
     ElMessage.error(`${action}失败：` + (error.message || '未知错误'))
   }
@@ -296,7 +305,7 @@ async function deleteUser(user) {
   try {
     await request.delete(`/users/${user.id}`)
     ElMessage.success('删除成功')
-    await loadUsers()
+    await silentReload()
   } catch (error) {
     ElMessage.error('删除失败')
   }

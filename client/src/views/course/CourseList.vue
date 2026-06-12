@@ -124,6 +124,15 @@ async function load() {
   }
 }
 
+async function silentReload() {
+  try {
+    const res = await getCourses()
+    list.value = res.data || []
+  } catch (e) {
+    // silently ignore
+  }
+}
+
 function openDialog(row) {
   form.value = row ? { ...row } : { id: null, name: '', code: '', type: 'public', description: '' }
   dialogVisible.value = true
@@ -140,7 +149,7 @@ async function handleSave() {
     }
     ElMessage.success('保存成功')
     dialogVisible.value = false
-    load()
+    await silentReload()
   } finally {
     saving.value = false
   }
@@ -150,7 +159,7 @@ async function handleDelete(id) {
   try {
     await deleteCourse(id)
     ElMessage.success('删除成功')
-    load()
+    await silentReload()
   } catch (e) {
     console.error('删除课程失败:', e)
     ElMessage.error('删除失败，请重试')
@@ -313,7 +322,7 @@ function onImportSuccess(res) {
       showClose: true,
     })
   }
-  load()
+  silentReload()
 }
 
 function onImportError(err) {
@@ -333,7 +342,7 @@ async function handleMoveUp(row, index) {
       updateCourse(prevItem.id, { sortOrder: currentItem.sortOrder })
     ])
     ElMessage.success('排序已更新')
-    await load()
+    await silentReload()
   } catch (e) {
     console.error('排序更新失败:', e)
     ElMessage.error('排序更新失败')
@@ -352,7 +361,7 @@ async function handleMoveDown(row, index) {
       updateCourse(nextItem.id, { sortOrder: currentItem.sortOrder })
     ])
     ElMessage.success('排序已更新')
-    await load()
+    await silentReload()
   } catch (e) {
     console.error('排序更新失败:', e)
     ElMessage.error('排序更新失败')
