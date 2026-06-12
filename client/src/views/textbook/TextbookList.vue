@@ -32,7 +32,7 @@
           </div>
         </div>
       </template>
-      <el-table :data="filteredlist" stripe v-loading="loading" @selection-change="handleSelectionChange">
+      <el-table :data="filteredlist" stripe v-loading="loading" row-key="id" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="45" />
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="title" label="书名" min-width="150" show-overflow-tooltip />

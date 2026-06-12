@@ -22,8 +22,10 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
   try {
     const { name, code, type, description, sort_order } = req.body;
     if (!name) return fail(res, '课程名称不能为空');
+    const maxSort = await prisma.courses.aggregate({ _max: { sort_order: true } });
+    const newSortOrder = sort_order !== undefined ? Number(sort_order) : (maxSort._max.sort_order || 0) + 1;
     const course = await prisma.courses.create({
-      data: { name, code, type: type || 'public', description, sort_order: sort_order ?? 0 },
+      data: { name, code, type: type || 'public', description, sort_order: newSortOrder },
     });
 
     await createAuditLog({

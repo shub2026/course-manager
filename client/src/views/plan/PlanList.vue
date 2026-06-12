@@ -23,7 +23,7 @@
           </el-select>
         </el-col>
       </el-row>
-      <el-table :data="filteredlist" stripe v-loading="loading">
+      <el-table :data="filteredlist" stripe v-loading="loading" row-key="id">
         <el-table-column type="index" label="序号" width="60" />
         <el-table-column prop="name" label="方案名称" min-width="200" />
         <el-table-column label="使用部门" min-width="120">
@@ -294,16 +294,27 @@ async function handleMoveUp(row) {
   const currentItem = filteredlist.value[idx]
   const prevItem = filteredlist.value[idx - 1]
   
+  // 乐观更新：先本地交换位置，避免 loading 遮罩闪烁
+  const tempOrder = currentItem.sortOrder
+  currentItem.sortOrder = prevItem.sortOrder
+  prevItem.sortOrder = tempOrder
+  const newList = [...filteredlist.value]
+  newList[idx] = prevItem
+  newList[idx - 1] = currentItem
+  filteredlist.value = newList
+  // 同步到 list
+  list.value = [...list.value]
+  
   try {
     await Promise.all([
-      updatePlan(currentItem.id, { sortOrder: prevItem.sortOrder }),
-      updatePlan(prevItem.id, { sortOrder: currentItem.sortOrder })
+      updatePlan(currentItem.id, { sortOrder: currentItem.sortOrder }),
+      updatePlan(prevItem.id, { sortOrder: prevItem.sortOrder })
     ])
     ElMessage.success('排序已更新')
-    await load()
   } catch (e) {
     console.error('排序更新失败:', e)
     ElMessage.error('排序更新失败')
+    await load() // 失败时回滚
   }
 }
 
@@ -314,16 +325,27 @@ async function handleMoveDown(row) {
   const currentItem = filteredlist.value[idx]
   const nextItem = filteredlist.value[idx + 1]
   
+  // 乐观更新：先本地交换位置，避免 loading 遮罩闪烁
+  const tempOrder = currentItem.sortOrder
+  currentItem.sortOrder = nextItem.sortOrder
+  nextItem.sortOrder = tempOrder
+  const newList = [...filteredlist.value]
+  newList[idx] = nextItem
+  newList[idx + 1] = currentItem
+  filteredlist.value = newList
+  // 同步到 list
+  list.value = [...list.value]
+  
   try {
     await Promise.all([
-      updatePlan(currentItem.id, { sortOrder: nextItem.sortOrder }),
-      updatePlan(nextItem.id, { sortOrder: currentItem.sortOrder })
+      updatePlan(currentItem.id, { sortOrder: currentItem.sortOrder }),
+      updatePlan(nextItem.id, { sortOrder: nextItem.sortOrder })
     ])
     ElMessage.success('排序已更新')
-    await load()
   } catch (e) {
     console.error('排序更新失败:', e)
     ElMessage.error('排序更新失败')
+    await load() // 失败时回滚
   }
 }
 

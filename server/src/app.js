@@ -24,7 +24,7 @@ const app = express();
 // CORS 配置：生产环境使用白名单，开发环境允许 localhost
 const allowedOrigins = process.env.CORS_ORIGINS 
   ? process.env.CORS_ORIGINS.split(',')
-  : ['http://localhost:5173', 'http://localhost:3000'];
+  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:3000'];
 
 app.use(cors({
   origin: function (origin, callback) {
@@ -42,6 +42,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   next();
 });

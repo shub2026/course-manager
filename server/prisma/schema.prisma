@@ -39,10 +39,10 @@ model classes {
   is_left_school    Boolean          @default(false)
   created_at        DateTime         @default(now())
   updated_at        DateTime         @updatedAt
-  training_plans    training_plans?  @relation(fields: [custom_plan_id], references: [id])
-  training_levels   training_levels? @relation(fields: [training_level_id], references: [id])
-  colleges          colleges?        @relation(fields: [college_id], references: [id])
   majors            majors?          @relation(fields: [major_id], references: [id])
+  colleges          colleges?        @relation(fields: [college_id], references: [id])
+  training_levels   training_levels? @relation(fields: [training_level_id], references: [id])
+  training_plans    training_plans?  @relation(fields: [custom_plan_id], references: [id])
 
   @@index([status])
   @@index([enrollment_year])
@@ -71,7 +71,7 @@ model courses {
   description  String?
   sort_order   Int            @default(0)
   created_at   DateTime       @default(now())
-  updated_at   DateTime         @updatedAt
+  updated_at   DateTime       @updatedAt
   plan_courses plan_courses[]
 
   @@index([type])
@@ -116,8 +116,8 @@ model plan_courses {
   created_at            DateTime                @default(now())
   updated_at            DateTime                @updatedAt
   plan_course_semesters plan_course_semesters[]
-  courses               courses                 @relation(fields: [course_id], references: [id])
   training_plans        training_plans          @relation(fields: [plan_id], references: [id], onDelete: Cascade)
+  courses               courses                 @relation(fields: [course_id], references: [id])
 
   @@unique([plan_id, course_id])
   @@index([plan_id])
@@ -130,10 +130,8 @@ model plan_textbooks {
   textbook_id           Int
   is_required           Boolean               @default(true)
   created_at            DateTime              @default(now())
-  // updated_at 字段需要在下次系统重置时添加
-  // updated_at            DateTime              @updatedAt
-  textbooks             textbooks             @relation(fields: [textbook_id], references: [id])
   plan_course_semesters plan_course_semesters @relation(fields: [semester_id], references: [id], onDelete: Cascade)
+  textbooks             textbooks             @relation(fields: [textbook_id], references: [id])
 }
 
 model system_settings {
@@ -141,9 +139,6 @@ model system_settings {
   key         String  @unique
   value       String
   description String?
-  // 注意：created_at 和 updated_at 字段需要在下次系统重置时添加
-  // created_at  DateTime @default(now())
-  // updated_at  DateTime @updatedAt
 }
 
 model textbooks {
@@ -153,7 +148,6 @@ model textbooks {
   publisher      String?
   author         String?
   edition        String?
-  // publish_date 字段保持 String 类型以匹配现有 SQLite TEXT 列，下次系统重置时可改为 DateTime
   publish_date   String?
   price          Float?
   category       String?
@@ -194,9 +188,9 @@ model training_plans {
   updated_at        DateTime         @updatedAt
   classes           classes[]
   plan_courses      plan_courses[]
-  training_levels   training_levels? @relation(fields: [training_level_id], references: [id])
-  colleges          colleges?        @relation(fields: [college_id], references: [id])
   majors            majors?          @relation(fields: [major_id], references: [id])
+  colleges          colleges?        @relation(fields: [college_id], references: [id])
+  training_levels   training_levels? @relation(fields: [training_level_id], references: [id])
 }
 
 model users {
@@ -209,7 +203,7 @@ model users {
   is_active     Boolean      @default(true)
   last_login_at DateTime?
   created_at    DateTime     @default(now())
-  updated_at    DateTime         @updatedAt
+  updated_at    DateTime     @updatedAt
   audit_logs    audit_logs[]
 
   @@index([role])

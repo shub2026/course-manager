@@ -28,8 +28,10 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
   try {
     const { name, code, description, sort_order } = req.body;
     if (!name) return fail(res, '学院名称不能为空');
+    const maxSort = await prisma.colleges.aggregate({ _max: { sort_order: true } });
+    const newSortOrder = sort_order !== undefined ? Number(sort_order) : (maxSort._max.sort_order || 0) + 1;
     const college = await prisma.colleges.create({
-      data: { name, code, description, sort_order: sort_order || 0 },
+      data: { name, code, description, sort_order: newSortOrder },
     });
     
     await createAuditLog({
@@ -62,10 +64,16 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
   try {
     const { id } = req.params;
     const { name, code, description, sort_order } = req.body;
+    // 过滤 undefined，避免 Prisma v6 对 undefined 值的严格处理
+    const data = {};
+    if (name !== undefined) data.name = name;
+    if (code !== undefined) data.code = code;
+    if (description !== undefined) data.description = description;
+    if (sort_order !== undefined) data.sort_order = Number(sort_order);
     try {
       const college = await prisma.colleges.update({
         where: { id: Number(id) },
-        data: { name, code, description, sort_order },
+        data,
       });
       
       await createAuditLog({

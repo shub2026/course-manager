@@ -28,8 +28,10 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
   try {
     const { name, code, description, sort_order } = req.body;
     if (!name) return fail(res, '层次名称不能为空');
+    const maxSort = await prisma.training_levels.aggregate({ _max: { sort_order: true } });
+    const newSortOrder = sort_order !== undefined ? Number(sort_order) : (maxSort._max.sort_order || 0) + 1;
     const level = await prisma.training_levels.create({
-      data: { name, code, description, sort_order: sort_order || 0 },
+      data: { name, code, description, sort_order: newSortOrder },
     });
     await createAuditLog({
       action: 'create',

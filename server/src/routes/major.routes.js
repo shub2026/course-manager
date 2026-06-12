@@ -29,7 +29,9 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
   try {
     const { name, code, description, sort_order } = req.body;
     if (!name) return fail(res, '专业名称不能为空');
-    const major = await prisma.majors.create({ data: { name, code, description, sort_order: sort_order ?? 0 } });
+    const maxSort = await prisma.majors.aggregate({ _max: { sort_order: true } });
+    const newSortOrder = sort_order !== undefined ? Number(sort_order) : (maxSort._max.sort_order || 0) + 1;
+    const major = await prisma.majors.create({ data: { name, code, description, sort_order: newSortOrder } });
     
     // 记录审计日志
     await createAuditLog({

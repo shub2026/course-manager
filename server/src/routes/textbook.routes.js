@@ -20,6 +20,8 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
   try {
     const { title, isbn, publisher, author, edition, publish_date, price, category, description, is_active, sort_order } = req.body;
     if (!title) return fail(res, '书名不能为空');
+    const maxSort = await prisma.textbooks.aggregate({ _max: { sort_order: true } });
+    const newSortOrder = sort_order !== undefined ? Number(sort_order) : (maxSort._max.sort_order || 0) + 1;
     const textbook = await prisma.textbooks.create({
       data: {
         title, isbn, publisher, author, edition,
@@ -28,7 +30,7 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
         category: category || null,
         description,
         is_active: is_active !== undefined ? is_active : true,
-        sort_order: sort_order ?? 0
+        sort_order: newSortOrder
       },
     });
 
