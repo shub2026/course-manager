@@ -125,18 +125,13 @@ async function handleDelete(id) {
 async function handleMoveUp(row, index) {
   if (index === 0) return
   
-  const currentLevel = list.value[index]
-  const prevLevel = list.value[index - 1]
-  
-  const currentId = currentLevel.id
-  const prevId = prevLevel.id
-  const currentSortOrder = currentLevel.sortOrder
-  const prevSortOrder = prevLevel.sortOrder
+  const currentItem = list.value[index]
+  const prevItem = list.value[index - 1]
   
   try {
     await Promise.all([
-      updateTrainingLevel(currentId, { sortOrder: prevSortOrder }),
-      updateTrainingLevel(prevId, { sortOrder: currentSortOrder })
+      updateTrainingLevel(currentItem.id, { sortOrder: prevItem.sortOrder }),
+      updateTrainingLevel(prevItem.id, { sortOrder: currentItem.sortOrder })
     ])
     ElMessage.success('排序已更新')
     await load()
@@ -149,18 +144,13 @@ async function handleMoveUp(row, index) {
 async function handleMoveDown(row, index) {
   if (index === list.value.length - 1) return
   
-  const currentLevel = list.value[index]
-  const nextLevel = list.value[index + 1]
-  
-  const currentId = currentLevel.id
-  const nextId = nextLevel.id
-  const currentSortOrder = currentLevel.sortOrder
-  const nextSortOrder = nextLevel.sortOrder
+  const currentItem = list.value[index]
+  const nextItem = list.value[index + 1]
   
   try {
     await Promise.all([
-      updateTrainingLevel(currentId, { sortOrder: nextSortOrder }),
-      updateTrainingLevel(nextId, { sortOrder: currentSortOrder })
+      updateTrainingLevel(currentItem.id, { sortOrder: nextItem.sortOrder }),
+      updateTrainingLevel(nextItem.id, { sortOrder: currentItem.sortOrder })
     ])
     ElMessage.success('排序已更新')
     await load()

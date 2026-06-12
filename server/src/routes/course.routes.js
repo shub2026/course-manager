@@ -13,10 +13,9 @@ router.get('/', async (req, res, next) => {
     const where = type ? { type } : {};
     const courses = await prisma.courses.findMany({ where, orderBy: { sort_order: 'asc' } });
     
-    // 检查是否需要重新分配 sortOrder（所有值都相同的情况）
-    const sortOrders = new Set(courses.map(c => c.sort_order));
-    if (sortOrders.size <= 1 && courses.length > 0) {
-      // 所有课程的 sortOrder 都相同，需要重新分配
+    // 检查是否需要重新分配 sortOrder（非连续唯一序列时需要修复）
+    const needsReassignment = courses.length > 0 && courses.some((c, i) => c.sort_order !== i);
+    if (needsReassignment) {
       await Promise.all(
         courses.map((course, index) =>
           prisma.courses.update({
@@ -25,7 +24,6 @@ router.get('/', async (req, res, next) => {
           })
         )
       );
-      // 重新查询获取更新后的数据
       const updatedCourses = await prisma.courses.findMany({ where, orderBy: { sort_order: 'asc' } });
       success(res, updatedCourses);
     } else {
@@ -72,10 +70,17 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
   try {
     const { id } = req.params;
     const { name, code, type, description, sort_order } = req.body;
+    // 过滤 undefined，避免 Prisma v6 对 undefined 值的严格处理
+    const data = {};
+    if (name !== undefined) data.name = name;
+    if (code !== undefined) data.code = code;
+    if (type !== undefined) data.type = type;
+    if (description !== undefined) data.description = description;
+    if (sort_order !== undefined) data.sort_order = Number(sort_order);
     try {
       const course = await prisma.courses.update({
         where: { id: Number(id) },
-        data: { name, code, type, description, sort_order: sort_order ?? 0 },
+        data,
       });
 
       await createAuditLog({

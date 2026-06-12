@@ -41,9 +41,9 @@
 
 | 编号 | 问题 | 位置 | 影响 |
 |------|------|------|------|
-| **C1** | JWT 密钥明文存储于 `.env`（已修复） | `server/.env` | 若该文件被版本控制或泄露，所有 Token 可被伪造 |
-| **C2** | 登录接口无速率限制（已修复） | `server/src/routes/auth.routes.js:9` | 可被暴力破解密码 |
-| **C3** | Token 支持 URL 查询参数传递 | `server/src/middleware/auth.middleware.js:12-13` | Token 会被记录在服务器日志、浏览器历史、Referer 头中 |
+| **C1** | （已修复）JWT 密钥明文存储于 `.env` | `server/.env` | 若该文件被版本控制或泄露，所有 Token 可被伪造 |
+| **C2** | （已修复）登录接口无速率限制 | `server/src/routes/auth.routes.js:9` | 可被暴力破解密码 |
+| **C3** | （已修复）Token 支持 URL 查询参数传递 | `server/src/middleware/auth.middleware.js:12-13` | Token 会被记录在服务器日志、浏览器历史、Referer 头中 |
 | **C4** | 班级 POST/PUT/DELETE 缺少角色权限校验 | `server/src/routes/class.routes.js` | 访客角色可创建/修改/删除班级 |
 | **C5** | 培养方案 POST/PUT/DELETE 缺少角色权限校验 | `server/src/routes/plan.routes.js` | 访客角色可创建/修改/删除培养方案 |
 
@@ -65,7 +65,7 @@
 | 编号 | 问题 |
 |------|------|
 | M1 | 路由错误处理模式不一致（3 种不同方式） |
-| M2 | 审计日志记录方式不一致（直接调用 vs Service） |
+| M2 | （已修复）审计日志记录方式不一致（直接调用 vs Service） |
 | M3 | 学期参数解析逻辑重复 5 次 |
 | M4 | 方案匹配逻辑重复实现多次 |
 | M5 | GET 请求中执行写操作（排序自动修复） |

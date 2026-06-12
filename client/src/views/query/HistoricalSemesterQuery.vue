@@ -99,11 +99,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
-import { useAuthStore } from '../../stores/auth'
 import { getSemesterQuery } from '../../api/query'
 import { getMajors } from '../../api/major'
 import { getTrainingLevels } from '../../api/trainingLevel'
 import { getColleges } from '../../api/college'
+import request from '../../utils/request'
 
 const data = ref([])
 const loading = ref(false)
@@ -189,17 +189,21 @@ function resetFilters() {
   totalClasses.value = 0
 }
 
-function exportExcel() {
+async function exportExcel() {
   if (!selectedSemester.value) {
     ElMessage.warning('请先选择学期')
     return
   }
   
-  const authStore = useAuthStore()
-  const token = authStore.token
-  if (token) {
+  try {
+    const res = await request.post('/auth/download-token')
+    const downloadToken = res.data?.downloadToken
+    if (!downloadToken) {
+      ElMessage.error('获取下载令牌失败')
+      return
+    }
     const params = new URLSearchParams()
-    params.append('token', token)
+    params.append('downloadToken', downloadToken)
     params.append('semester', selectedSemester.value)
     if (filterCollege.value) params.append('collegeId', filterCollege.value)
     if (filterMajor.value) params.append('majorId', filterMajor.value)
@@ -208,7 +212,7 @@ function exportExcel() {
     if (filterGrade.value) params.append('grade', filterGrade.value)
     
     window.open(`/api/export/semester?${params.toString()}`, '_blank')
-  } else {
+  } catch (e) {
     ElMessage.warning('请先登录')
   }
 }

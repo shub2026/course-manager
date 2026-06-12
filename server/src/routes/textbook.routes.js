@@ -11,9 +11,9 @@ router.get('/', async (req, res, next) => {
   try {
     const textbooks = await prisma.textbooks.findMany({ orderBy: { sort_order: 'asc' } });
     
-    // 检查是否需要重新分配 sortOrder
-    const sortOrders = new Set(textbooks.map(t => t.sort_order));
-    if (sortOrders.size <= 1 && textbooks.length > 0) {
+    // 检查是否需要重新分配 sortOrder（非连续唯一序列时需要修复）
+    const needsReassignment = textbooks.length > 0 && textbooks.some((t, i) => t.sort_order !== i);
+    if (needsReassignment) {
       await Promise.all(
         textbooks.map((textbook, index) =>
           prisma.textbooks.update({
@@ -76,10 +76,22 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
   try {
     const { id } = req.params;
     const { title, isbn, publisher, author, edition, publish_date, price, category, description, is_active, sort_order } = req.body;
+    const updateData = {};
+    if (title !== undefined) updateData.title = title;
+    if (isbn !== undefined) updateData.isbn = isbn;
+    if (publisher !== undefined) updateData.publisher = publisher;
+    if (author !== undefined) updateData.author = author;
+    if (edition !== undefined) updateData.edition = edition;
+    if (publish_date !== undefined) updateData.publish_date = publish_date || null;
+    if (price !== undefined) updateData.price = price ? Number(price) : null;
+    if (category !== undefined) updateData.category = category;
+    if (description !== undefined) updateData.description = description;
+    if (is_active !== undefined) updateData.is_active = is_active;
+    if (sort_order !== undefined) updateData.sort_order = Number(sort_order);
     try {
       const textbook = await prisma.textbooks.update({
         where: { id: Number(id) },
-        data: { title, isbn, publisher, author, edition, publish_date: publish_date || null, price: price ? Number(price) : null, category, description, is_active, sort_order: sort_order ?? 0 },
+        data: updateData,
       });
 
       await createAuditLog({

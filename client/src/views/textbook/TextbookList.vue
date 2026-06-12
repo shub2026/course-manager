@@ -574,23 +574,16 @@ function onImportError(err) {
 }
 
 async function handleMoveUp(row) {
-  const currentIndex = list.value.findIndex(item => item.id === row.id)
-  if (currentIndex === 0 || currentIndex === -1) return
-
-  const currentTextbook = list.value[currentIndex]
-  const prevTextbook = list.value[currentIndex - 1]
-
-  // 保存原始的 id 和 sortOrder
-  const currentId = currentTextbook.id
-  const prevId = prevTextbook.id
-  const currentSortOrder = currentTextbook.sortOrder
-  const prevSortOrder = prevTextbook.sortOrder
-
+  const idx = filteredlist.value.findIndex(item => item.id === row.id)
+  if (idx === 0 || idx === -1) return
+  
+  const currentItem = filteredlist.value[idx]
+  const prevItem = filteredlist.value[idx - 1]
+  
   try {
-    // 交换两个教材的 sortOrder
     await Promise.all([
-      updateTextbook(currentId, { sortOrder: prevSortOrder }),
-      updateTextbook(prevId, { sortOrder: currentSortOrder })
+      updateTextbook(currentItem.id, { sortOrder: prevItem.sortOrder }),
+      updateTextbook(prevItem.id, { sortOrder: currentItem.sortOrder })
     ])
     ElMessage.success('排序已更新')
     await load()
@@ -601,23 +594,16 @@ async function handleMoveUp(row) {
 }
 
 async function handleMoveDown(row) {
-  const currentIndex = list.value.findIndex(item => item.id === row.id)
-  if (currentIndex === -1 || currentIndex === list.value.length - 1) return
-
-  const currentTextbook = list.value[currentIndex]
-  const nextTextbook = list.value[currentIndex + 1]
-
-  // 保存原始的 id 和 sortOrder
-  const currentId = currentTextbook.id
-  const nextId = nextTextbook.id
-  const currentSortOrder = currentTextbook.sortOrder
-  const nextSortOrder = nextTextbook.sortOrder
-
+  const idx = filteredlist.value.findIndex(item => item.id === row.id)
+  if (idx === -1 || idx === filteredlist.value.length - 1) return
+  
+  const currentItem = filteredlist.value[idx]
+  const nextItem = filteredlist.value[idx + 1]
+  
   try {
-    // 交换两个教材的 sortOrder
     await Promise.all([
-      updateTextbook(currentId, { sortOrder: nextSortOrder }),
-      updateTextbook(nextId, { sortOrder: currentSortOrder })
+      updateTextbook(currentItem.id, { sortOrder: nextItem.sortOrder }),
+      updateTextbook(nextItem.id, { sortOrder: currentItem.sortOrder })
     ])
     ElMessage.success('排序已更新')
     await load()

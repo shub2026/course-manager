@@ -125,20 +125,13 @@ async function handleDelete(id) {
 async function handleMoveUp(row, index) {
   if (index === 0) return
   
-  const currentMajor = list.value[index]
-  const prevMajor = list.value[index - 1]
-  
-  // 保存原始的 id 和 sortOrder
-  const currentId = currentMajor.id
-  const prevId = prevMajor.id
-  const currentSortOrder = currentMajor.sortOrder
-  const prevSortOrder = prevMajor.sortOrder
+  const currentItem = list.value[index]
+  const prevItem = list.value[index - 1]
   
   try {
-    // 交换两个专业的 sortOrder
     await Promise.all([
-      updateMajor(currentId, { sortOrder: prevSortOrder }),
-      updateMajor(prevId, { sortOrder: currentSortOrder })
+      updateMajor(currentItem.id, { sortOrder: prevItem.sortOrder }),
+      updateMajor(prevItem.id, { sortOrder: currentItem.sortOrder })
     ])
     ElMessage.success('排序已更新')
     await load()
@@ -151,20 +144,13 @@ async function handleMoveUp(row, index) {
 async function handleMoveDown(row, index) {
   if (index === list.value.length - 1) return
   
-  const currentMajor = list.value[index]
-  const nextMajor = list.value[index + 1]
-  
-  // 保存原始的 id 和 sortOrder
-  const currentId = currentMajor.id
-  const nextId = nextMajor.id
-  const currentSortOrder = currentMajor.sortOrder
-  const nextSortOrder = nextMajor.sortOrder
+  const currentItem = list.value[index]
+  const nextItem = list.value[index + 1]
   
   try {
-    // 交换两个专业的 sortOrder
     await Promise.all([
-      updateMajor(currentId, { sortOrder: nextSortOrder }),
-      updateMajor(nextId, { sortOrder: currentSortOrder })
+      updateMajor(currentItem.id, { sortOrder: nextItem.sortOrder }),
+      updateMajor(nextItem.id, { sortOrder: currentItem.sortOrder })
     ])
     ElMessage.success('排序已更新')
     await load()

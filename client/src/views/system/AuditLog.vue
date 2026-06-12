@@ -12,6 +12,8 @@
 
       <div class="query-toolbar">
         <el-select v-model="filterAction" clearable placeholder="选择操作类型" @change="loadLogs" style="width: 150px">
+          <el-option label="登录" value="login" />
+          <el-option label="登出" value="logout" />
           <el-option label="导入" value="import" />
           <el-option label="导出" value="export" />
           <el-option label="创建" value="create" />
@@ -19,12 +21,15 @@
           <el-option label="删除" value="delete" />
         </el-select>
         <el-select v-model="filterModule" clearable placeholder="选择模块" @change="loadLogs" style="width: 150px">
+          <el-option label="认证" value="auth" />
+          <el-option label="用户" value="user" />
           <el-option label="班级" value="class" />
           <el-option label="课程" value="course" />
           <el-option label="教材" value="textbook" />
           <el-option label="专业" value="major" />
           <el-option label="学院" value="college" />
           <el-option label="培养方案" value="trainingPlan" />
+          <el-option label="培养层次" value="training_level" />
           <el-option label="系统" value="system" />
         </el-select>
         <el-select v-model="filterResult" clearable placeholder="选择结果" @change="loadLogs" style="width: 120px">
@@ -127,6 +132,8 @@ const clearDialogVisible = ref(false)
 const clearing = ref(false)
 
 const actionLabels = {
+  login: '登录',
+  logout: '登出',
   import: '导入',
   export: '导出',
   create: '创建',
@@ -135,16 +142,21 @@ const actionLabels = {
 }
 
 const moduleLabels = {
+  auth: '认证',
+  user: '用户',
   class: '班级',
   course: '课程',
   textbook: '教材',
   major: '专业',
   college: '学院',
   trainingPlan: '培养方案',
+  training_level: '培养层次',
   system: '系统',
 }
 
 const actionTagTypes = {
+  login: 'primary',
+  logout: 'info',
   import: 'success',
   export: 'warning',
   create: 'primary',

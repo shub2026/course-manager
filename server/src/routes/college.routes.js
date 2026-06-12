@@ -14,9 +14,9 @@ router.get('/', async (req, res, next) => {
       orderBy: { sort_order: 'asc' },
     });
     
-    // 检查是否需要重新分配 sortOrder
-    const sortOrders = new Set(colleges.map(c => c.sort_order));
-    if (sortOrders.size <= 1 && colleges.length > 0) {
+    // 检查是否需要重新分配 sortOrder（非连续唯一序列时需要修复）
+    const needsReassignment = colleges.length > 0 && colleges.some((c, i) => c.sort_order !== i);
+    if (needsReassignment) {
       await Promise.all(
         colleges.map((college, index) =>
           prisma.colleges.update({
@@ -29,14 +29,12 @@ router.get('/', async (req, res, next) => {
         include: { _count: { select: { classes: true } } },
         orderBy: { sort_order: 'asc' },
       });
-      // 手动处理响应数据，避免中间件错误转换
       const formattedColleges = updatedColleges.map(college => ({
         ...college,
         classCount: college._count?.classes || 0,
       }));
       success(res, formattedColleges);
     } else {
-      // 手动处理响应数据，避免中间件错误转换
       const formattedColleges = colleges.map(college => ({
         ...college,
         classCount: college._count?.classes || 0,

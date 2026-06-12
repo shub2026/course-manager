@@ -319,20 +319,13 @@ function onImportError(err) {
 async function handleMoveUp(row, index) {
   if (index === 0) return
   
-  const currentCourse = list.value[index]
-  const prevCourse = list.value[index - 1]
-  
-  // 保存原始的 id 和 sortOrder
-  const currentId = currentCourse.id
-  const prevId = prevCourse.id
-  const currentSortOrder = currentCourse.sort_order
-  const prevSortOrder = prevCourse.sort_order
+  const currentItem = list.value[index]
+  const prevItem = list.value[index - 1]
   
   try {
-    // 交换两个课程的 sortOrder
     await Promise.all([
-      updateCourse(currentId, { sort_order: prevSortOrder }),
-      updateCourse(prevId, { sort_order: currentSortOrder })
+      updateCourse(currentItem.id, { sortOrder: prevItem.sortOrder }),
+      updateCourse(prevItem.id, { sortOrder: currentItem.sortOrder })
     ])
     ElMessage.success('排序已更新')
     await load()
@@ -345,20 +338,13 @@ async function handleMoveUp(row, index) {
 async function handleMoveDown(row, index) {
   if (index === list.value.length - 1) return
   
-  const currentCourse = list.value[index]
-  const nextCourse = list.value[index + 1]
-  
-  // 保存原始的 id 和 sortOrder
-  const currentId = currentCourse.id
-  const nextId = nextCourse.id
-  const currentSortOrder = currentCourse.sort_order
-  const nextSortOrder = nextCourse.sort_order
+  const currentItem = list.value[index]
+  const nextItem = list.value[index + 1]
   
   try {
-    // 交换两个课程的 sortOrder
     await Promise.all([
-      updateCourse(currentId, { sort_order: nextSortOrder }),
-      updateCourse(nextId, { sort_order: currentSortOrder })
+      updateCourse(currentItem.id, { sortOrder: nextItem.sortOrder }),
+      updateCourse(nextItem.id, { sortOrder: currentItem.sortOrder })
     ])
     ElMessage.success('排序已更新')
     await load()

@@ -1,5 +1,9 @@
 <template>
   <div>
+    <el-card v-if="semesterLabel" class="semester-card">
+      <template #header>当前学期</template>
+      <el-tag size="large" type="primary">{{ semesterLabel }}</el-tag>
+    </el-card>
     <el-row :gutter="20" class="stat-row">
       <el-col :span="8">
         <el-card shadow="hover">
@@ -34,10 +38,6 @@
         </el-card>
       </el-col>
     </el-row>
-    <el-card v-if="semesterLabel">
-      <template #header>当前学期</template>
-      <el-tag size="large" type="primary">{{ semesterLabel }}</el-tag>
-    </el-card>
   </div>
 </template>
 
@@ -84,6 +84,9 @@ onMounted(async () => {
 
 <style scoped>
 .stat-row {
+  margin-bottom: 20px;
+}
+.semester-card {
   margin-bottom: 20px;
 }
 </style>

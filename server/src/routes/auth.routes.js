@@ -4,6 +4,7 @@ import { AuthService } from '../services/auth.service.js'
 import { authMiddleware } from '../middleware/auth.middleware.js'
 import { success, fail } from '../utils/response.js'
 import { prisma } from '../lib/prisma.js'
+import { createAuditLog } from '../services/audit.service.js'
 
 const router = express.Router()
 
@@ -40,7 +41,7 @@ router.post('/login', loginLimiter, async (req, res) => {
       return fail(res, '请输入用户名和密码')
     }
 
-    const result = await AuthService.login(username, password)
+    const result = await AuthService.login(username, password, req.ip)
     success(res, result, '登录成功')
   } catch (error) {
     fail(res, error.message)
@@ -64,14 +65,14 @@ router.post('/refresh', refreshLimiter, async (req, res) => {
 
 router.post('/logout', authMiddleware, async (req, res) => {
   try {
-    await prisma.audit_logs.create({
-      data: {
-        action: 'logout',
-        module: 'auth',
-        operator_id: req.user.id,
-        result: 'success',
-        message: `${req.user.username} 登出系统`
-      }
+    await createAuditLog({
+      action: 'logout',
+      module: 'auth',
+      userId: req.user.id,
+      ip: req.ip,
+      details: { username: req.user.username },
+      result: 'success',
+      message: `${req.user.username} 登出系统`,
     })
 
     success(res, null, '登出成功')
@@ -101,6 +102,16 @@ router.get('/me', authMiddleware, async (req, res) => {
   }
 })
 
+// 生成短期下载令牌（用于 window.open 等无法设置 Authorization 头的场景）
+router.post('/download-token', authMiddleware, async (req, res) => {
+  try {
+    const downloadToken = AuthService.generateDownloadToken(req.user)
+    success(res, { downloadToken })
+  } catch (error) {
+    fail(res, error.message)
+  }
+})
+
 router.put('/password', authMiddleware, passwordLimiter, async (req, res) => {
   try {
     const { old_password, new_password } = req.body
@@ -113,7 +124,7 @@ router.put('/password', authMiddleware, passwordLimiter, async (req, res) => {
       return fail(res, '新密码长度至少8位')
     }
 
-    await AuthService.changePassword(req.user.id, old_password, new_password)
+    await AuthService.changePassword(req.user.id, old_password, new_password, req.ip)
     success(res, null, '密码修改成功')
   } catch (error) {
     fail(res, error.message)

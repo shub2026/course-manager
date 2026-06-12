@@ -14,9 +14,9 @@ router.get('/', async (req, res, next) => {
       orderBy: { sort_order: 'asc' },
     });
     
-    // 检查是否需要重新分配 sortOrder
-    const sortOrders = new Set(majors.map(m => m.sort_order));
-    if (sortOrders.size <= 1 && majors.length > 0) {
+    // 检查是否需要重新分配 sortOrder（非连续唯一序列时需要修复）
+    const needsReassignment = majors.length > 0 && majors.some((m, i) => m.sort_order !== i);
+    if (needsReassignment) {
       await Promise.all(
         majors.map((major, index) =>
           prisma.majors.update({
@@ -29,7 +29,6 @@ router.get('/', async (req, res, next) => {
         include: { _count: { select: { classes: true, training_plans: true } } },
         orderBy: { sort_order: 'asc' },
       });
-      // 手动处理响应数据，避免中间件错误转换
       const formattedMajors = updatedMajors.map(major => ({
         ...major,
         classCount: major._count?.classes || 0,
@@ -37,7 +36,6 @@ router.get('/', async (req, res, next) => {
       }));
       success(res, formattedMajors);
     } else {
-      // 手动处理响应数据，避免中间件错误转换
       const formattedMajors = majors.map(major => ({
         ...major,
         classCount: major._count?.classes || 0,
@@ -86,10 +84,16 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
   try {
     const { id } = req.params;
     const { name, code, description, sort_order } = req.body;
+    // 过滤 undefined，避免 Prisma v6 对 undefined 值的严格处理
+    const data = {};
+    if (name !== undefined) data.name = name;
+    if (code !== undefined) data.code = code;
+    if (description !== undefined) data.description = description;
+    if (sort_order !== undefined) data.sort_order = Number(sort_order);
     try {
       const major = await prisma.majors.update({
         where: { id: Number(id) },
-        data: { name, code, description, sort_order: sort_order ?? 0 },
+        data,
       });
       
       // 记录审计日志

@@ -283,21 +283,16 @@ async function handleDelete(id) {
 }
 
 async function handleMoveUp(row) {
-  const currentIndex = list.value.findIndex(item => item.id === row.id)
-  if (currentIndex === 0 || currentIndex === -1) return
-
-  const currentPlan = list.value[currentIndex]
-  const prevPlan = list.value[currentIndex - 1]
-
-  const currentId = currentPlan.id
-  const prevId = prevPlan.id
-  const currentSortOrder = currentPlan.sortOrder
-  const prevSortOrder = prevPlan.sortOrder
-
+  const idx = filteredlist.value.findIndex(item => item.id === row.id)
+  if (idx === 0 || idx === -1) return
+  
+  const currentItem = filteredlist.value[idx]
+  const prevItem = filteredlist.value[idx - 1]
+  
   try {
     await Promise.all([
-      updatePlan(currentId, { sortOrder: prevSortOrder }),
-      updatePlan(prevId, { sortOrder: currentSortOrder })
+      updatePlan(currentItem.id, { sortOrder: prevItem.sortOrder }),
+      updatePlan(prevItem.id, { sortOrder: currentItem.sortOrder })
     ])
     ElMessage.success('排序已更新')
     await load()
@@ -308,21 +303,16 @@ async function handleMoveUp(row) {
 }
 
 async function handleMoveDown(row) {
-  const currentIndex = list.value.findIndex(item => item.id === row.id)
-  if (currentIndex === -1 || currentIndex === list.value.length - 1) return
-
-  const currentPlan = list.value[currentIndex]
-  const nextPlan = list.value[currentIndex + 1]
-
-  const currentId = currentPlan.id
-  const nextId = nextPlan.id
-  const currentSortOrder = currentPlan.sortOrder
-  const nextSortOrder = nextPlan.sortOrder
-
+  const idx = filteredlist.value.findIndex(item => item.id === row.id)
+  if (idx === -1 || idx === filteredlist.value.length - 1) return
+  
+  const currentItem = filteredlist.value[idx]
+  const nextItem = filteredlist.value[idx + 1]
+  
   try {
     await Promise.all([
-      updatePlan(currentId, { sortOrder: nextSortOrder }),
-      updatePlan(nextId, { sortOrder: currentSortOrder })
+      updatePlan(currentItem.id, { sortOrder: nextItem.sortOrder }),
+      updatePlan(nextItem.id, { sortOrder: currentItem.sortOrder })
     ])
     ElMessage.success('排序已更新')
     await load()

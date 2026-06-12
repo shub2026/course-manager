@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma.js'
 import { roleMiddleware } from '../middleware/auth.middleware.js'
 import { success, fail } from '../utils/response.js'
 import bcrypt from 'bcryptjs'
+import { createAuditLog } from '../services/audit.service.js'
 
 const router = express.Router()
 
@@ -96,14 +97,14 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res) => {
     })
 
     // 记录操作日志
-    await prisma.audit_logs.create({
-      data: {
-        action: 'create',
-        module: 'user',
-        operator_id: req.user.id,
-        result: 'success',
-        message: `创建用户：${username}`
-      }
+    await createAuditLog({
+      action: 'create',
+      module: 'user',
+      userId: req.user.id,
+      ip: req.ip,
+      details: { id: user.id, username, role },
+      result: 'success',
+      message: `创建用户：${username}`,
     })
 
     success(res, user, '创建成功')
@@ -158,14 +159,14 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res) => {
       }
     })
 
-    await prisma.audit_logs.create({
-      data: {
-        action: 'update',
-        module: 'user',
-        operator_id: req.user.id,
-        result: 'success',
-        message: `更新用户：${user.username}`
-      }
+    await createAuditLog({
+      action: 'update',
+      module: 'user',
+      userId: req.user.id,
+      ip: req.ip,
+      details: { id: user.id, username, changes: updateData },
+      result: 'success',
+      message: `更新用户：${user.username}`,
     })
 
     success(res, updated, '更新成功')
@@ -206,14 +207,14 @@ router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, re
       data: { is_active }
     })
 
-    await prisma.audit_logs.create({
-      data: {
-        action: 'update',
-        module: 'user',
-        operator_id: req.user.id,
-        result: 'success',
-        message: `${is_active ? '激活' : '禁用'}用户：${user.username}`
-      }
+    await createAuditLog({
+      action: 'update',
+      module: 'user',
+      userId: req.user.id,
+      ip: req.ip,
+      details: { id: user.id, username, is_active },
+      result: 'success',
+      message: `${is_active ? '激活' : '禁用'}用户：${user.username}`,
     })
 
     success(res, null, `${is_active ? '激活' : '禁用'}成功`)
@@ -252,14 +253,14 @@ router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res) =
       where: { id: parseInt(id) }
     })
 
-    await prisma.audit_logs.create({
-      data: {
-        action: 'delete',
-        module: 'user',
-        operator_id: req.user.id,
-        result: 'success',
-        message: `删除用户：${user.username}`
-      }
+    await createAuditLog({
+      action: 'delete',
+      module: 'user',
+      userId: req.user.id,
+      ip: req.ip,
+      details: { id: user.id, username },
+      result: 'success',
+      message: `删除用户：${user.username}`,
     })
 
     success(res, null, '删除成功')

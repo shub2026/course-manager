@@ -2,23 +2,50 @@ import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
 import { prisma } from '../lib/prisma.js'
 import { authConfig } from '../config/auth.config.js'
+import { createAuditLog } from './audit.service.js'
 
 export class AuthService {
-  static async login(username, password) {
+  static async login(username, password, ip) {
     const user = await prisma.users.findUnique({
       where: { username }
     })
 
     if (!user) {
+      await createAuditLog({
+        action: 'login',
+        module: 'auth',
+        ip,
+        details: { username },
+        result: 'failed',
+        message: `登录失败：用户 ${username} 不存在`,
+      })
       throw new Error('用户名或密码错误')
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password)
     if (!isValidPassword) {
+      await createAuditLog({
+        action: 'login',
+        module: 'auth',
+        userId: user.id,
+        ip,
+        details: { username },
+        result: 'failed',
+        message: `登录失败：密码错误`,
+      })
       throw new Error('用户名或密码错误')
     }
 
     if (!user.is_active) {
+      await createAuditLog({
+        action: 'login',
+        module: 'auth',
+        userId: user.id,
+        ip,
+        details: { username },
+        result: 'failed',
+        message: `登录失败：账号已被禁用`,
+      })
       throw new Error('账号已被禁用')
     }
 
@@ -30,14 +57,14 @@ export class AuthService {
       data: { last_login_at: new Date() }
     })
 
-    await prisma.audit_logs.create({
-      data: {
-        action: 'login',
-        module: 'auth',
-        operator_id: user.id,
-        result: 'success',
-        message: `${user.username} 登录系统`
-      }
+    await createAuditLog({
+      action: 'login',
+      module: 'auth',
+      userId: user.id,
+      ip,
+      details: { username: user.username },
+      result: 'success',
+      message: `${user.username} 登录系统`,
     })
 
     return {
@@ -107,7 +134,23 @@ export class AuthService {
     }
   }
 
-  static async changePassword(userId, oldPassword, newPassword) {
+  static generateDownloadToken(user) {
+    return jwt.sign(
+      { id: user.id, username: user.username, role: user.role },
+      authConfig.jwtSecret,
+      { expiresIn: '60s' }
+    )
+  }
+
+  static verifyDownloadToken(token) {
+    try {
+      return jwt.verify(token, authConfig.jwtSecret)
+    } catch (error) {
+      return null
+    }
+  }
+
+  static async changePassword(userId, oldPassword, newPassword, ip) {
     const user = await prisma.users.findUnique({
       where: { id: userId }
     })
@@ -118,6 +161,15 @@ export class AuthService {
 
     const isValid = await bcrypt.compare(oldPassword, user.password)
     if (!isValid) {
+      await createAuditLog({
+        action: 'update',
+        module: 'auth',
+        userId,
+        ip,
+        details: { username: user.username, type: 'changePassword' },
+        result: 'failed',
+        message: `修改密码失败：原密码错误`,
+      })
       throw new Error('原密码错误')
     }
 
@@ -125,6 +177,16 @@ export class AuthService {
     await prisma.users.update({
       where: { id: userId },
       data: { password: hashedPassword }
+    })
+
+    await createAuditLog({
+      action: 'update',
+      module: 'auth',
+      userId,
+      ip,
+      details: { username: user.username, type: 'changePassword' },
+      result: 'success',
+      message: `${user.username} 修改密码`,
     })
 
     return { message: '密码修改成功' }

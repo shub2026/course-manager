@@ -29,10 +29,10 @@ router.get('/', async (req, res, next) => {
       orderBy: { sort_order: 'asc' },
     });
 
-    // 检查是否需要重新分配 sortOrder
-    const sortOrders = new Set(plans.map(p => p.sort_order));
+    // 检查是否需要重新分配 sortOrder（非连续唯一序列时需要修复）
+    const needsReassignment = plans.length > 0 && plans.some((p, i) => p.sort_order !== i);
     let finalPlans = plans;
-    if (sortOrders.size <= 1 && plans.length > 0) {
+    if (needsReassignment) {
       await Promise.all(
         plans.map((plan, index) =>
           prisma.training_plans.update({
@@ -191,6 +191,25 @@ router.put('/:id', async (req, res, next) => {
     const { id } = req.params;
     const { name, college_id, major_id, training_level_id, version, description, sort_order } = req.body;
     
+    // 排序交换：仅更新 sort_order，跳过其他验证
+    if (sort_order !== undefined && name === undefined) {
+      try {
+        const plan = await prisma.training_plans.update({
+          where: { id: Number(id) },
+          data: { sort_order: Number(sort_order) },
+          include: {
+            majors: true,
+            colleges: true,
+            training_levels: true,
+          },
+        });
+        return success(res, plan, '更新成功');
+      } catch (e) {
+        if (e.code === 'P2025') return fail(res, '培养方案不存在', 404);
+        throw e;
+      }
+    }
+    
     // 验证：专业类别和培养层次只能选择一项（二选一）
     if (major_id && training_level_id) {
       return fail(res, '专业类别和培养层次只能选择一项');
@@ -333,10 +352,9 @@ router.get('/:id/courses', async (req, res, next) => {
       ],
     });
 
-    // 检查是否需要重新分配 sortOrder（所有值都相同的情况）
-    const sortOrders = new Set(courses.map(c => c.sort_order));
-    if (sortOrders.size <= 1) {
-      // 所有课程的 sortOrder 都相同，需要重新分配
+    // 检查是否需要重新分配 sortOrder（非连续唯一序列时需要修复）
+    const needsReassignment = courses.length > 0 && courses.some((c, i) => c.sort_order !== i);
+    if (needsReassignment) {
       await Promise.all(
         courses.map((course, index) =>
           prisma.plan_courses.update({
@@ -345,15 +363,12 @@ router.get('/:id/courses', async (req, res, next) => {
           })
         )
       );
-      // 重新查询获取更新后的数据
       const updatedCourses = await prisma.plan_courses.findMany({
         where: { plan_id: Number(id) },
         include: {
-
           courses: { select: { id: true, name: true, code: true, type: true } },
           plan_course_semesters: {
             include: {
-
               plan_textbooks: {
                 include: { textbooks: { select: { id: true, title: true, isbn: true, publisher: true } } },
               },

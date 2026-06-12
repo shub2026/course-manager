@@ -8,9 +8,17 @@ export function authMiddleware(req, res, next) {
   if (authHeader && authHeader.startsWith('Bearer ')) {
     token = authHeader.substring(7)
   }
-  // 备选：从查询参数获取（用于 window.open 等场景）
-  else if (req.query.token) {
-    token = req.query.token
+  // 备选：从查询参数获取短期下载令牌（用于 window.open 等场景）
+  else if (req.query.downloadToken) {
+    const decoded = AuthService.verifyDownloadToken(req.query.downloadToken)
+    if (decoded) {
+      req.user = decoded
+      return next()
+    }
+    return res.status(401).json({
+      success: false,
+      message: '下载令牌无效或已过期'
+    })
   }
 
   if (!token) {

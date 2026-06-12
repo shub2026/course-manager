@@ -41,7 +41,7 @@ export const AUDIT_MODULES = {
   COURSE: 'course',
   TEXTBOOK: 'textbook',
   CLASS: 'class',
-  PLAN: 'plan',
+  PLAN: 'trainingPlan',
   TRAINING_LEVEL: 'training_level',
   SYSTEM: 'system'
 };
