@@ -2,17 +2,18 @@
   <div>
     <el-card>
       <template #header>
-        <span>教材使用情况查询</span>
+        <div class="card-header">
+          <span>教材使用情况查询</span>
+          <div class="card-header-actions">
+            <el-select v-model="selectedTextbook" filterable placeholder="搜索并选择教材" @change="loadDetail" class="filter-select">
+              <el-option v-for="tb in textbooks" :key="tb.id" :label="`${tb.title} - ${tb.publisher || '未知出版社'}`" :value="tb.id" />
+            </el-select>
+            <el-button type="success" :disabled="!selectedTextbook" @click="exportExcel">
+              <el-icon><Download /></el-icon> 导出Excel
+            </el-button>
+          </div>
+        </div>
       </template>
-
-      <div class="query-toolbar">
-        <el-select v-model="selectedTextbook" filterable placeholder="搜索并选择教材" @change="loadDetail" class="textbook-select">
-          <el-option v-for="tb in textbooks" :key="tb.id" :label="`${tb.title} - ${tb.publisher || '未知出版社'}`" :value="tb.id" />
-        </el-select>
-        <el-button type="success" :disabled="!selectedTextbook" @click="exportExcel">
-          <el-icon><Download /></el-icon> 导出Excel
-        </el-button>
-      </div>
 
       <div v-if="detail">
         <el-descriptions :column="3" border class="textbook-descriptions">
@@ -123,12 +124,17 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.query-toolbar {
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.card-header-actions {
   display: flex;
   gap: 12px;
-  margin-bottom: 20px;
+  flex-wrap: wrap;
 }
-.textbook-select {
+.filter-select {
   width: 400px;
 }
 .textbook-descriptions {

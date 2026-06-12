@@ -5,7 +5,7 @@
         <div class="card-header">
           <span>历史学期教材使用情况查询</span>
           <div class="card-header-actions">
-            <el-select v-model="selectedSemester" placeholder="选择学期" @change="onSemesterChange" class="semester-select">
+            <el-select v-model="selectedSemester" placeholder="选择学期" @change="onSemesterChange" class="filter-select">
               <el-option 
                 v-for="sem in availableSemesters" 
                 :key="sem.value" 
@@ -13,28 +13,25 @@
                 :value="sem.value" 
               />
             </el-select>
+            <el-select 
+              v-model="selectedTextbook" 
+              filterable 
+              placeholder="搜索并选择教材" 
+              @change="loadDetail" 
+              class="filter-select filter-select-wide"
+              :disabled="!selectedSemester"
+            >
+              <el-option v-for="tb in textbooks" :key="tb.id" :label="`${tb.title} - ${tb.publisher || '未知出版社'}`" :value="tb.id" />
+            </el-select>
+            <el-button type="warning" @click="resetFilters">
+              <el-icon><RefreshRight /></el-icon> 重置
+            </el-button>
+            <el-button type="success" :disabled="!selectedTextbook || !selectedSemester" @click="exportExcel">
+              <el-icon><Download /></el-icon> 导出Excel
+            </el-button>
           </div>
         </div>
       </template>
-
-      <div class="query-toolbar">
-        <el-select 
-          v-model="selectedTextbook" 
-          filterable 
-          placeholder="搜索并选择教材" 
-          @change="loadDetail" 
-          class="textbook-select"
-          :disabled="!selectedSemester"
-        >
-          <el-option v-for="tb in textbooks" :key="tb.id" :label="`${tb.title} - ${tb.publisher || '未知出版社'}`" :value="tb.id" />
-        </el-select>
-        <el-button type="warning" @click="resetFilters">
-          <el-icon><RefreshRight /></el-icon> 重置
-        </el-button>
-        <el-button type="success" :disabled="!selectedTextbook || !selectedSemester" @click="exportExcel">
-          <el-icon><Download /></el-icon> 导出Excel
-        </el-button>
-      </div>
 
       <el-alert v-if="!selectedSemester" title="请先选择要查询的学期，然后选择教材查看详情" type="warning" :closable="false" class="alert-info" />
       
@@ -195,16 +192,12 @@ onMounted(async () => {
 .card-header-actions {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
 }
-.semester-select {
-  width: 220px;
+.filter-select {
+  width: 200px;
 }
-.query-toolbar {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 20px;
-}
-.textbook-select {
+.filter-select-wide {
   width: 400px;
 }
 .textbook-descriptions {

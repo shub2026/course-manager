@@ -4,28 +4,24 @@
       <template #header>
         <div class="card-header">
           <span>培养方案查询</span>
+          <div class="card-header-actions">
+            <el-select
+              v-model="selectedPlanId"
+              placeholder="请选择培养方案"
+              @change="handlePlanChange"
+              clearable
+              class="filter-select"
+            >
+              <el-option
+                v-for="plan in plans"
+                :key="plan.id"
+                :label="getPlanLabel(plan)"
+                :value="plan.id"
+              />
+            </el-select>
+          </div>
         </div>
       </template>
-
-      <!-- 方案选择 -->
-      <el-form inline class="query-form">
-        <el-form-item label="培养方案">
-          <el-select
-            v-model="selectedPlanId"
-            placeholder="请选择培养方案"
-            @change="handlePlanChange"
-            clearable
-            style="width: 400px"
-          >
-            <el-option
-              v-for="plan in plans"
-              :key="plan.id"
-              :label="getPlanLabel(plan)"
-              :value="plan.id"
-            />
-          </el-select>
-        </el-form-item>
-      </el-form>
 
       <!-- 矩阵表展示 -->
       <div v-if="selectedPlanId && planCourses.length > 0" class="matrix-container">
@@ -340,8 +336,14 @@ onMounted(() => {
   align-items: center;
 }
 
-.query-form {
-  margin-bottom: 20px;
+.card-header-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  width: 400px;
 }
 
 /* 矩阵容器 */
