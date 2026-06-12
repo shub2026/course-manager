@@ -506,27 +506,27 @@ async function beforeImport(file) {
 }
 
 // 确认导入
-function confirmImport() {
-  // 创建 FormData 并手动上传
-  const formData = new FormData()
-  formData.append('file', pendingFile.value)
-  
-  fetch('/api/import/textbooks', {
-    method: 'POST',
-    headers: {
-      'Authorization': authStore.token ? `Bearer ${authStore.token}` : '',
-    },
-    body: formData,
-  })
-    .then(res => res.json())
-    .then(data => {
-      onImportSuccess(data)
+async function confirmImport() {
+  try {
+    // 创建 FormData 并手动上传
+    const formData = new FormData()
+    formData.append('file', pendingFile.value)
+    
+    const response = await fetch('/api/import/textbooks', {
+      method: 'POST',
+      headers: {
+        'Authorization': authStore.token ? `Bearer ${authStore.token}` : '',
+      },
+      body: formData,
     })
-    .catch(err => {
-      onImportError(err)
-    })
-  
-  pendingFile.value = null
+    
+    const data = await response.json()
+    onImportSuccess(data)
+  } catch (err) {
+    onImportError(err)
+  } finally {
+    pendingFile.value = null
+  }
 }
 
 function onImportSuccess(res) {
