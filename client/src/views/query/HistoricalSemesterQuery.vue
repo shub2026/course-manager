@@ -196,24 +196,43 @@ async function exportExcel() {
   }
   
   try {
-    const res = await request.post('/auth/download-token')
-    const downloadToken = res.data?.downloadToken
-    if (!downloadToken) {
-      ElMessage.error('获取下载令牌失败')
-      return
+    // FC2修复：使用POST请求 + Authorization Header，避免token暴露在URL中
+    const params = {
+      semester: selectedSemester.value,
+      collegeId: filterCollege.value || undefined,
+      majorId: filterMajor.value || undefined,
+      trainingLevelId: filterLevel.value || undefined,
+      enrollmentYear: filterEnrollmentYear.value || undefined,
+      grade: filterGrade.value || undefined,
     }
-    const params = new URLSearchParams()
-    params.append('downloadToken', downloadToken)
-    params.append('semester', selectedSemester.value)
-    if (filterCollege.value) params.append('collegeId', filterCollege.value)
-    if (filterMajor.value) params.append('majorId', filterMajor.value)
-    if (filterLevel.value) params.append('trainingLevelId', filterLevel.value)
-    if (filterEnrollmentYear.value) params.append('enrollmentYear', filterEnrollmentYear.value)
-    if (filterGrade.value) params.append('grade', filterGrade.value)
     
-    window.open(`/api/export/semester?${params.toString()}`, '_blank')
+    const response = await fetch('/api/export/semester', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(params),
+    })
+    
+    if (!response.ok) {
+      throw new Error('导出失败')
+    }
+    
+    // 处理blob下载
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `历史学期_${selectedSemester.value}_开课数据_${new Date().getTime()}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    document.body.removeChild(a)
+    
+    ElMessage.success('导出成功')
   } catch (e) {
-    ElMessage.warning('请先登录')
+    console.error('导出失败:', e)
+    ElMessage.error(e.message || '导出失败，请重试')
   }
 }
 

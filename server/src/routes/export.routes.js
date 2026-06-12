@@ -5,8 +5,12 @@ import { getCurrentSemesterInfo, getSemesterInfoFromRequest } from '../services/
 import { createAuditLog } from '../services/audit.service.js';
 import { getActiveClassFilter } from '../services/class.service.js';
 import { findBestMatchPlan, isClassMatchPlan } from '../services/plan.service.js'; // M4修复
+import { authMiddleware } from '../middleware/auth.middleware.js'; // FC2修复：添加认证中间件
 
 const router = Router();
+
+// FC2修复：为所有导出路由添加认证中间件
+router.use(authMiddleware);
 
 // GET /api/export/template/:type - 下载导入模板
 router.get('/template/:type', async (req, res, next) => {
@@ -90,7 +94,7 @@ router.get('/template/:type', async (req, res, next) => {
   }
 });
 
-// GET /api/export/semester - 导出当前学期开课情况
+// GET /api/export/semester - 导出当前学期开课情况（保留向后兼容）
 router.get('/semester', async (req, res, next) => {
   try {
     // M3修复：使用统一的学期信息获取函数
@@ -107,8 +111,19 @@ router.get('/semester', async (req, res, next) => {
     }
 
     const activeFilter = await getActiveClassFilter();
+    
+    // FC2修复：支持从URL参数接收筛选条件（保持向后兼容）
+    const { collegeId, majorId, trainingLevelId, enrollmentYear, grade } = req.query;
+    const whereConditions = [activeFilter];
+    
+    // 添加筛选条件
+    if (collegeId) whereConditions.push({ college_id: Number(collegeId) });
+    if (majorId) whereConditions.push({ major_id: Number(majorId) });
+    if (trainingLevelId) whereConditions.push({ training_level_id: Number(trainingLevelId) });
+    if (enrollmentYear) whereConditions.push({ enrollment_year: Number(enrollmentYear) });
+    
     const classes = await prisma.classes.findMany({
-      where: activeFilter,
+      where: { AND: whereConditions },
       include: {
         majors: true,
         colleges: true,
@@ -169,9 +184,12 @@ router.get('/semester', async (req, res, next) => {
     const rows = [];
 
     for (const cls of classes) {
-      const grade = semesterInfo.startYear - cls.enrollment_year + 1;
-      if (grade < 1 || grade > cls.duration_years) continue;
-      const currentSemesterNum = (grade - 1) * 2 + semesterInfo.semesterIndex;
+      const gradeCalc = semesterInfo.startYear - cls.enrollment_year + 1;
+      
+      // FC2修复：支持年级筛选（GET请求）
+      if (grade && gradeCalc !== Number(grade)) continue;
+      if (gradeCalc < 1 || gradeCalc > cls.duration_years) continue;
+      const currentSemesterNum = (gradeCalc - 1) * 2 + semesterInfo.semesterIndex;
 
       const plan = findBestMatchPlan(cls, matchingPlans);
       if (!plan) continue;
@@ -268,6 +286,200 @@ router.get('/semester', async (req, res, next) => {
       ip: req.ip,
       result: 'failed',
       message: `导出开课情况失败: ${e.message}`,
+    });
+    next(e);
+  }
+});
+
+// POST /api/export/semester - FC2修复：使用POST请求避免token暴露在URL中
+router.post('/semester', async (req, res, next) => {
+  try {
+    // 从request body接收筛选参数
+    const { collegeId, majorId, trainingLevelId, enrollmentYear, grade } = req.body;
+    
+    // M3修复：使用统一的学期信息获取函数（不使用URL参数）
+    let semesterInfo = await getCurrentSemesterInfo();
+    
+    if (!semesterInfo) {
+      return res.status(400).json({ success: false, message: '请先设置当前学期' });
+    }
+
+    const activeFilter = await getActiveClassFilter();
+    
+    // 构建查询条件
+    const whereConditions = [activeFilter];
+    
+    // 添加筛选条件
+    if (collegeId) whereConditions.push({ college_id: Number(collegeId) });
+    if (majorId) whereConditions.push({ major_id: Number(majorId) });
+    if (trainingLevelId) whereConditions.push({ training_level_id: Number(trainingLevelId) });
+    if (enrollmentYear) whereConditions.push({ enrollment_year: Number(enrollmentYear) });
+    
+    const classes = await prisma.classes.findMany({
+      where: { AND: whereConditions },
+      include: {
+        majors: true,
+        colleges: true,
+        training_levels: true,
+        training_plans: {
+          include: {
+            plan_courses: {
+              include: {
+                courses: true,
+                plan_course_semesters: {
+                  include: {
+                    plan_textbooks: {
+                      include: { textbooks: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { enrollment_year: 'desc' },
+    });
+
+    // 收集需要查询的方案ID：按专业匹配的和按层次匹配的
+    const majorPlanIds = new Set();
+    const levelPlanIds = new Set();
+    for (const cls of classes) {
+      if (!cls.custom_plan_id) {
+        if (cls.major_id) majorPlanIds.add(cls.major_id);
+        if (cls.training_level_id) levelPlanIds.add(cls.training_level_id);
+      }
+    }
+
+    // 查询所有可能匹配的培养方案（包括按专业和按层次）
+    const matchingPlans = await prisma.training_plans.findMany({
+      where: {
+        OR: [
+          { major_id: { in: [...majorPlanIds] } },
+          { training_level_id: { in: [...levelPlanIds] } },
+        ],
+      },
+      include: {
+        plan_courses: {
+          include: {
+            courses: true,
+            plan_course_semesters: {
+              include: {
+                plan_textbooks: { include: { textbooks: true } },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // M4修复：使用统一的方案匹配函数（从plan.service.js导入）
+    const rows = [];
+
+    for (const cls of classes) {
+      const gradeCalc = semesterInfo.startYear - cls.enrollment_year + 1;
+      
+      // 如果指定了年级筛选，检查是否匹配
+      if (grade && gradeCalc !== Number(grade)) continue;
+      if (gradeCalc < 1 || gradeCalc > cls.duration_years) continue;
+      
+      const currentSemesterNum = (gradeCalc - 1) * 2 + semesterInfo.semesterIndex;
+
+      const plan = findBestMatchPlan(cls, matchingPlans);
+      if (!plan) continue;
+
+      const planCourses = plan.plan_courses.filter(
+        (pc) => pc.start_semester <= currentSemesterNum && pc.end_semester >= currentSemesterNum
+      );
+
+      if (planCourses.length === 0) {
+        rows.push({
+          '班级名称': cls.name, 
+          '二级学院': cls.colleges?.name || '-',
+          '专业': cls.majors?.name || '-', 
+          '培养层次': cls.training_levels?.name || '-',
+          '入学年份': cls.enrollment_year,
+          '年级': gradeCalc,
+          '学生人数': Number(cls.student_count) || 0, 
+          '课程': '-', 
+          '课程类型': '-',
+          '周课时': '-', 
+          '学期总课时': '-', 
+          '使用教材': '-', 
+          '书号': '-',
+        });
+      } else {
+        for (const pc of planCourses) {
+          // 先找到对应学期的记录，再获取其教材
+          const semRecord = pc.plan_course_semesters?.find(s => s.semester === currentSemesterNum);
+          const textbooks = semRecord?.plan_textbooks || [];
+          
+          // 使用学期记录的周课时和周数，如果没有则使用课程默认值
+          const weeklyHours = semRecord?.weekly_hours || pc.weekly_hours;
+          const weeksCount = semRecord?.weeks_count || pc.weeks_per_semester;
+          
+          rows.push({
+            '班级名称': cls.name, 
+            '二级学院': cls.colleges?.name || '-',
+            '专业': cls.majors?.name || '-', 
+            '培养层次': cls.training_levels?.name || '-',
+            '入学年份': cls.enrollment_year,
+            '年级': gradeCalc,
+            '学生人数': Number(cls.student_count) || 0, 
+            '课程': pc.courses.name,
+            '课程类型': pc.courses.type === 'public' ? '公共基础课' : '专业课',
+            '周课时': weeklyHours,
+            '学期总课时': weeklyHours * weeksCount,
+            '使用教材': textbooks.map((pt) => pt.textbooks.title).join('、') || '未指定',
+            '书号': textbooks.map((pt) => pt.textbooks.isbn || '-').join('、') || '-',
+          });
+        }
+      }
+    }
+
+    const headers = [
+      { label: '班级名称', key: '班级名称', width: 25 },
+      { label: '二级学院', key: '二级学院', width: 15 },
+      { label: '专业', key: '专业', width: 15 },
+      { label: '培养层次', key: '培养层次', width: 12 },
+      { label: '入学年份', key: '入学年份', width: 12 },
+      { label: '年级', key: '年级', width: 8 },
+      { label: '学生人数', key: '学生人数', width: 10 },
+      { label: '课程', key: '课程', width: 20 },
+      { label: '课程类型', key: '课程类型', width: 12 },
+      { label: '周课时', key: '周课时', width: 8 },
+      { label: '学期总课时', key: '学期总课时', width: 12 },
+      { label: '使用教材', key: '使用教材', width: 30 },
+      { label: '书号', key: '书号', width: 25 },
+    ];
+
+    const workbook = await createWorkbook(headers, rows);
+    const buffer = await workbookToBuffer(workbook);
+    const filename = `开课情况_${semesterInfo.label}.xlsx`;
+    
+    // 记录操作日志
+    await createAuditLog({
+      action: 'export',
+      module: 'system',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { semester: semesterInfo.label, rowCount: rows.length, method: 'POST' },
+      result: 'success',
+      message: `导出${semesterInfo.label}开课情况（POST），共${rows.length}条记录`,
+    });
+    
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    res.send(buffer);
+  } catch (e) {
+    // 记录错误日志
+    await createAuditLog({
+      action: 'export',
+      module: 'system',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: `导出开课情况失败(POST): ${e.message}`,
     });
     next(e);
   }
