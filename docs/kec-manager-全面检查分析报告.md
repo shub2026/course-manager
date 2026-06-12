@@ -41,8 +41,8 @@
 
 | 编号 | 问题 | 位置 | 影响 |
 |------|------|------|------|
-| **C1** | JWT 密钥明文存储于 `.env` | `server/.env` | 若该文件被版本控制或泄露，所有 Token 可被伪造 |
-| **C2** | 登录接口无速率限制 | `server/src/routes/auth.routes.js:9` | 可被暴力破解密码 |
+| **C1** | JWT 密钥明文存储于 `.env`（已修复） | `server/.env` | 若该文件被版本控制或泄露，所有 Token 可被伪造 |
+| **C2** | 登录接口无速率限制（已修复） | `server/src/routes/auth.routes.js:9` | 可被暴力破解密码 |
 | **C3** | Token 支持 URL 查询参数传递 | `server/src/middleware/auth.middleware.js:12-13` | Token 会被记录在服务器日志、浏览器历史、Referer 头中 |
 | **C4** | 班级 POST/PUT/DELETE 缺少角色权限校验 | `server/src/routes/class.routes.js` | 访客角色可创建/修改/删除班级 |
 | **C5** | 培养方案 POST/PUT/DELETE 缺少角色权限校验 | `server/src/routes/plan.routes.js` | 访客角色可创建/修改/删除培养方案 |
@@ -116,42 +116,7 @@
 
 ## 五、文档与配置分析
 
-### 文档质量评估
-
-| 文档 | 质量 | 完整度 | 主要问题 |
-|------|------|--------|----------|
-| `auth-design.md` | 高 | 高 | 角色模型不匹配（文档写 2 角色，实际 3 角色） |
-| `class-status-fix.md` | 高 | 高 | 无明显问题 |
-| `code-audit-report.md` (V1) | 高 | 高 | 已被 V2 取代 |
-| `code-audit-report-v2.md` | 很高 | 很高 | C1 JWT 声明已过时（已修复） |
-| `code-optimization-report.md` | 中 | 中 | 安全阶段未完成；含本地路径 |
-| `optimization-test-report.md` | 中 | 中 | 仅测试文件存在性，未测试集成 |
-| `plan.md` | 高 | 高 | 目录结构和外键关系已过时 |
-| `project-analysis.md` | 很高 | 很高 | 代码示例使用 camelCase（实际为 snake_case） |
-| `semester-calculation.md` | 很高 | 高 | 无明显问题 |
-| `subsystem-analysis.md` | 高 | 高 | 对当前规模过于学术化 |
-| `system-reset-feature.md` | 中 | 中 | 代码示例命名错误；可选字段标为必填 |
-| `初始化流程.md` | 低 | 低 | 暴露默认密码；格式问题 |
-
-### 🔴 关键配置问题
-
-| 编号 | 问题 | 详情 |
-|------|------|------|
-| DC1 | `update-class-status.js` 脚本完全不可用 | 使用 `prisma.class.findMany()` 但模型名为 `classes` |
-| DC2 | `seed.js` 为破坏性操作 | 执行前清空所有数据，误操作可致数据丢失 |
-| DC3 | `.gitignore` 缺少日志文件排除 | `*.log` 未加入忽略列表 |
-
-### 文档与代码不一致
-
-| 不一致项 | 文档描述 | 实际代码 |
-|----------|----------|----------|
-| Prisma 模型命名 | camelCase 单数（`User`, `AuditLog`） | snake_case 复数（`users`, `audit_logs`） |
-| 角色系统 | 2 角色（admin/viewer） | 3 角色（super_admin/admin/viewer） |
-| 班级外键约束 | major_id/college_id 必填 | 均为可选（`Int?`） |
-| plan_textbooks FK | plan_course_id | semester_id |
-| 死代码基础设施 | 文档描述为已实现 | 错误类/验证器/常量等从未被路由使用 |
-
----
+> 文档省略
 
 ## 六、代码架构评价
 
