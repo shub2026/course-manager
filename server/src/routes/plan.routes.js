@@ -48,7 +48,7 @@ router.get('/', async (req, res, next) => {
         }
       } else {
         // 无自定义方案：按 sort_order 顺序找第一个匹配的方案
-        for (const plan of finalPlans) {
+        for (const plan of plans) {
           if (plan.major_id && cls.major_id === plan.major_id) {
             classCountMap[plan.id]++;
             break;
@@ -61,7 +61,7 @@ router.get('/', async (req, res, next) => {
       }
     }
 
-    const plansWithCount = finalPlans.map(plan => ({
+    const plansWithCount = plans.map(plan => ({
       ...plan,
       courseCount: plan.plan_courses.length,
       classCount: classCountMap[plan.id] || 0,
