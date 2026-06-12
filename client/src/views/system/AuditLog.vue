@@ -241,13 +241,12 @@ async function loadLogs() {
     if (filterResult.value) params.result = filterResult.value
 
     const res = await getAuditLogs(params)
-    console.log('API Response:', res)
-    console.log('First log item:', res.data?.logs?.[0])
+    // FC3修复：移除调试输出
     logs.value = res.data.logs
     total.value = res.data.total
   } catch (e) {
     ElMessage.error('加载操作日志失败')
-    console.error(e)
+    console.error('加载操作日志失败:', e)
   } finally {
     loading.value = false
   }

@@ -277,9 +277,14 @@ async function handleSave() {
 }
 
 async function handleDelete(id) {
-  await deletePlan(id)
-  ElMessage.success('删除成功')
-  load()
+  try {
+    await deletePlan(id)
+    ElMessage.success('删除成功')
+    load()
+  } catch (e) {
+    console.error('删除培养方案失败:', e)
+    ElMessage.error('删除失败，请重试')
+  }
 }
 
 async function handleMoveUp(row) {

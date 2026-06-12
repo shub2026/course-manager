@@ -636,7 +636,7 @@ async function loadData() {
     ])
     rawCourses.value = coursesRes.data || []
     semesterWeeks.value = buildSemesterWeeks(semestersRes.data || [], rawCourses.value)
-    console.log('CourseMatrix loaded:', rawCourses.value.length, 'courses')
+    // FC3修复：移除调试输出，保留错误处理
   } catch (e) {
     console.error('CourseMatrix load error:', e)
   } finally {

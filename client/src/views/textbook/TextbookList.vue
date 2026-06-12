@@ -304,9 +304,14 @@ async function handleSave() {
 }
 
 async function handleDelete(id) {
-  await deleteTextbook(id)
-  ElMessage.success('删除成功')
-  load()
+  try {
+    await deleteTextbook(id)
+    ElMessage.success('删除成功')
+    load()
+  } catch (e) {
+    console.error('删除教材失败:', e)
+    ElMessage.error('删除失败，请重试')
+  }
 }
 
 async function handleToggleStatus(row) {

@@ -494,9 +494,14 @@ async function handleSave() {
 }
 
 async function handleDelete(id) {
-  await deleteClass(id)
-  ElMessage.success('删除成功')
-  load()
+  try {
+    await deleteClass(id)
+    ElMessage.success('删除成功')
+    load()
+  } catch (e) {
+    console.error('删除班级失败:', e)
+    ElMessage.error('删除失败，请重试')
+  }
 }
 
 // ==================== 批量操作函数 ====================
@@ -780,18 +785,9 @@ function confirmImport() {
   // 发送请求
   xhr.open('POST', '/api/import/classes')
   
-  // 添加认证头
-  console.log('[班级导入] 当前token状态:', { 
-    hasToken: !!authStore.token, 
-    tokenLength: authStore.token?.length,
-    userInfo: authStore.userInfo 
-  })
-  
+  // 添加认证头（FC3修复：移除调试输出）
   if (authStore.token) {
     xhr.setRequestHeader('Authorization', `Bearer ${authStore.token}`)
-    console.log('[班级导入] 已添加Authorization头')
-  } else {
-    console.error('[班级导入] 警告: 没有token,请求将失败')
   }
   
   xhr.send(formData)
@@ -888,21 +884,16 @@ function onImportSuccess(res) {
   load()
 }
 
-// 显示错误详情对话框
+// 显示错误详情对话框（FC1修复：使用纯文本替代dangerouslyUseHTMLString）
 function showErrorsDialog(errors) {
-  const errorListHtml = errors.map((error, index) => 
-    `<div style="margin-bottom: 8px; padding: 8px; background: #fef0f0; border-left: 3px solid #f56c6c; border-radius: 4px;">
-      <strong style="color: #f56c6c;">${index + 1}.</strong> ${error}
-    </div>`
-  ).join('')
+  const errorListText = errors.map((error, index) => `${index + 1}. ${error}`).join('\n')
   
   ElMessageBox.alert(
-    `<div style="max-height: 400px; overflow-y: auto; text-align: left;">${errorListHtml}</div>`,
+    errorListText,
     `导入失败详情（共${errors.length}条）`,
     {
-      dangerouslyUseHTMLString: true,
       confirmButtonText: '关闭',
-      customStyle: { maxWidth: '700px' },
+      customStyle: { maxWidth: '700px', whiteSpace: 'pre-wrap' },
     }
   )
 }

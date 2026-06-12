@@ -117,9 +117,14 @@ async function handleSave() {
 }
 
 async function handleDelete(id) {
-  await deleteCollege(id)
-  ElMessage.success('删除成功')
-  load()
+  try {
+    await deleteCollege(id)
+    ElMessage.success('删除成功')
+    load()
+  } catch (e) {
+    console.error('删除学院失败:', e)
+    ElMessage.error('删除失败，请重试')
+  }
 }
 
 async function handleMoveUp(row, index) {
