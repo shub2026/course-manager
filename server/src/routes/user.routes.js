@@ -4,6 +4,7 @@ import { roleMiddleware } from '../middleware/auth.middleware.js'
 import { success, fail } from '../utils/response.js'
 import bcrypt from 'bcryptjs'
 import { createAuditLog } from '../services/audit.service.js'
+import { NotFoundError, ValidationError, AuthorizationError } from '../utils/error.js'
 
 const router = express.Router()
 
@@ -13,7 +14,7 @@ const router = express.Router()
  * GET /api/users
  * 获取用户列表
  */
-router.get('/', roleMiddleware('admin', 'super_admin'), async (req, res) => {
+router.get('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     // admin只能看到访客用户，super_admin可以看到所有用户
     const where = {}
@@ -38,7 +39,7 @@ router.get('/', roleMiddleware('admin', 'super_admin'), async (req, res) => {
 
     success(res, users)
   } catch (error) {
-    fail(res, error.message)
+    next(error)
   }
 })
 
@@ -46,23 +47,23 @@ router.get('/', roleMiddleware('admin', 'super_admin'), async (req, res) => {
  * POST /api/users
  * 创建用户
  */
-router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res) => {
+router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { username, password, real_name, email, role } = req.body
 
     // 验证必填字段
     if (!username || !password) {
-      return fail(res, '用户名和密码为必填项')
+      throw new ValidationError('用户名和密码为必填项')
     }
 
     // admin只能创建访客用户
     if (req.user.role === 'admin' && role !== 'viewer') {
-      return fail(res, '权限不足，管理员只能创建访客账号')
+      throw new AuthorizationError('权限不足，管理员只能创建访客账号')
     }
 
     // 验证角色
     if (!['super_admin', 'admin', 'viewer'].includes(role)) {
-      return fail(res, '无效的角色')
+      throw new ValidationError('无效的角色')
     }
 
     // 检查用户名是否已存在
@@ -71,7 +72,7 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res) => {
     })
 
     if (existingUser) {
-      return fail(res, '用户名已存在')
+      throw new ValidationError('用户名已存在')
     }
 
     // 加密密码
@@ -109,7 +110,7 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res) => {
 
     success(res, user, '创建成功')
   } catch (error) {
-    fail(res, error.message)
+    next(error)
   }
 })
 
@@ -117,14 +118,14 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res) => {
  * PUT /api/users/:id
  * 更新用户信息
  */
-router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res) => {
+router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params
     const { real_name, email, role } = req.body
 
     // 不能修改自己的角色
     if (parseInt(id) === req.user.id && role) {
-      return fail(res, '不能修改自己的角色')
+      throw new AuthorizationError('不能修改自己的角色')
     }
 
     const user = await prisma.users.findUnique({
@@ -132,12 +133,12 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res) => {
     })
 
     if (!user) {
-      return fail(res, '用户不存在', 404)
+      throw new NotFoundError('用户不存在')
     }
 
     // admin只能修改访客用户
     if (req.user.role === 'admin' && user.role !== 'viewer') {
-      return fail(res, '权限不足，管理员只能管理访客账号')
+      throw new AuthorizationError('权限不足，管理员只能管理访客账号')
     }
 
     const updateData = { real_name, email }
@@ -171,7 +172,7 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res) => {
 
     success(res, updated, '更新成功')
   } catch (error) {
-    fail(res, error.message)
+    next(error)
   }
 })
 
@@ -179,14 +180,14 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res) => {
  * PUT /api/users/:id/status
  * 更新用户状态（激活/禁用）
  */
-router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, res) => {
+router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params
     const { is_active } = req.body
 
     // 不能禁用自己
     if (parseInt(id) === req.user.id) {
-      return fail(res, '不能禁用自己')
+      throw new AuthorizationError('不能禁用自己')
     }
 
     const user = await prisma.users.findUnique({
@@ -194,12 +195,12 @@ router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, re
     })
 
     if (!user) {
-      return fail(res, '用户不存在', 404)
+      throw new NotFoundError('用户不存在')
     }
 
     // admin只能管理访客用户
     if (req.user.role === 'admin' && user.role !== 'viewer') {
-      return fail(res, '权限不足，管理员只能管理访客账号')
+      throw new AuthorizationError('权限不足，管理员只能管理访客账号')
     }
 
     await prisma.users.update({
@@ -219,7 +220,7 @@ router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, re
 
     success(res, null, `${is_active ? '激活' : '禁用'}成功`)
   } catch (error) {
-    fail(res, error.message)
+    next(error)
   }
 })
 
@@ -227,13 +228,13 @@ router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, re
  * DELETE /api/users/:id
  * 删除用户
  */
-router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res) => {
+router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params
 
     // 不能删除自己
     if (parseInt(id) === req.user.id) {
-      return fail(res, '不能删除自己')
+      throw new AuthorizationError('不能删除自己')
     }
 
     const user = await prisma.users.findUnique({
@@ -241,12 +242,12 @@ router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res) =
     })
 
     if (!user) {
-      return fail(res, '用户不存在', 404)
+      throw new NotFoundError('用户不存在')
     }
 
     // admin只能删除访客用户
     if (req.user.role === 'admin' && user.role !== 'viewer') {
-      return fail(res, '权限不足，管理员只能删除访客账号')
+      throw new AuthorizationError('权限不足，管理员只能删除访客账号')
     }
 
     await prisma.users.delete({
@@ -265,7 +266,7 @@ router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res) =
 
     success(res, null, '删除成功')
   } catch (error) {
-    fail(res, error.message)
+    next(error)
   }
 })
 

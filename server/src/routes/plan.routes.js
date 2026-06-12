@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { roleMiddleware } from '../middleware/auth.middleware.js';
+import { NotFoundError, ValidationError, ConflictError } from '../utils/error.js';
 import { createAuditLog } from '../services/audit.service.js';
 
 const router = Router();
@@ -119,14 +120,14 @@ router.get('/:id', async (req, res, next) => {
 router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { name, college_id, major_id, training_level_id, version, description } = req.body;
-    if (!name) return fail(res, '方案名称为必填项');
+    if (!name) throw new ValidationError('方案名称为必填项');
     
     // 验证：专业类别和培养层次只能选择一项（二选一）
     if (major_id && training_level_id) {
-      return fail(res, '专业类别和培养层次只能选择一项');
+      throw new ValidationError('专业类别和培养层次只能选择一项');
     }
     if (!major_id && !training_level_id) {
-      return fail(res, '请选择专业类别或培养层次');
+      throw new ValidationError('请选择专业类别或培养层次');
     }
     
     // 获取当前最大 sortOrder，新记录排在最后
@@ -295,7 +296,7 @@ router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, n
   try {
     const { id } = req.params;
     const classCount = await prisma.classes.count({ where: { custom_plan_id: Number(id) } });
-    if (classCount > 0) return fail(res, '该方案已被班级使用，无法删除');
+    if (classCount > 0) throw new ConflictError('该方案已被班级使用，无法删除');
     try {
       await prisma.training_plans.delete({ where: { id: Number(id) } });
       
@@ -310,7 +311,7 @@ router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, n
       
       success(res, null, '删除成功');
     } catch (e) {
-      if (e.code === 'P2025') return fail(res, '方案不存在', 404);
+      if (e.code === 'P2025') throw new NotFoundError('培养方案');
       throw e;
     }
   } catch (e) {

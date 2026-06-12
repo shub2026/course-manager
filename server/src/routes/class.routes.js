@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { roleMiddleware } from '../middleware/auth.middleware.js';
+import { NotFoundError, ValidationError, ConflictError } from '../utils/error.js';
 import { getCurrentSemesterInfo } from '../services/settings.service.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { validatePagination } from '../middleware/pagination.js';
@@ -285,7 +286,7 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
   try {
     const { name, enrollment_year, duration_years, major_id, college_id, training_level_id, student_count, custom_plan_id, is_left_school } = req.body;
     if (!name || !enrollment_year || !duration_years || !training_level_id) {
-      return fail(res, '班级名称、入学年份、学制、培养层次为必填项');
+      throw new ValidationError('班级名称、入学年份、学制、培养层次为必填项');
     }
 
     // 状态计算：is_left_school 优先级最高，其余由入学年份+学制自动推算
@@ -346,7 +347,7 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
     try {
       // 获取当前班级信息
       const currentClass = await prisma.classes.findUnique({ where: { id: Number(id) } });
-      if (!currentClass) return fail(res, '班级不存在', 404);
+      if (!currentClass) throw new NotFoundError('班级');
 
       // 状态计算：is_left_school 优先级最高，其余由入学年份+学制自动推算
       const leftSchool = is_left_school !== undefined ? !!is_left_school : currentClass.is_left_school;
@@ -433,7 +434,7 @@ router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, n
         result: 'failed',
         message: `删除班级失败：${e.message}`
       });
-      if (e.code === 'P2025') return fail(res, '班级不存在', 404);
+      if (e.code === 'P2025') throw new NotFoundError('班级');
       throw e;
     }
   } catch (e) { next(e); }

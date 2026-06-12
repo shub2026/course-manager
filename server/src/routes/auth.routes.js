@@ -5,6 +5,7 @@ import { authMiddleware } from '../middleware/auth.middleware.js'
 import { success, fail } from '../utils/response.js'
 import { prisma } from '../lib/prisma.js'
 import { createAuditLog } from '../services/audit.service.js'
+import { AuthenticationError, ValidationError } from '../utils/error.js'
 
 const router = express.Router()
 
@@ -33,37 +34,37 @@ const passwordLimiter = rateLimit({
   message: { success: false, message: '修改密码请求过于频繁，请15分钟后再试' },
 })
 
-router.post('/login', loginLimiter, async (req, res) => {
+router.post('/login', loginLimiter, async (req, res, next) => {
   try {
     const { username, password } = req.body
 
     if (!username || !password) {
-      return fail(res, '请输入用户名和密码')
+      throw new ValidationError('请输入用户名和密码')
     }
 
     const result = await AuthService.login(username, password, req.ip)
     success(res, result, '登录成功')
   } catch (error) {
-    fail(res, error.message)
+    next(error)
   }
 })
 
-router.post('/refresh', refreshLimiter, async (req, res) => {
+router.post('/refresh', refreshLimiter, async (req, res, next) => {
   try {
     const { refresh_token } = req.body
 
     if (!refresh_token) {
-      return fail(res, '请提供Refresh Token')
+      throw new ValidationError('请提供Refresh Token')
     }
 
     const result = await AuthService.refreshToken(refresh_token)
     success(res, result)
   } catch (error) {
-    fail(res, error.message)
+    next(error)
   }
 })
 
-router.post('/logout', authMiddleware, async (req, res) => {
+router.post('/logout', authMiddleware, async (req, res, next) => {
   try {
     await createAuditLog({
       action: 'logout',
@@ -77,11 +78,11 @@ router.post('/logout', authMiddleware, async (req, res) => {
 
     success(res, null, '登出成功')
   } catch (error) {
-    fail(res, error.message)
+    next(error)
   }
 })
 
-router.get('/me', authMiddleware, async (req, res) => {
+router.get('/me', authMiddleware, async (req, res, next) => {
   try {
     const user = await prisma.users.findUnique({
       where: { id: req.user.id },
@@ -98,36 +99,36 @@ router.get('/me', authMiddleware, async (req, res) => {
 
     success(res, user)
   } catch (error) {
-    fail(res, error.message)
+    next(error)
   }
 })
 
 // 生成短期下载令牌（用于 window.open 等无法设置 Authorization 头的场景）
-router.post('/download-token', authMiddleware, async (req, res) => {
+router.post('/download-token', authMiddleware, async (req, res, next) => {
   try {
     const downloadToken = AuthService.generateDownloadToken(req.user)
     success(res, { downloadToken })
   } catch (error) {
-    fail(res, error.message)
+    next(error)
   }
 })
 
-router.put('/password', authMiddleware, passwordLimiter, async (req, res) => {
+router.put('/password', authMiddleware, passwordLimiter, async (req, res, next) => {
   try {
     const { old_password, new_password } = req.body
 
     if (!old_password || !new_password) {
-      return fail(res, '请提供原密码和新密码')
+      throw new ValidationError('请提供原密码和新密码')
     }
 
     if (new_password.length < 8) {
-      return fail(res, '新密码长度至少8位')
+      throw new ValidationError('新密码长度至少8位')
     }
 
     await AuthService.changePassword(req.user.id, old_password, new_password, req.ip)
     success(res, null, '密码修改成功')
   } catch (error) {
-    fail(res, error.message)
+    next(error)
   }
 })
 
