@@ -31,8 +31,9 @@ router.get('/', async (req, res, next) => {
       orderBy: { sort_order: 'asc' },
     });
 
-    // 一次性获取所有班级，避免 N+1 查询
+    // 一次性获取所有在校班级，排除离校状态（is_left_school），避免 N+1 查询
     const allClasses = await prisma.classes.findMany({
+      where: { is_left_school: false },
       select: { id: true, major_id: true, training_level_id: true, custom_plan_id: true }
     });
 
