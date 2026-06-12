@@ -40,6 +40,9 @@
         <el-table-column prop="publisher" label="出版社" min-width="120" show-overflow-tooltip />
         <el-table-column prop="author" label="作者" min-width="80" show-overflow-tooltip />
         <el-table-column prop="edition" label="版次" width="70" />
+        <el-table-column label="出版日期" width="100">
+          <template #default="{ row }">{{ row.publishDate || '-' }}</template>
+        </el-table-column>
         <el-table-column label="定价" width="80">
           <template #default="{ row }">{{ row.price ? '¥' + row.price : '-' }}</template>
         </el-table-column>

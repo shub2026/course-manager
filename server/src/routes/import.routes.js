@@ -460,10 +460,11 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
       const publisher = row['出版社'] || null;
       const author = row['作者'] || null;
       const edition = row['版次'] || null;
+      const publish_date = row['出版日期'] || null;
       const price = row['定价'] ? Number(row['定价']) : null;
       const category = row['类别'] || null;
 
-      console.log(`[教材导入] 第${i + 2}行:`, { title, isbn, publisher, author, edition, price, category });
+      console.log(`[教材导入] 第${i + 2}行:`, { title, isbn, publisher, author, edition, publish_date, price, category });
 
       if (!title) {
         errors.push(`第${i + 2}行：缺少书名`);
@@ -486,6 +487,7 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
               publisher: publisher ? String(publisher).trim() : null,
               author: author ? String(author).trim() : null,
               edition: edition ? String(edition).trim() : null,
+              publish_date: publish_date ? String(publish_date).trim() : null,
               price: price && !isNaN(price) ? price : null,
               category: String(category).trim() || '技工',
             },
@@ -503,6 +505,7 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
             publisher: publisher ? String(publisher).trim() : null,
             author: author ? String(author).trim() : null,
             edition: edition ? String(edition).trim() : null,
+            publish_date: publish_date ? String(publish_date).trim() : null,
             price: price && !isNaN(price) ? price : null,
             category: String(category).trim() || '技工',
           },

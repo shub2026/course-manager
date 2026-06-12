@@ -332,6 +332,7 @@ router.get('/textbook/:id', async (req, res, next) => {
         isbn: textbook.isbn,
         publisher: textbook.publisher,
         author: textbook.author,
+        publish_date: textbook.publish_date,
       },
       semesterInfo: {
         label: semesterInfo.label,

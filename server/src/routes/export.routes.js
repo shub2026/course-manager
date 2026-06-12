@@ -46,10 +46,11 @@ router.get('/template/:type', async (req, res, next) => {
           { label: '出版社', key: 'publisher', width: 20 },
           { label: '作者', key: 'author', width: 15 },
           { label: '版次', key: 'edition', width: 10 },
+          { label: '出版日期', key: 'publish_date', width: 15 },
           { label: '定价', key: 'price', width: 10 },
           { label: '类别', key: 'category', width: 10 },
         ];
-        sample = { '书名': '大学语文', '书号': '978-7-04-012345-6', '出版社': '高等教育出版社', '作者': '张三', '版次': '第3版', '定价': 45.00, '类别': '技工' };
+        sample = { '书名': '大学语文', '书号': '978-7-04-012345-6', '出版社': '高等教育出版社', '作者': '张三', '版次': '第3版', '出版日期': '2024-01', '定价': 45.00, '类别': '技工' };
         filename = '教材导入模板.xlsx';
         break;
       default:
@@ -368,6 +369,7 @@ router.get('/textbooks', async (req, res, next) => {
       '出版社': textbook.publisher || '-',
       '作者': textbook.author || '-',
       '版次': textbook.edition || '-',
+      '出版日期': textbook.publish_date || '-',
       '定价': textbook.price ? `¥${textbook.price}` : '-',
       '类别': textbook.category || '-',
       '状态': textbook.is_active ? '启用' : '停用',
@@ -379,6 +381,7 @@ router.get('/textbooks', async (req, res, next) => {
       { label: '出版社', key: '出版社', width: 25 },
       { label: '作者', key: '作者', width: 15 },
       { label: '版次', key: '版次', width: 10 },
+      { label: '出版日期', key: '出版日期', width: 15 },
       { label: '定价', key: '定价', width: 10 },
       { label: '类别', key: '类别', width: 10 },
       { label: '状态', key: '状态', width: 10 },

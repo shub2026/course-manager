@@ -20,6 +20,7 @@
           <el-descriptions-item label="书号">{{ detail.textbook?.isbn || '-' }}</el-descriptions-item>
           <el-descriptions-item label="出版社">{{ detail.textbook?.publisher || '-' }}</el-descriptions-item>
           <el-descriptions-item label="作者">{{ detail.textbook?.author || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="出版日期">{{ detail.textbook?.publishDate || '-' }}</el-descriptions-item>
           <el-descriptions-item label="当前学期">{{ detail.semesterInfo?.label }}</el-descriptions-item>
         </el-descriptions>
 
