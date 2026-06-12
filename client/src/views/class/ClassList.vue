@@ -52,32 +52,32 @@
       <el-table :data="list" stripe v-loading="loading" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="45" />
         <el-table-column type="index" label="序号" width="60" />
-        <el-table-column prop="name" label="班级名称" min-width="180" />
-        <el-table-column label="二级学院" width="115">
+        <el-table-column prop="name" label="班级名称" min-width="180" show-overflow-tooltip />
+        <el-table-column label="二级学院" min-width="115" show-overflow-tooltip>
           <template #default="{ row }">{{ row.colleges?.name || '-' }}</template>
         </el-table-column>
-        <el-table-column label="专业" width="150">
+        <el-table-column label="专业" min-width="150" show-overflow-tooltip>
           <template #default="{ row }">{{ row.majors?.name || '-' }}</template>
         </el-table-column>
-        <el-table-column label="培养层次" width="100">
+        <el-table-column label="培养层次" min-width="100" show-overflow-tooltip>
           <template #default="{ row }">{{ row.trainingLevels?.name || '-' }}</template>
         </el-table-column>
-        <el-table-column label="入学年份" width="100">
+        <el-table-column label="入学年份" min-width="85" show-overflow-tooltip>
           <template #default="{ row }">{{ row.enrollmentYear || '-' }}</template>
         </el-table-column>
-        <el-table-column label="学制" width="80">
+        <el-table-column label="学制" min-width="55">
           <template #default="{ row }">{{ row.durationYears || '-' }}</template>
         </el-table-column>
-        <el-table-column label="人数" width="80">
+        <el-table-column label="人数" min-width="55">
           <template #default="{ row }">{{ row.studentCount || '-' }}</template>
         </el-table-column>
-        <el-table-column label="年级" width="90">
+        <el-table-column label="年级" min-width="75">
           <template #default="{ row }">
             <el-tag size="small" v-if="calcGrade(row)">{{ calcGrade(row) }}年级</el-tag>
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="90">
+        <el-table-column label="状态" min-width="65">
           <template #default="{ row }">
             <el-tag v-if="row.status === 'left_school'" type="danger">离校</el-tag>
             <el-tag v-else :type="row.status === 'active' ? 'success' : 'info'">
@@ -85,7 +85,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="当前方案" min-width="130">
+        <el-table-column label="当前方案" min-width="130" show-overflow-tooltip>
           <template #default="{ row }">
             <el-tag :type="row.trainingPlans ? 'warning' : 'success'" size="small">
               {{ getCurrentPlanName(row) }}

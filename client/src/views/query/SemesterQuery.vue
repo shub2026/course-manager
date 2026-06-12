@@ -34,16 +34,16 @@
           <template #default="{ row }">
             <div class="expand-content">
               <el-table :data="row.courses" size="small" border>
-                <el-table-column prop="courseName" label="课程" width="150" />
-                <el-table-column label="类型" width="100">
+                <el-table-column prop="courseName" label="课程" min-width="150" show-overflow-tooltip />
+                <el-table-column label="类型" min-width="100">
                   <template #default="{ row: c }">
                     <el-tag size="small" :type="c.courseType === 'public' ? 'success' : 'warning'">
                       {{ c.courseType === 'public' ? '公共基础课' : '专业课' }}
                     </el-tag>
                   </template>
                 </el-table-column>
-                <el-table-column prop="weeklyHours" label="周课时" width="80" />
-                <el-table-column prop="totalHoursThisSemester" label="学期总课时" width="100" />
+                <el-table-column prop="weeklyHours" label="周课时" min-width="80" />
+                <el-table-column prop="totalHoursThisSemester" label="学期总课时" min-width="100" />
                 <el-table-column label="使用教材" min-width="250">
                   <template #default="{ row: c }">
                     <div v-if="c.textbooks?.length">
@@ -58,27 +58,27 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="className" label="班级" min-width="180" />
-        <el-table-column prop="collegeName" label="二级学院" width="115" />
-        <el-table-column prop="majorName" label="专业" width="150" />
-        <el-table-column prop="trainingLevelName" label="培养层次" width="100" />
-        <el-table-column label="入学年份" width="90">
+        <el-table-column prop="className" label="班级" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="collegeName" label="二级学院" min-width="115" show-overflow-tooltip />
+        <el-table-column prop="majorName" label="专业" min-width="150" show-overflow-tooltip />
+        <el-table-column prop="trainingLevelName" label="培养层次" min-width="100" show-overflow-tooltip />
+        <el-table-column label="入学年份" min-width="90">
           <template #default="{ row }">{{ row.enrollmentYear }}年</template>
         </el-table-column>
-        <el-table-column label="年级" width="80">
+        <el-table-column label="年级" min-width="80">
           <template #default="{ row }">{{ row.grade }}年级</template>
         </el-table-column>
-        <el-table-column label="在读学期" width="100">
+        <el-table-column label="在读学期" min-width="100">
           <template #default="{ row }">第{{ row.currentSemester }}学期</template>
         </el-table-column>
-        <el-table-column prop="studentCount" label="人数" width="70" />
-        <el-table-column label="开课数" width="70">
+        <el-table-column prop="studentCount" label="人数" min-width="70" />
+        <el-table-column label="开课数" min-width="70">
           <template #default="{ row }">{{ row.courses?.length || 0 }}</template>
         </el-table-column>
-        <el-table-column label="周课时合计" width="100">
+        <el-table-column label="周课时合计" min-width="100">
           <template #default="{ row }">{{ (row.courses || []).reduce((s, c) => s + c.weeklyHours, 0) }}</template>
         </el-table-column>
-        <el-table-column prop="planName" label="培养方案" min-width="180" />
+        <el-table-column prop="planName" label="培养方案" min-width="180" show-overflow-tooltip />
       </el-table>
     </el-card>
   </div>

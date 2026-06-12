@@ -37,35 +37,30 @@
       </div>
 
       <el-table :data="logs" stripe v-loading="loading">
-        <el-table-column prop="action" label="操作类型" width="100">
+        <el-table-column label="操作" width="120">
           <template #default="{ row }">
             <el-tag :type="getActionTagType(row.action)" size="small">
               {{ getActionLabel(row.action) }}
             </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="module" label="模块" width="120">
-          <template #default="{ row }">
-            <el-tag type="info" size="small">{{ getModuleLabel(row.module) }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="result" label="结果" width="80">
-          <template #default="{ row }">
-            <el-tag :type="row.result === 'success' ? 'success' : 'danger'" size="small">
+            <el-tag :type="row.result === 'success' ? 'success' : 'danger'" size="small" style="margin-left: 4px">
               {{ row.result === 'success' ? '成功' : '失败' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="message" label="消息" min-width="250" show-overflow-tooltip />
-        <el-table-column label="详情" width="100">
+        <el-table-column prop="module" label="模块" width="100">
           <template #default="{ row }">
-            <el-button v-if="row.details" link type="primary" @click="showDetails(row.details)">
-              查看详情
-            </el-button>
-            <span v-else>-</span>
+            <el-tag type="info" size="small">{{ getModuleLabel(row.module) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="操作时间" width="180">
+        <el-table-column label="消息" min-width="300" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span>{{ row.message }}</span>
+            <el-button v-if="row.details" link type="primary" size="small" style="margin-left: 8px" @click="showDetails(row.details)">
+              详情
+            </el-button>
+          </template>
+        </el-table-column>
+        <el-table-column prop="createdAt" label="时间" width="170">
           <template #default="{ row }">
             {{ formatDateTime(row.createdAt) }}
           </template>

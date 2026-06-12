@@ -35,18 +35,18 @@
       <el-table :data="filteredlist" stripe v-loading="loading" @selection-change="handleSelectionChange">
         <el-table-column type="selection" width="45" />
         <el-table-column type="index" label="序号" width="60" />
-        <el-table-column prop="title" label="书名" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="title" label="书名" min-width="150" show-overflow-tooltip />
         <el-table-column prop="isbn" label="书号" min-width="120" show-overflow-tooltip />
         <el-table-column prop="publisher" label="出版社" min-width="120" show-overflow-tooltip />
         <el-table-column prop="author" label="作者" min-width="80" show-overflow-tooltip />
-        <el-table-column prop="edition" label="版次" width="70" />
-        <el-table-column label="出版日期" width="100">
+        <el-table-column prop="edition" label="版次" min-width="55" />
+        <el-table-column label="出版日期" min-width="85">
           <template #default="{ row }">{{ row.publishDate || '-' }}</template>
         </el-table-column>
-        <el-table-column label="定价" width="80">
+        <el-table-column label="定价" min-width="65">
           <template #default="{ row }">{{ row.price ? '¥' + row.price : '-' }}</template>
         </el-table-column>
-        <el-table-column label="类别" width="80">
+        <el-table-column label="类别" min-width="65">
           <template #default="{ row }">
             <el-tag v-if="row.category" :type="row.category === '技工' ? 'primary' : 'info'" size="small">
               {{ row.category }}
@@ -54,7 +54,7 @@
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="80">
+        <el-table-column label="状态" min-width="65">
           <template #default="{ row }">
             <el-tag :type="row.isActive ? 'success' : 'info'" size="small">
               {{ row.isActive ? '启用' : '停用' }}
