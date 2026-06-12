@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
+import { roleMiddleware } from '../middleware/auth.middleware.js';
 import { getCurrentSemesterInfo } from '../services/settings.service.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { validatePagination } from '../middleware/pagination.js';
@@ -280,7 +281,7 @@ router.get('/', validatePagination(100), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/', async (req, res, next) => {
+router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { name, enrollment_year, duration_years, major_id, college_id, training_level_id, student_count, custom_plan_id, is_left_school } = req.body;
     if (!name || !enrollment_year || !duration_years || !training_level_id) {
@@ -338,7 +339,7 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, enrollment_year, duration_years, major_id, college_id, training_level_id, student_count, custom_plan_id, is_left_school } = req.body;
@@ -403,7 +404,7 @@ router.put('/:id', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     try {

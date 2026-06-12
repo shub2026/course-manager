@@ -116,7 +116,7 @@ router.get('/:id', async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/', async (req, res, next) => {
+router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { name, college_id, major_id, training_level_id, version, description } = req.body;
     if (!name) return fail(res, '方案名称为必填项');
@@ -186,7 +186,7 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, college_id, major_id, training_level_id, version, description, sort_order } = req.body;
@@ -291,7 +291,7 @@ router.put('/:id', async (req, res, next) => {
   }
 });
 
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params;
     const classCount = await prisma.classes.count({ where: { custom_plan_id: Number(id) } });
