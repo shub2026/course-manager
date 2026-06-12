@@ -44,8 +44,8 @@
 | **C1** | JWT 密钥明文存储于 `.env` | `server/.env` | ✅ **已修复** | `.gitignore` 已排除 `.env`，密钥不会被提交。建议生产环境使用 Docker secrets 或系统环境变量注入 |
 | **C2** | 登录接口无速率限制 | `server/src/routes/auth.routes.js` | ✅ **已修复** | 已添加 `loginLimiter`（10次/15分钟），refresh 接口（30次/15分钟）和修改密码接口（5次/15分钟）均已限制 |
 | **C3** | Token 支持 URL 查询参数传递 | `server/src/middleware/auth.middleware.js` | ✅ **已修复** | 已移除通用 `req.query.token`，仅保留短期 `downloadToken`（60s有效），风险可控 |
-| **C4** | 班级 POST/PUT/DELETE 缺少角色权限校验 | `server/src/routes/class.routes.js:283,341,406` | ❌ **未修复** | 任何已登录用户（含 viewer）可创建/修改/删除班级。`app.js` 注释标注需 admin 权限但代码未实现 |
-| **C5** | 培养方案 POST/PUT/DELETE 缺少角色权限校验 | `server/src/routes/plan.routes.js:119,189,294` | ❌ **未修复** | 顶级方案路由缺少角色校验，而子路由（课程明细）已正确添加 `roleMiddleware('admin', 'super_admin')`，属不一致遗漏 |
+| **C4** | 班级 POST/PUT/DELETE 缺少角色权限校验 | `server/src/routes/class.routes.js:285,343,408` | ✅ **已修复** | 已添加 `roleMiddleware('admin', 'super_admin')` 到所有写操作路由 |
+| **C5** | 培养方案 POST/PUT/DELETE 缺少角色权限校验 | `server/src/routes/plan.routes.js:120,190,295` | ✅ **已修复** | 已添加 `roleMiddleware('admin', 'super_admin')` 到顶级方案路由，与子路由保持一致 |
 
 ### 🟠 高危（8 项）
 
@@ -65,7 +65,7 @@
 | 编号 | 问题 | 状态 | 详情 |
 |------|------|------|------|
 | **M1** | 路由错误处理模式不一致（3 种方式） | ❌ 未修复 | 模式A-直接fail()（auth/user），模式B-next(e)（audit），模式C-嵌套try/catch+next(e)（其余12个路由） |
-| **M2** | 审计日志记录方式不一致 | ⚠️ 部分改善 | 仍直接调用 `createAuditLog()`，details 格式不统一（对象/JSON字符串/纯字符串混用），部分操作漏记（PUT排序、download-token等） |
+| **M2** | 审计日志记录方式不一致 | ✅ **已修复** | 统一 details 字段为标准对象格式（19处），补充 download-token 审计日志 |
 | **M3** | 学期参数解析逻辑重复 6 次 | ❌ 未修复 | 相同的 `split('-')` + `Number()` + `isNaN` 校验模式在 export.routes、query.routes、settings.service 中重复 6 次 |
 | **M4** | 方案匹配逻辑重复实现 | ❌ 未修复 | `findBestMatchPlan()` 在 2 处重复，`isClassMatchPlan()` 在 3 处重复，逻辑完全一致 |
 | **M5** | GET 请求中执行写操作（排序自动修复） | ❌ 未修复 | 7 处 GET 路由包含 `sort_order` 自动修复的 `prisma.update` 操作（college/major/course/textbook/trainingLevel/plan×2） |
@@ -152,7 +152,7 @@
 
 ### ⚠️ 需改进
 
-1. **权限校验不完整**：class 和 plan 的写操作缺少角色中间件（C4/C5）
+1. **权限校验不完整**：C4/C5 已修复，但其他路由的细粒度权限控制仍需加强
 2. **大量死代码**：错误类（6个）、Winston 日志配置、验证器等已定义但从未集成
 3. **日志系统虚设**：Winston 已配置但全项目 54 处 console 输出无一使用 logger
 4. **导入操作非事务性**：大数据量导入缺乏原子性保证
@@ -205,7 +205,7 @@
 
 | 维度 | 严重 | 高危 | 中危 | 低危 | 合计 |
 |------|------|------|------|------|------|
-| 后端安全 | 5（3已修复） | 8 | 12 | 12 | 37 |
+| 后端安全 | 5（5已修复） | 8 | 12（1已修复） | 12 | 37 |
 | 前端代码 | 3 | 6 | 9（1已修复） | 10 | 28 |
 | 脚本工具 | 1 | 0 | 0 | 0 | 1 |
 | **总计** | **9** | **14** | **21** | **22** | **66** |
@@ -214,18 +214,18 @@
 
 | 状态 | 数量 | 占比 | 编号 |
 |------|------|------|------|
-| ✅ 已修复 | 4 | 6.1% | C1, C2, C3, sortOrder 命名 |
-| ⚠️ 部分修复 | 4 | 6.1% | FC2, FH6, M2, M6 |
-| ❌ 未修复 | 58 | 87.9% | 其余各项 |
+| ✅ 已修复 | 7 | 10.6% | C1, C2, C3, C4, C5, sortOrder 命名, M2 |
+| ⚠️ 部分修复 | 3 | 4.5% | FC2, FH6, M6 |
+| ❌ 未修复 | 56 | 84.9% | 其余各项 |
 
 ### 与上次报告对比（2026-06-11 → 2026-06-12）
 
 | 变化 | 详情 |
 |------|------|
-| 已修复项（4项） | C1（.gitignore排除.env）、C2（速率限制）、C3（downloadToken替代通用query token）、sortOrder命名统一 |
-| 部分修复项（4项） | FC2（改用downloadToken但仍URL传递）、FH6（限DEV环境但密码硬编码）、M2（仍有不一致）、M6（部分兜底） |
+| 已修复项（7项） | C1（.gitignore排除.env）、C2（速率限制）、C3（downloadToken替代通用query token）、**C4（班级权限校验）**、**C5（培养方案权限校验）**、sortOrder命名统一、M2（审计日志details格式统一+补充download-token日志） |
+| 部分修复项（3项） | FC2（改用downloadToken但仍URL传递）、FH6（限DEV环境但密码硬编码）、M6（部分兜底） |
 | 新增发现 | `update-class-status.js` 脚本致命 Bug（模型名+字段名双重错误） |
-| 未变化 | C4, C5, H1-H8, M1, M3-M5, M7-M12, FC1, FC3, FH1-FH5 等均未修复 |
+| 未变化 | H1-H8, M1, M3-M5, M7-M12, FC1, FC3, FH1-FH5 等均未修复 |
 
 ---
 
@@ -233,11 +233,11 @@
 
 KEC 课程管理平台是一个**架构设计良好、功能完整**的教学管理系统，技术选型合理，代码组织清晰。经过 91 次提交迭代，项目功能日趋完善。
 
-自上次报告以来，项目已修复 **3 项严重安全问题**（JWT 密钥保护、登录速率限制、Token URL 泄露）和 **1 项命名一致性问题**，修复进度为 6.1%。但仍有 **58 项问题未修复**，其中 2 项严重级别（C4/C5 权限校验缺失）和 8 项高危级别需要优先处理。
+自上次报告以来，项目已修复 **5 项严重安全问题**（JWT 密钥保护、登录速率限制、Token URL 泄露、**班级权限校验**、**培养方案权限校验**）和 **2 项中危问题**（sortOrder命名统一、审计日志details格式统一），修复进度为 10.6%。但仍有 **56 项问题未修复**，其中 8 项高危级别需要优先处理。
 
-**最紧迫的问题**仍然是：
+**最紧迫的问题**现在是：
 
-1. **class 和 plan 路由的写操作缺少角色权限校验**（C4/C5）— 修复成本 0.5h，但影响面最广
+1. **H1-H8 高危问题** — 特别是错误处理器信息泄露（H1）、自定义错误类未使用（H2）、密码强度校验缺失（H3/H4）等
 2. **update-class-status.js 脚本完全无法运行** — 修复成本 0.2h
 3. **UserManagement 字段命名 Bug 导致功能异常** — 修复成本 0.5h
 

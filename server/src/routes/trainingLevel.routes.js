@@ -87,8 +87,6 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
     if (code !== undefined) data.code = code;
     if (description !== undefined) data.description = description;
     if (sort_order !== undefined) data.sort_order = Number(sort_order);
-    console.log('[DEBUG trainingLevel PUT] req.body:', JSON.stringify(req.body));
-    console.log('[DEBUG trainingLevel PUT] data:', JSON.stringify(data));
     try {
       const level = await prisma.training_levels.update({
         where: { id: Number(id) },

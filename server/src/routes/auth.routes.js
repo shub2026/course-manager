@@ -107,6 +107,17 @@ router.get('/me', authMiddleware, async (req, res, next) => {
 router.post('/download-token', authMiddleware, async (req, res, next) => {
   try {
     const downloadToken = AuthService.generateDownloadToken(req.user)
+    
+    await createAuditLog({
+      action: 'generate_token',
+      module: 'auth',
+      userId: req.user.id,
+      ip: req.ip,
+      details: { username: req.user.username, token_type: 'download' },
+      result: 'success',
+      message: `${req.user.username} 生成下载令牌`,
+    })
+    
     success(res, { downloadToken })
   } catch (error) {
     next(error)

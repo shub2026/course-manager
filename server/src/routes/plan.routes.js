@@ -169,7 +169,7 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
       userId: req.user?.id,
       ip: req.ip,
       result: 'success',
-      details: JSON.stringify(logDetails),
+      details: logDetails,
       message: `创建培养方案：${plan.name}${plan.colleges?.name ? `（使用部门：${plan.colleges.name}）` : ''}`,
     });
     
@@ -181,7 +181,7 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
       userId: req.user?.id,
       ip: req.ip,
       result: 'failed',
-      details: `创建培养方案失败: ${e.message}`,
+      details: { error: e.message },
     });
     next(e);
   }
@@ -270,7 +270,7 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
         userId: req.user?.id,
         ip: req.ip,
         result: 'success',
-        details: JSON.stringify(changes),
+        details: changes,
         message: `更新培养方案：${plan.name}${plan.colleges?.name ? `（使用部门：${plan.colleges.name}）` : ''}`,
       });
       
@@ -286,7 +286,7 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
       userId: req.user?.id,
       ip: req.ip,
       result: 'failed',
-      details: `更新培养方案失败: ${e.message}`,
+      details: { error: e.message },
     });
     next(e);
   }
@@ -306,7 +306,7 @@ router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, n
         userId: req.user?.id,
         ip: req.ip,
         result: 'success',
-        details: `删除培养方案 ID: ${id}`,
+        details: { plan_id: Number(id) },
       });
       
       success(res, null, '删除成功');
@@ -321,7 +321,7 @@ router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, n
       userId: req.user?.id,
       ip: req.ip,
       result: 'failed',
-      details: `删除培养方案失败: ${e.message}`,
+      details: { error: e.message },
     });
     next(e);
   }
@@ -434,7 +434,7 @@ router.post('/:id/courses', roleMiddleware('admin', 'super_admin'), async (req, 
       ip: req.ip,
       result: 'success',
       message: '为培养方案添加课程',
-      details: `为培养方案添加课程 ID: ${pc.course_id}`,
+      details: { course_id: pc.course_id },
     });
     
     success(res, pc, '添加成功');
@@ -446,7 +446,7 @@ router.post('/:id/courses', roleMiddleware('admin', 'super_admin'), async (req, 
       ip: req.ip,
       result: 'failed',
       message: '为培养方案添加课程失败',
-      details: `为培养方案添加课程失败: ${e.message}`,
+      details: { error: e.message },
     });
     // 如果是唯一约束冲突,返回友好提示
     if (e.code === 'P2002') {
@@ -521,7 +521,7 @@ router.put('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req, r
       ip: req.ip,
       result: 'success',
       message: '更新培养方案课程',
-      details: `更新培养方案课程 ID: ${pc.id}`,
+      details: { course_id: pc.id },
     });
     
     success(res, pc, '更新成功');
@@ -533,7 +533,7 @@ router.put('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req, r
       ip: req.ip,
       result: 'failed',
       message: '更新培养方案课程失败',
-      details: `更新培养方案课程失败: ${e.message}`,
+      details: { error: e.message },
     });
     if (e.code === 'P2025') return fail(res, '方案课程不存在', 404);
     next(e);
@@ -553,7 +553,7 @@ router.delete('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req
         ip: req.ip,
         result: 'success',
         message: '删除培养方案课程',
-        details: `删除培养方案课程 ID: ${id}`,
+        details: { course_id: Number(id) },
       });
       
       success(res, null, '删除成功');
@@ -569,7 +569,7 @@ router.delete('/courses/:id', roleMiddleware('admin', 'super_admin'), async (req
       ip: req.ip,
       result: 'failed',
       message: '删除培养方案课程失败',
-      details: `删除培养方案课程失败: ${e.message}`,
+      details: { error: e.message },
     });
     next(e);
   }
@@ -626,7 +626,7 @@ router.post('/:planId/courses/:courseId/semesters', roleMiddleware('admin', 'sup
       ip: req.ip,
       result: 'success',
       message: '添加学期安排',
-      details: `为课程 ID: ${courseId} 添加学期 ${semester} 安排`,
+      details: { course_id: Number(courseId), semester },
     });
     
     success(res, sem, '创建成功');
@@ -638,7 +638,7 @@ router.post('/:planId/courses/:courseId/semesters', roleMiddleware('admin', 'sup
       ip: req.ip,
       result: 'failed',
       message: '添加学期安排失败',
-      details: `添加学期安排失败: ${e.message}`,
+      details: { error: e.message },
     });
     next(e);
   }
@@ -664,7 +664,7 @@ router.put('/semesters/:id', roleMiddleware('admin', 'super_admin'), async (req,
       ip: req.ip,
       result: 'success',
       message: '更新学期安排',
-      details: `更新学期安排 ID: ${id}`,
+      details: { semester_id: Number(id) },
     });
     
     success(res, sem, '更新成功');
@@ -676,7 +676,7 @@ router.put('/semesters/:id', roleMiddleware('admin', 'super_admin'), async (req,
       ip: req.ip,
       result: 'failed',
       message: '更新学期安排失败',
-      details: `更新学期安排失败: ${e.message}`,
+      details: { error: e.message },
     });
     if (e.code === 'P2025') return fail(res, '学期记录不存在', 404);
     next(e);
@@ -743,7 +743,7 @@ router.post('/semesters/:id/textbooks', roleMiddleware('admin', 'super_admin'), 
       ip: req.ip,
       result: 'success',
       message: '添加教材',
-      details: `为学期 ID: ${id} 添加教材 ID: ${textbook_id}`,
+      details: { semester_id: Number(id), textbook_id: Number(textbook_id) },
     });
     
     success(res, pt, '关联成功');
@@ -755,7 +755,7 @@ router.post('/semesters/:id/textbooks', roleMiddleware('admin', 'super_admin'), 
       ip: req.ip,
       result: 'failed',
       message: '添加教材失败',
-      details: `添加教材失败: ${e.message}`,
+      details: { error: e.message },
     });
     next(e);
   }
@@ -775,7 +775,7 @@ router.delete('/semesters/:id/textbooks', roleMiddleware('admin', 'super_admin')
       ip: req.ip,
       result: 'success',
       message: '删除教材',
-      details: `删除学期 ID: ${id} 的教材`,
+      details: { semester_id: Number(id) },
     });
     
     success(res, null, '取消关联成功');
@@ -787,7 +787,7 @@ router.delete('/semesters/:id/textbooks', roleMiddleware('admin', 'super_admin')
       ip: req.ip,
       result: 'failed',
       message: '删除教材失败',
-      details: `删除教材失败: ${e.message}`,
+      details: { error: e.message },
     });
     next(e);
   }
@@ -806,7 +806,7 @@ router.delete('/textbooks/:id', roleMiddleware('admin', 'super_admin'), async (r
         ip: req.ip,
         result: 'success',
         message: '删除培养方案教材',
-        details: `删除培养方案教材 ID: ${id}`,
+        details: { id: Number(id) },
       });
       
       success(res, null, '取消关联成功');
@@ -822,7 +822,7 @@ router.delete('/textbooks/:id', roleMiddleware('admin', 'super_admin'), async (r
       ip: req.ip,
       result: 'failed',
       message: '删除培养方案教材失败',
-      details: `删除培养方案教材失败: ${e.message}`,
+      details: { error: e.message },
     });
     next(e);
   }

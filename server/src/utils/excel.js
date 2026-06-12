@@ -73,7 +73,6 @@ export async function readWorkbook(filePath) {
         // 去除开头的 * 号
         headers[colNum - 1] = headerValue.startsWith('*') ? headerValue.substring(1).trim() : headerValue;
       });
-      console.log('[Excel读取] 表头:', headers);
     } else {
       const obj = {};
       
@@ -89,13 +88,11 @@ export async function readWorkbook(filePath) {
       // 只添加非空行（至少有一个有效字段）
       const hasValidData = Object.values(obj).some(v => v !== null && v !== '');
       if (hasValidData) {
-        console.log(`[Excel读取] 第${rowNum}行数据:`, obj);
         rows.push(obj);
       }
     }
   });
 
-  console.log(`[Excel读取] 总共读取 ${rows.length} 行数据`);
   return rows;
 }
 

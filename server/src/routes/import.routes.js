@@ -25,37 +25,17 @@ function cleanupFile(path) {
 }
 
 // POST /api/import/classes - 批量导入班级
-router.post('/classes', (req, res, next) => {
-  console.log('[班级导入] 中间件进入:', {
-    method: req.method,
-    url: req.url,
-    contentType: req.headers['content-type'],
-    authorization: req.headers['authorization'] ? 'present' : 'missing'
-  });
-  next();
-}, upload.single('file'), async (req, res, next) => {
-  console.log('[班级导入] 请求收到:', {
-    hasFile: !!req.file,
-    file: req.file ? { originalname: req.file.originalname, mimetype: req.file.mimetype, size: req.file.size } : null,
-    user: req.user ? { id: req.user.id, username: req.user.username, role: req.user.role } : null
-  });
-  
+router.post('/classes', upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) {
-      console.error('[班级导入] 错误: 没有接收到文件');
       return fail(res, '请上传文件');
     }
     
-    console.log('[班级导入] 开始读取Excel文件:', req.file.path);
     const rows = await readWorkbook(req.file.path);
-    console.log('[班级导入] Excel读取完成,行数:', rows.length, '前3行示例:', rows.slice(0, 3));
-    console.log('[班级导入] Excel读取完成,行数:', rows.length);
     cleanupFile(req.file.path);
     const errors = [];
     let imported = 0;
     let overwritten = 0;
-
-    console.log('[班级导入] 读取到', rows.length, '行数据');
 
     // 预加载现有数据
     let majors = await prisma.majors.findMany();
@@ -86,18 +66,6 @@ router.post('/classes', (req, res, next) => {
       const studentCount = row['班级人数'];
       const statusValue = row['状态'];
 
-      console.log(`[班级导入] 第${i + 2}行原始数据:`, JSON.stringify(row));
-      console.log(`[班级导入] 第${i + 2}行解析结果:`, { 
-        name, 
-        enrollmentYear: `[${typeof enrollmentYear}]${enrollmentYear}`, 
-        durationYears: `[${typeof durationYears}]${durationYears}`, 
-        majorName, 
-        collegeName, 
-        trainingLevelName, 
-        studentCount: `[${typeof studentCount}]${studentCount}`, 
-        statusValue 
-      });
-
       if (!name || !enrollmentYear || !durationYears || !trainingLevelName) {
         errors.push(`第${i + 2}行：缺少必填字段（班级名称、入学年份、学制、培养层次）`);
         continue;
@@ -118,7 +86,6 @@ router.post('/classes', (req, res, next) => {
           trainingLevelId = newLevel.id;
           levelMap[trainingLevelName] = trainingLevelId;
           autoCreatedLevels++;
-          console.log(`[班级导入] 自动创建培养层次: "${trainingLevelName}" (ID: ${trainingLevelId})`);
         } catch (e) {
           // 可能是唯一约束冲突（并发情况），重新查询
           const existingLevel = await prisma.training_levels.findUnique({
@@ -153,7 +120,6 @@ router.post('/classes', (req, res, next) => {
           majorId = newMajor.id;
           majorMap[majorName] = majorId;
           autoCreatedMajors++;
-          console.log(`[班级导入] 自动创建专业: "${majorName}" (ID: ${majorId})`);
         } catch (e) {
           // 可能是唯一约束冲突（并发情况），重新查询
           const existingMajor = await prisma.majors.findFirst({
@@ -162,8 +128,6 @@ router.post('/classes', (req, res, next) => {
           if (existingMajor) {
             majorId = existingMajor.id;
             majorMap[majorName] = majorId;
-          } else {
-            console.warn(`[班级导入] 第${i + 2}行：创建专业"${majorName}"失败，将忽略`);
           }
         }
       }
@@ -183,7 +147,6 @@ router.post('/classes', (req, res, next) => {
           collegeId = newCollege.id;
           collegeMap[collegeName] = collegeId;
           autoCreatedColleges++;
-          console.log(`[班级导入] 自动创建学院: "${collegeName}" (ID: ${collegeId})`);
         } catch (e) {
           // 可能是唯一约束冲突（并发情况），重新查询
           const existingCollege = await prisma.colleges.findUnique({
@@ -192,8 +155,6 @@ router.post('/classes', (req, res, next) => {
           if (existingCollege) {
             collegeId = existingCollege.id;
             collegeMap[collegeName] = collegeId;
-          } else {
-            console.warn(`[班级导入] 第${i + 2}行：创建学院"${collegeName}"失败，将忽略`);
           }
         }
       }
@@ -241,7 +202,6 @@ router.post('/classes', (req, res, next) => {
             data: updateData,
           });
           overwritten++;
-          console.log(`[班级导入] 第${i + 2}行: 覆盖更新 "${name}"`);
           continue;
         }
 
@@ -263,7 +223,6 @@ router.post('/classes', (req, res, next) => {
           data: classData,
         });
         imported++;
-        console.log(`[班级导入] 第${i + 2}行: 导入成功`);
       } catch (e) {
         const errorMsg = e.message || '未知错误';
         errors.push(`第${i + 2}行：${errorMsg}`);
@@ -289,8 +248,6 @@ router.post('/classes', (req, res, next) => {
     if (autoCreatedLevels > 0 || autoCreatedMajors > 0 || autoCreatedColleges > 0) {
       message += `（自动创建：${autoCreatedLevels}个层次、${autoCreatedMajors}个专业、${autoCreatedColleges}个学院）`;
     }
-
-    console.log('[班级导入] 结果:', result);
 
     // 记录操作日志
     await createAuditLog({
@@ -341,16 +298,12 @@ router.post('/courses', upload.single('file'), async (req, res, next) => {
     let imported = 0;
     let overwritten = 0;
 
-    console.log('[课程导入] 读取到', rows.length, '行数据');
-
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const name = row['课程名称'];
       const code = row['课程编码'] || null;
       const typeValue = row['课程类型'];
       const type = typeValue === '专业课' ? 'professional' : 'public';
-
-      console.log(`[课程导入] 第${i + 2}行:`, { name, code, type, typeValue });
 
       if (!name) {
         errors.push(`第${i + 2}行：缺少课程名称`);
@@ -374,7 +327,6 @@ router.post('/courses', upload.single('file'), async (req, res, next) => {
             },
           });
           overwritten++;
-          console.log(`[课程导入] 第${i + 2}行: 覆盖更新 "${name}"`);
           continue;
         }
 
@@ -387,7 +339,6 @@ router.post('/courses', upload.single('file'), async (req, res, next) => {
           },
         });
         imported++;
-        console.log(`[课程导入] 第${i + 2}行: 导入成功`);
       } catch (e) {
         const errorMsg = e.message || '未知错误';
         errors.push(`第${i + 2}行：${errorMsg}`);
@@ -405,8 +356,6 @@ router.post('/courses', upload.single('file'), async (req, res, next) => {
     let message = `导入完成：新增${imported}条`;
     if (overwritten > 0) message += `，覆盖${overwritten}条`;
     if (errors.length > 0) message += `，失败${errors.length}条`;
-
-    console.log('[课程导入] 结果:', result);
 
     // 记录操作日志
     await createAuditLog({
@@ -451,8 +400,6 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
     let imported = 0;
     let overwritten = 0;
 
-    console.log('[教材导入] 读取到', rows.length, '行数据');
-
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       const title = row['书名'];
@@ -463,8 +410,6 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
       const publish_date = row['出版日期'] || null;
       const price = row['定价'] ? Number(row['定价']) : null;
       const category = row['类别'] || null;
-
-      console.log(`[教材导入] 第${i + 2}行:`, { title, isbn, publisher, author, edition, publish_date, price, category });
 
       if (!title) {
         errors.push(`第${i + 2}行：缺少书名`);
@@ -493,7 +438,6 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
             },
           });
           overwritten++;
-          console.log(`[教材导入] 第${i + 2}行: 覆盖更新 "${title}"`);
           continue;
         }
 
@@ -511,7 +455,6 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
           },
         });
         imported++;
-        console.log(`[教材导入] 第${i + 2}行: 导入成功`);
       } catch (e) {
         const errorMsg = e.message || '未知错误';
         errors.push(`第${i + 2}行：${errorMsg}`);
@@ -529,8 +472,6 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
     let message = `导入完成：新增${imported}条`;
     if (overwritten > 0) message += `，覆盖${overwritten}条`;
     if (errors.length > 0) message += `，失败${errors.length}条`;
-
-    console.log('[教材导入] 结果:', result);
 
     // 记录操作日志
     await createAuditLog({
