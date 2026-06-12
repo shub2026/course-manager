@@ -5,9 +5,9 @@
 **面向教学管理人员的轻量级课程管理系统**
 
 [![Node](https://img.shields.io/badge/node-%3E%3D18.0-green.svg)](https://nodejs.org/)
-[![Vue](https://img.shields.io/badge/vue-3.x-brightgreen.svg)](https://vuejs.org/)
-[![Express](https://img.shields.io/badge/express-5.x-blue.svg)](https://expressjs.com/)
-[![Prisma](https://img.shields.io/badge/prisma-6.x-blue.svg)](https://www.prisma.io/)
+[![Vue](https://img.shields.io/badge/vue-3.5+-brightgreen.svg)](https://vuejs.org/)
+[![Express](https://img.shields.io/badge/express-5.1+-blue.svg)](https://expressjs.com/)
+[![Prisma](https://img.shields.io/badge/prisma-6.19+-blue.svg)](https://www.prisma.io/)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
 一站式教学管理解决方案 · 前后端分离架构 · 开箱即用
@@ -58,11 +58,13 @@ KEC（Knowledge Education Course）课程管理平台是一套专为中小型教
 - **方案制定**：按专业或培养层次制定培养方案，支持多版本管理
 - **课程矩阵**：可视化编辑界面，直观展示课程-学期分布
 - **特殊方案**：支持为特殊班级单独指定自定义培养方案
+- **历史查询**：支持查询历史学期的培养方案和开课情况
 
 ### 📈 查询与统计
 
 - **开课查询**：按学期自动查询开课情况，支持多维度筛选
 - **教材统计**：教材使用情况统计，一键导出 Excel 报表
+- **历史数据**：支持查询历史学期的开课和教材使用情况
 - **审计日志**：全操作链路记录，支持查询和导出，便于安全审计
 
 ### 📤 数据导入导出
@@ -81,7 +83,7 @@ KEC（Knowledge Education Course）课程管理平台是一套专为中小型教
 前端                          后端                        数据库
 ┌──────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │ Vue 3.5+     │    │ Express 5.1+     │    │ SQLite (开发)   │
-│ Element Plus │◄──►│ Prisma 6.10+     │◄──►│ MySQL (生产)    │
+│ Element Plus │◄──►│ Prisma 6.19+     │◄──►│ MySQL (生产)    │
 │ Pinia 3.0+   │    │ JWT 9.0+         │    └─────────────────┘
 │ Vite 5.4+    │    │ Winston 3.19+    │
 └──────────────┘    └──────────────────┘
@@ -93,14 +95,22 @@ KEC（Knowledge Education Course）课程管理平台是一套专为中小型教
 |------|------|------|------|
 | **前端框架** | Vue 3 | 3.5+ | Composition API + `<script setup>` |
 | **UI 组件** | Element Plus | 2.14+ | 企业级组件库，中文国际化 |
+| **图标库** | Element Plus Icons | 2.3+ | 丰富的图标资源 |
 | **构建工具** | Vite | 5.4+ | 极速 HMR，秒级热更新 |
 | **状态管理** | Pinia | 3.0+ | Vue 3 官方推荐，类型安全 |
+| **路由** | Vue Router | 4.6+ | 前端路由管理 |
 | **HTTP 客户端** | Axios | 1.17+ | 请求拦截器，Token 自动刷新 |
+| **排序** | SortableJS | 1.15+ | 拖拽排序功能 |
 | **后端框架** | Express | 5.1+ | 轻量级，中间件生态丰富 |
-| **ORM** | Prisma | 6.10+ | 类型安全，Schema 驱动开发 |
+| **ORM** | Prisma | 6.19+ | 类型安全，Schema 驱动开发 |
 | **认证** | JWT | 9.0+ | Access + Refresh Token 双令牌 |
+| **密码加密** | bcryptjs | 3.0+ | 安全的密码哈希存储 |
 | **日志** | Winston | 3.19+ | 结构化日志，文件滚动存储 |
 | **Excel** | ExcelJS | 4.4+ | 纯 JS 实现，无系统依赖 |
+| **文件上传** | Multer | 2.0+ |  multipart/form-data 处理 |
+| **参数校验** | express-validator | 7.3+ | 请求参数验证 |
+| **速率限制** | express-rate-limit | 8.5+ | API 限流保护 |
+| **跨域** | CORS | 2.8+ | 跨域资源共享配置 |
 
 ### 系统架构
 
@@ -117,7 +127,7 @@ KEC（Knowledge Education Course）课程管理平台是一套专为中小型教
 │                  Express 后端服务                       │
 │  ┌────────┐  ┌──────────┐  ┌────────┐  ┌───────────┐  │
 │  │ 路由层  │→│ 中间件链  │→│ 业务层  │→│ 数据访问层 │  │
-│  │14个模块│  │认证/审计  │  │Service │  │Prisma ORM │  │
+│  │15个模块│  │认证/审计  │  │Service │  │Prisma ORM │  │
 │  └────────┘  └──────────┘  └────────┘  └───────────┘  │
 └────────────────────────┬──────────────────────────────┘
                          │ Prisma Client
@@ -152,7 +162,7 @@ cd kec-manager
 ### 2️⃣ 安装依赖
 
 ```bash
-# 安装根目录依赖
+# 安装根目录依赖（包含 concurrently 用于同时启动）
 npm install
 
 # 安装后端依赖
@@ -192,7 +202,7 @@ cd ..
 | 密码 | `admin@123456` |
 | 角色 | `super_admin` |
 
-> ⚠️ **重要**：首次登录后请立即修改默认密码！
+> ⚠️ **重要**：首次登录后请立即修改默认密码！详细登录指南参见 [LOGIN_GUIDE.md](LOGIN_GUIDE.md)
 
 **种子数据安全特性**：
 - ✅ 智能检查：只在不存在时创建 admin，不会覆盖已有账号
@@ -224,11 +234,21 @@ npm run dev:client
 
 | 地址 | 说明 |
 |------|------|
-| http://localhost:5173 | 前端管理界面 |
+| http://localhost:5173 | 前端管理界面（如端口被占用，Vite 会自动选择其他端口） |
 | http://localhost:3000 | 后端 API 服务 |
 | http://localhost:3000/api/health | 健康检查接口 |
 
 使用 admin 账号登录系统。
+
+**默认管理员账号**：
+
+| 字段 | 值 |
+|------|-----|
+| 用户名 | `admin` |
+| 密码 | `admin@123456` |
+| 角色 | `super_admin` |
+
+> ⚠️ **重要**：首次登录后请立即修改默认密码！详细登录指南参见 [LOGIN_GUIDE.md](LOGIN_GUIDE.md)
 
 ### 7️⃣ 导入基础数据
 
@@ -252,12 +272,15 @@ kec-manager/
 │   ├── src/
 │   │   ├── api/                 # API 接口封装（15个模块）
 │   │   │   ├── audit.js         # 审计日志 API
+│   │   │   ├── auth.js          # 认证 API
 │   │   │   ├── class.js         # 班级管理 API
 │   │   │   ├── college.js       # 学院管理 API
 │   │   │   ├── course.js        # 课程管理 API
 │   │   │   ├── major.js         # 专业管理 API
 │   │   │   ├── plan.js          # 培养方案 API
 │   │   │   ├── textbook.js      # 教材管理 API
+│   │   │   ├── trainingLevel.js # 培养层次 API
+│   │   │   ├── user.js          # 用户管理 API
 │   │   │   └── ...              # 其他业务模块
 │   │   ├── components/          # 公共组件
 │   │   ├── router/              # 路由配置
@@ -267,7 +290,17 @@ kec-manager/
 │   │   ├── utils/               # 工具函数
 │   │   │   ├── request.js       # Axios 封装
 │   │   │   └── cache.js         # 缓存工具
-│   │   ├── views/               # 页面组件
+│   │   ├── views/               # 页面组件（18个页面）
+│   │   │   ├── Login.vue        # 登录页
+│   │   │   ├── Dashboard.vue    # 仪表盘
+│   │   │   ├── NotFound.vue     # 404页面
+│   │   │   ├── basicData/       # 基础数据管理
+│   │   │   ├── class/           # 班级管理
+│   │   │   ├── course/          # 课程管理
+│   │   │   ├── textbook/        # 教材管理
+│   │   │   ├── plan/            # 培养方案
+│   │   │   ├── query/           # 查询统计
+│   │   │   └── system/          # 系统管理
 │   │   ├── App.vue              # 根组件
 │   │   └── main.js              # 入口文件
 │   ├── index.html               # HTML 模板
@@ -281,7 +314,7 @@ kec-manager/
 │   │   ├── seed.js              # 种子数据脚本
 │   │   └── SEED_USAGE.md        # 种子数据使用指南
 │   ├── src/
-│   │   ├── routes/              # API 路由（14个模块）
+│   │   ├── routes/              # API 路由（15个模块）
 │   │   │   ├── auth.routes.js   # 认证路由
 │   │   │   ├── user.routes.js   # 用户管理
 │   │   │   ├── class.routes.js  # 班级管理
@@ -289,6 +322,7 @@ kec-manager/
 │   │   │   ├── plan.routes.js   # 培养方案
 │   │   │   ├── export.routes.js # 数据导出
 │   │   │   ├── import.routes.js # 数据导入
+│   │   │   ├── audit.routes.js  # 审计日志
 │   │   │   └── ...              # 其他业务路由
 │   │   ├── services/            # 业务逻辑层
 │   │   ├── middleware/          # 中间件
@@ -298,6 +332,7 @@ kec-manager/
 │   │   │   └── error.js         # 错误处理
 │   │   ├── config/              # 配置文件
 │   │   ├── utils/               # 工具函数
+│   │   │   └── response.js      # 统一响应格式
 │   │   ├── lib/                 # 第三方库封装
 │   │   ├── app.js               # Express 应用
 │   │   └── server.js            # 服务入口
@@ -308,8 +343,10 @@ kec-manager/
 │
 ├── docs/                        # 项目文档
 │   ├── semester-calculation.md  # 学期计算逻辑说明
+│   ├── kec-manager-全面检查分析报告*.md  # 项目检查报告
 │   └── ...                      # 其他技术文档
 │
+├── LOGIN_GUIDE.md               # 登录指南
 ├── package.json                 # 根级别脚本
 └── README.md                    # 项目说明文档
 ```
@@ -373,9 +410,9 @@ export default defineConfig({
 ### 根目录
 
 ```bash
-npm run dev              # 同时启动前后端开发服务器
+npm run dev              # 同时启动前后端开发服务器（推荐）
 npm run dev:server       # 仅启动后端（端口 3000）
-npm run dev:client       # 仅启动前端（端口 5173）
+npm run dev:client       # 仅启动前端（端口 5173，如被占用会自动切换）
 npm run db:migrate       # 执行数据库迁移
 npm run db:generate      # 生成 Prisma Client
 ```
@@ -660,7 +697,7 @@ app.use(cors({
 查看后端日志获取详细错误信息。
 </details>
 
-更多问题参见：[完整 FAQ 文档](docs/FAQ.md)（待完善）
+更多问题参见：[完整 FAQ 文档](docs/FAQ.md)（待完善）和 [登录指南](LOGIN_GUIDE.md)
 
 ---
 
@@ -668,22 +705,27 @@ app.use(cors({
 
 ### 后端开发
 
-- [API 接口文档](docs/API.md) - RESTful API 详细说明
-- [数据模型设计](docs/DATABASE.md) - Prisma Schema 设计思路
-- [中间件开发](docs/MIDDLEWARE.md) - 自定义中间件指南
+- [API 接口文档](docs/API.md) - RESTful API 详细说明（待完善）
+- [数据模型设计](docs/DATABASE.md) - Prisma Schema 设计思路（待完善）
+- [中间件开发](docs/MIDDLEWARE.md) - 自定义中间件指南（待完善）
 - [种子数据管理](server/prisma/SEED_USAGE.md) - 测试数据管理
+- [学期计算逻辑](docs/semester-calculation.md) - 学期自动推算算法说明
 
 ### 前端开发
 
-- [组件开发规范](docs/COMPONENTS.md) - Vue 组件最佳实践
-- [状态管理](docs/STATE.md) - Pinia Store 使用指南
-- [API 调用封装](docs/API_CLIENT.md) - Axios 拦截器配置
+- [组件开发规范](docs/COMPONENTS.md) - Vue 组件最佳实践（待完善）
+- [状态管理](docs/STATE.md) - Pinia Store 使用指南（待完善）
+- [API 调用封装](docs/API_CLIENT.md) - Axios 拦截器配置（待完善）
 
 ### 部署运维
 
-- [生产部署指南](docs/DEPLOYMENT.md) - 详细部署步骤
-- [性能优化](docs/PERFORMANCE.md) - 前后端性能调优
-- [监控与日志](docs/MONITORING.md) - 系统监控方案
+- [生产部署指南](docs/DEPLOYMENT.md) - 详细部署步骤（待完善）
+- [性能优化](docs/PERFORMANCE.md) - 前后端性能调优（待完善）
+- [监控与日志](docs/MONITORING.md) - 系统监控方案（待完善）
+
+### 项目报告
+
+- [全面检查分析报告](docs/kec-manager-全面检查分析报告-20260612-v2.md) - 项目质量评估报告
 
 ---
 
@@ -707,9 +749,9 @@ app.use(cors({
 
 ### 代码规范
 
-- 遵循 ESLint 和 Prettier 配置
-- 提交前运行 `npm run lint` 检查代码风格
-- 为新功能编写单元测试
+- 遵循 ESLint 和 Prettier 配置（待配置）
+- 提交前检查代码风格
+- 为新功能编写测试（待完善）
 - 更新相关文档
 
 ---
