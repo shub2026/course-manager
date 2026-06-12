@@ -1,4 +1,5 @@
 import express from 'express'
+import rateLimit from 'express-rate-limit'
 import { AuthService } from '../services/auth.service.js'
 import { authMiddleware } from '../middleware/auth.middleware.js'
 import { success, fail } from '../utils/response.js'
@@ -6,7 +7,32 @@ import { prisma } from '../lib/prisma.js'
 
 const router = express.Router()
 
-router.post('/login', async (req, res) => {
+// 速率限制配置
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15分钟
+  max: 10, // 每个IP最多10次
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: '登录尝试过于频繁，请15分钟后再试' },
+})
+
+const refreshLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: '刷新Token请求过于频繁，请稍后再试' },
+})
+
+const passwordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: '修改密码请求过于频繁，请15分钟后再试' },
+})
+
+router.post('/login', loginLimiter, async (req, res) => {
   try {
     const { username, password } = req.body
 
@@ -21,7 +47,7 @@ router.post('/login', async (req, res) => {
   }
 })
 
-router.post('/refresh', async (req, res) => {
+router.post('/refresh', refreshLimiter, async (req, res) => {
   try {
     const { refresh_token } = req.body
 
@@ -75,7 +101,7 @@ router.get('/me', authMiddleware, async (req, res) => {
   }
 })
 
-router.put('/password', authMiddleware, async (req, res) => {
+router.put('/password', authMiddleware, passwordLimiter, async (req, res) => {
   try {
     const { old_password, new_password } = req.body
 
