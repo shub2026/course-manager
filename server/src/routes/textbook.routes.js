@@ -9,24 +9,9 @@ const router = Router();
 // GET - 所有登录用户可访问
 router.get('/', async (req, res, next) => {
   try {
+    // M5修复：移除GET请求中的sort_order自动修复写操作
     const textbooks = await prisma.textbooks.findMany({ orderBy: { sort_order: 'asc' } });
-    
-    // 检查是否需要重新分配 sortOrder（非连续唯一序列时需要修复）
-    const needsReassignment = textbooks.length > 0 && textbooks.some((t, i) => t.sort_order !== i);
-    if (needsReassignment) {
-      await Promise.all(
-        textbooks.map((textbook, index) =>
-          prisma.textbooks.update({
-            where: { id: textbook.id },
-            data: { sort_order: index }
-          })
-        )
-      );
-      const updatedTextbooks = await prisma.textbooks.findMany({ orderBy: { sort_order: 'asc' } });
-      success(res, updatedTextbooks);
-    } else {
-      success(res, textbooks);
-    }
+    success(res, textbooks);
   } catch (e) { next(e); }
 });
 

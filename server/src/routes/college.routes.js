@@ -9,38 +9,17 @@ const router = Router();
 // GET - 所有登录用户可访问
 router.get('/', async (req, res, next) => {
   try {
+    // M5修复：移除GET请求中的sort_order自动修复写操作
     const colleges = await prisma.colleges.findMany({
       include: { _count: { select: { classes: true } } },
       orderBy: { sort_order: 'asc' },
     });
     
-    // 检查是否需要重新分配 sortOrder（非连续唯一序列时需要修复）
-    const needsReassignment = colleges.length > 0 && colleges.some((c, i) => c.sort_order !== i);
-    if (needsReassignment) {
-      await Promise.all(
-        colleges.map((college, index) =>
-          prisma.colleges.update({
-            where: { id: college.id },
-            data: { sort_order: index }
-          })
-        )
-      );
-      const updatedColleges = await prisma.colleges.findMany({
-        include: { _count: { select: { classes: true } } },
-        orderBy: { sort_order: 'asc' },
-      });
-      const formattedColleges = updatedColleges.map(college => ({
-        ...college,
-        classCount: college._count?.classes || 0,
-      }));
-      success(res, formattedColleges);
-    } else {
-      const formattedColleges = colleges.map(college => ({
-        ...college,
-        classCount: college._count?.classes || 0,
-      }));
-      success(res, formattedColleges);
-    }
+    const formattedColleges = colleges.map(college => ({
+      ...college,
+      classCount: college._count?.classes || 0,
+    }));
+    success(res, formattedColleges);
   } catch (e) { next(e); }
 });
 

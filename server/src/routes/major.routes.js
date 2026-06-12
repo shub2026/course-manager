@@ -9,40 +9,18 @@ const router = Router();
 // GET - 所有登录用户可访问
 router.get('/', async (req, res, next) => {
   try {
+    // M5修复：移除GET请求中的sort_order自动修复写操作
     const majors = await prisma.majors.findMany({
       include: { _count: { select: { classes: true, training_plans: true } } },
       orderBy: { sort_order: 'asc' },
     });
     
-    // 检查是否需要重新分配 sortOrder（非连续唯一序列时需要修复）
-    const needsReassignment = majors.length > 0 && majors.some((m, i) => m.sort_order !== i);
-    if (needsReassignment) {
-      await Promise.all(
-        majors.map((major, index) =>
-          prisma.majors.update({
-            where: { id: major.id },
-            data: { sort_order: index }
-          })
-        )
-      );
-      const updatedMajors = await prisma.majors.findMany({
-        include: { _count: { select: { classes: true, training_plans: true } } },
-        orderBy: { sort_order: 'asc' },
-      });
-      const formattedMajors = updatedMajors.map(major => ({
-        ...major,
-        classCount: major._count?.classes || 0,
-        planCount: major._count?.training_plans || 0,
-      }));
-      success(res, formattedMajors);
-    } else {
-      const formattedMajors = majors.map(major => ({
-        ...major,
-        classCount: major._count?.classes || 0,
-        planCount: major._count?.training_plans || 0,
-      }));
-      success(res, formattedMajors);
-    }
+    const formattedMajors = majors.map(major => ({
+      ...major,
+      classCount: major._count?.classes || 0,
+      planCount: major._count?.training_plans || 0,
+    }));
+    success(res, formattedMajors);
   } catch (e) { next(e); }
 });
 

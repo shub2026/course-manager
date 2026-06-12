@@ -9,38 +9,17 @@ const router = Router();
 // GET - 所有登录用户可访问
 router.get('/', async (req, res, next) => {
   try {
+    // M5修复：移除GET请求中的sort_order自动修复写操作
     const levels = await prisma.training_levels.findMany({
       include: { _count: { select: { classes: true } } },
       orderBy: { sort_order: 'asc' },
     });
     
-    // 检查是否需要重新分配 sortOrder（非连续唯一序列时需要修复）
-    const needsReassignment = levels.length > 0 && levels.some((l, i) => l.sort_order !== i);
-    if (needsReassignment) {
-      await Promise.all(
-        levels.map((level, index) =>
-          prisma.training_levels.update({
-            where: { id: level.id },
-            data: { sort_order: index }
-          })
-        )
-      );
-      const updatedLevels = await prisma.training_levels.findMany({
-        include: { _count: { select: { classes: true } } },
-        orderBy: { sort_order: 'asc' },
-      });
-      const formattedLevels = updatedLevels.map(level => ({
-        ...level,
-        classCount: level._count?.classes || 0,
-      }));
-      success(res, formattedLevels);
-    } else {
-      const formattedLevels = levels.map(level => ({
-        ...level,
-        classCount: level._count?.classes || 0,
-      }));
-      success(res, formattedLevels);
-    }
+    const formattedLevels = levels.map(level => ({
+      ...level,
+      classCount: level._count?.classes || 0,
+    }));
+    success(res, formattedLevels);
   } catch (e) { next(e); }
 });
 

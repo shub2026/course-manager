@@ -18,6 +18,7 @@ router.get('/', async (req, res, next) => {
       where.college_id = Number(collegeId);
     }
     
+    // M5修复：移除GET请求中的sort_order自动修复写操作
     const plans = await prisma.training_plans.findMany({
       where,
       include: {
@@ -30,30 +31,6 @@ router.get('/', async (req, res, next) => {
       orderBy: { sort_order: 'asc' },
     });
 
-    // 检查是否需要重新分配 sortOrder（非连续唯一序列时需要修复）
-    const needsReassignment = plans.length > 0 && plans.some((p, i) => p.sort_order !== i);
-    let finalPlans = plans;
-    if (needsReassignment) {
-      await Promise.all(
-        plans.map((plan, index) =>
-          prisma.training_plans.update({
-            where: { id: plan.id },
-            data: { sort_order: index }
-          })
-        )
-      );
-      finalPlans = await prisma.training_plans.findMany({
-        where,
-        include: {
-          majors: { select: { id: true, name: true } },
-          colleges: { select: { id: true, name: true } },
-          training_levels: { select: { id: true, name: true } },
-          plan_courses: { select: { id: true } },
-        },
-        orderBy: { sort_order: 'asc' },
-      });
-    }
-
     // 一次性获取所有班级，避免 N+1 查询
     const allClasses = await prisma.classes.findMany({
       select: { id: true, major_id: true, training_level_id: true, custom_plan_id: true }
@@ -61,7 +38,7 @@ router.get('/', async (req, res, next) => {
 
     // 按 sort_order 优先级为每个班级分配唯一方案（与前端 getCurrentPlanName 逻辑一致）
     const classCountMap = {};
-    finalPlans.forEach(p => { classCountMap[p.id] = 0; });
+    plans.forEach(p => { classCountMap[p.id] = 0; });
 
     for (const cls of allClasses) {
       if (cls.custom_plan_id) {
@@ -353,36 +330,8 @@ router.get('/:id/courses', async (req, res, next) => {
       ],
     });
 
-    // 检查是否需要重新分配 sortOrder（非连续唯一序列时需要修复）
-    const needsReassignment = courses.length > 0 && courses.some((c, i) => c.sort_order !== i);
-    if (needsReassignment) {
-      await Promise.all(
-        courses.map((course, index) =>
-          prisma.plan_courses.update({
-            where: { id: course.id },
-            data: { sort_order: index }
-          })
-        )
-      );
-      const updatedCourses = await prisma.plan_courses.findMany({
-        where: { plan_id: Number(id) },
-        include: {
-          courses: { select: { id: true, name: true, code: true, type: true } },
-          plan_course_semesters: {
-            include: {
-              plan_textbooks: {
-                include: { textbooks: { select: { id: true, title: true, isbn: true, publisher: true } } },
-              },
-            },
-            orderBy: { semester: 'asc' },
-          },
-        },
-        orderBy: { sort_order: 'asc' },
-      });
-      success(res, updatedCourses);
-    } else {
-      success(res, courses);
-    }
+    // M5修复：移除GET请求中的sort_order自动修复写操作
+    success(res, courses);
   } catch (e) { next(e); }
 });
 

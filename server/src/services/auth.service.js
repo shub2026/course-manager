@@ -82,7 +82,7 @@ export class AuthService {
 
   static async refreshToken(refreshTokenValue) {
     try {
-      const decoded = jwt.verify(refreshTokenValue, authConfig.jwtSecret)
+      const decoded = jwt.verify(refreshTokenValue, authConfig.jwtRefreshSecret) // M10修复：使用Refresh密钥验证
 
       if (decoded.type !== 'refresh') {
         throw new Error('无效的Token类型')
@@ -121,7 +121,7 @@ export class AuthService {
         id: user.id,
         type: 'refresh'
       },
-      authConfig.jwtSecret,
+      authConfig.jwtRefreshSecret, // M10修复：使用独立的Refresh密钥
       { expiresIn: authConfig.jwtRefreshExpiresIn }
     )
   }
@@ -137,14 +137,14 @@ export class AuthService {
   static generateDownloadToken(user) {
     return jwt.sign(
       { id: user.id, username: user.username, role: user.role },
-      authConfig.jwtSecret,
-      { expiresIn: '60s' }
+      authConfig.jwtDownloadSecret, // M10修复：使用独立的Download密钥
+      { expiresIn: authConfig.jwtDownloadExpiresIn }
     )
   }
 
   static verifyDownloadToken(token) {
     try {
-      return jwt.verify(token, authConfig.jwtSecret)
+      return jwt.verify(token, authConfig.jwtDownloadSecret) // M10修复：使用独立的Download密钥
     } catch (error) {
       return null
     }
@@ -173,7 +173,7 @@ export class AuthService {
       throw new Error('原密码错误')
     }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 10)
+    const hashedPassword = await bcrypt.hash(newPassword, authConfig.bcryptRounds) // M9修复：使用配置的迭代次数
     await prisma.users.update({
       where: { id: userId },
       data: { password: hashedPassword }

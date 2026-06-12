@@ -5,6 +5,7 @@ import { success, fail } from '../utils/response.js'
 import bcrypt from 'bcryptjs'
 import { createAuditLog } from '../services/audit.service.js'
 import { NotFoundError, ValidationError, AuthorizationError } from '../utils/error.js'
+import { authConfig } from '../config/auth.config.js' // M9修复：导入配置
 
 const router = express.Router()
 
@@ -75,8 +76,8 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
       throw new ValidationError('用户名已存在')
     }
 
-    // 加密密码
-    const hashedPassword = await bcrypt.hash(password, 10)
+    // 加密密码（M9修复：使用配置的迭代次数）
+    const hashedPassword = await bcrypt.hash(password, authConfig.bcryptRounds)
 
     // 创建用户
     const user = await prisma.users.create({

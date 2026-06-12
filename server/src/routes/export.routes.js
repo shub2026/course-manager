@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { createWorkbook, workbookToBuffer, createTemplateWorkbook } from '../utils/excel.js';
-import { getCurrentSemesterInfo } from '../services/settings.service.js';
+import { getCurrentSemesterInfo, getSemesterInfoFromRequest } from '../services/settings.service.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { getActiveClassFilter } from '../services/class.service.js';
+import { findBestMatchPlan, isClassMatchPlan } from '../services/plan.service.js'; // M4修复
 
 const router = Router();
 
@@ -92,29 +93,17 @@ router.get('/template/:type', async (req, res, next) => {
 // GET /api/export/semester - 导出当前学期开课情况
 router.get('/semester', async (req, res, next) => {
   try {
-    const { semester } = req.query;
+    // M3修复：使用统一的学期信息获取函数
+    let semesterInfo = await getSemesterInfoFromRequest(req);
     
-    // 优先使用传入的学期参数，否则使用全局设置
-    let semesterInfo;
-    if (semester) {
-      const parts = semester.split('-');
-      const startYear = Number(parts[0]);
-      const endYear = Number(parts[1]);
-      const semesterIndex = Number(parts[2]);
-      
-      if (isNaN(startYear) || isNaN(endYear) || isNaN(semesterIndex)) {
+    if (!semesterInfo) {
+      // 检查是参数错误还是设置缺失
+      const { semester } = req.query;
+      if (semester) {
         return res.status(400).json({ success: false, message: '学期格式错误，应为 YYYY-YYYY-N' });
+      } else {
+        return res.status(400).json({ success: false, message: '请先设置当前学期' });
       }
-      
-      // 生成学期标签
-      const season = semesterIndex === 1 ? '秋季' : '春季';
-      const displayYear = semesterIndex === 1 ? startYear : endYear;
-      const label = `${displayYear}年${season}(第${semesterIndex}学期)`;
-      
-      semesterInfo = { startYear, endYear, semesterIndex, raw: semester, label };
-    } else {
-      semesterInfo = await getCurrentSemesterInfo();
-      if (!semesterInfo) return res.status(400).json({ success: false, message: '请先设置当前学期' });
     }
 
     const activeFilter = await getActiveClassFilter();
@@ -176,32 +165,7 @@ router.get('/semester', async (req, res, next) => {
       },
     });
 
-    // 为每个班级找到匹配的培养方案
-    // 优先级：1.自定义方案 > 2.根据培养方案的关联类型进行匹配
-    function findBestMatchPlan(cls) {
-      // 1. 自定义方案优先（通过custom_plan_id关联）
-      if (cls.custom_plan_id && cls.training_plans) {
-        return cls.training_plans;
-      }
-
-      // 2. 遍历所有方案，根据方案的关联类型来匹配
-      // 如果方案是按专业关联的，则检查班级的majorId是否匹配
-      // 如果方案是按层次关联的，则检查班级的trainingLevelId是否匹配
-      for (const plan of matchingPlans) {
-        // 方案按专业关联：检查班级的专业是否匹配
-        if (plan.major_id && plan.major_id === cls.major_id) {
-          return plan;
-        }
-        
-        // 方案按层次关联：检查班级的层次是否匹配
-        if (plan.training_level_id && plan.training_level_id === cls.training_level_id) {
-          return plan;
-        }
-      }
-
-      return null;
-    }
-
+    // M4修复：使用统一的方案匹配函数（从plan.service.js导入）
     const rows = [];
 
     for (const cls of classes) {
@@ -209,7 +173,7 @@ router.get('/semester', async (req, res, next) => {
       if (grade < 1 || grade > cls.duration_years) continue;
       const currentSemesterNum = (grade - 1) * 2 + semesterInfo.semesterIndex;
 
-      const plan = findBestMatchPlan(cls);
+      const plan = findBestMatchPlan(cls, matchingPlans);
       if (!plan) continue;
 
       const planCourses = plan.plan_courses.filter(
@@ -499,28 +463,17 @@ router.get('/textbook/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
     const { semester } = req.query;
+    // M3修复：使用统一的学期信息获取函数
+    let semesterInfo = await getSemesterInfoFromRequest(req);
     
-    // 优先使用传入的学期参数，否则使用全局设置
-    let semesterInfo;
-    if (semester) {
-      const parts = semester.split('-');
-      const startYear = Number(parts[0]);
-      const endYear = Number(parts[1]);
-      const semesterIndex = Number(parts[2]);
-      
-      if (isNaN(startYear) || isNaN(endYear) || isNaN(semesterIndex)) {
+    if (!semesterInfo) {
+      // 检查是参数错误还是设置缺失
+      const { semester } = req.query;
+      if (semester) {
         return res.status(400).json({ success: false, message: '学期格式错误，应为 YYYY-YYYY-N' });
+      } else {
+        return res.status(400).json({ success: false, message: '请先设置当前学期' });
       }
-      
-      // 生成学期标签
-      const season = semesterIndex === 1 ? '秋季' : '春季';
-      const displayYear = semesterIndex === 1 ? startYear : endYear;
-      const label = `${displayYear}年${season}(第${semesterIndex}学期)`;
-      
-      semesterInfo = { startYear, endYear, semesterIndex, raw: semester, label };
-    } else {
-      semesterInfo = await getCurrentSemesterInfo();
-      if (!semesterInfo) return res.status(400).json({ success: false, message: '请先设置当前学期' });
     }
 
     const activeFilter = await getActiveClassFilter();
@@ -552,20 +505,6 @@ router.get('/textbook/:id', async (req, res, next) => {
 
     if (!textbook) return res.status(404).json({ success: false, message: '教材不存在' });
 
-    // 判断班级是否匹配培养方案（支持按专业和按层次两种方式）
-    function isClassMatchPlan(cls, plan) {
-      // 1. 自定义方案
-      if (cls.custom_plan_id === plan.id) return true;
-      
-      // 2. 按专业匹配（仅当班级未指定自定义方案时）
-      if (!cls.custom_plan_id && cls.major_id === plan.major_id) return true;
-      
-      // 3. 按层次匹配（仅当班级未指定自定义方案时）
-      if (!cls.custom_plan_id && cls.training_level_id === plan.training_level_id) return true;
-      
-      return false;
-    }
-
     const rows = [];
 
     for (const pt of textbook.plan_textbooks) {
@@ -578,6 +517,7 @@ router.get('/textbook/:id', async (req, res, next) => {
         const currentSemesterNum = (grade - 1) * 2 + semesterInfo.semesterIndex;
         if (currentSemesterNum !== sem.semester) continue;
 
+        // M4修复：使用统一的isClassMatchPlan函数
         if (!isClassMatchPlan(cls, plan)) continue;
 
         rows.push({

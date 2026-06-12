@@ -42,3 +42,60 @@ export function formatSemesterLabel(startYear, endYear, semesterIndex) {
   
   return `${displayYear}年${season}(第${semesterIndex}学期)`;
 }
+
+/**
+ * M3修复：统一学期参数解析逻辑
+ * 解析YYYY-YYYY-N格式的学期字符串
+ * @param {string} semester - 学期字符串，格式为 YYYY-YYYY-N
+ * @returns {{success: boolean, error?: string, data?: object}} 解析结果
+ */
+export function parseSemesterString(semester) {
+  if (!semester || typeof semester !== 'string') {
+    return { success: false, error: '学期参数不能为空' };
+  }
+
+  const parts = semester.split('-');
+  if (parts.length !== 3) {
+    return { success: false, error: '学期格式错误，应为 YYYY-YYYY-N' };
+  }
+
+  const startYear = Number(parts[0]);
+  const endYear = Number(parts[1]);
+  const semesterIndex = Number(parts[2]);
+
+  if (isNaN(startYear) || isNaN(endYear) || isNaN(semesterIndex)) {
+    return { success: false, error: '学期格式错误，应为 YYYY-YYYY-N' };
+  }
+
+  // 生成学期标签
+  const season = semesterIndex === 1 ? '秋季' : '春季';
+  const displayYear = semesterIndex === 1 ? startYear : endYear;
+  const label = `${displayYear}年${season}(第${semesterIndex}学期)`;
+
+  return {
+    success: true,
+    data: { startYear, endYear, semesterIndex, raw: semester, label },
+  };
+}
+
+/**
+ * M3修复：从请求中获取学期信息（优先使用查询参数，否则使用全局设置）
+ * @param {object} req - Express请求对象
+ * @returns {Promise<object|null>} 学期信息对象或null
+ */
+export async function getSemesterInfoFromRequest(req) {
+  const { semester } = req.query;
+
+  // 优先使用传入的学期参数
+  if (semester) {
+    const result = parseSemesterString(semester);
+    if (result.success) {
+      return result.data;
+    }
+    // 如果解析失败，返回null让调用者处理
+    return null;
+  }
+
+  // 否则使用全局设置
+  return await getCurrentSemesterInfo();
+}

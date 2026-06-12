@@ -11,24 +11,9 @@ router.get('/', async (req, res, next) => {
   try {
     const { type } = req.query;
     const where = type ? { type } : {};
+    // M5修复：移除GET请求中的sort_order自动修复写操作
     const courses = await prisma.courses.findMany({ where, orderBy: { sort_order: 'asc' } });
-    
-    // 检查是否需要重新分配 sortOrder（非连续唯一序列时需要修复）
-    const needsReassignment = courses.length > 0 && courses.some((c, i) => c.sort_order !== i);
-    if (needsReassignment) {
-      await Promise.all(
-        courses.map((course, index) =>
-          prisma.courses.update({
-            where: { id: course.id },
-            data: { sort_order: index }
-          })
-        )
-      );
-      const updatedCourses = await prisma.courses.findMany({ where, orderBy: { sort_order: 'asc' } });
-      success(res, updatedCourses);
-    } else {
-      success(res, courses);
-    }
+    success(res, courses);
   } catch (e) { next(e); }
 });
 

@@ -24,8 +24,25 @@ if (!jwtSecret) {
   }
 }
 
+// M9修复：bcrypt密码哈希迭代次数配置化
+const bcryptRounds = parseInt(process.env.BCRYPT_ROUNDS || '12', 10)
+
+// M10修复：Token密钥分离 - Access/Refresh/Download使用不同密钥
+const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || jwtSecret + '_refresh'
+const jwtDownloadSecret = process.env.JWT_DOWNLOAD_SECRET || jwtSecret + '_download'
+
+// 警告：生产环境应使用独立的JWT_REFRESH_SECRET和JWT_DOWNLOAD_SECRET
+if (jwtRefreshSecret === jwtSecret + '_refresh' || jwtDownloadSecret === jwtSecret + '_download') {
+  console.warn('⚠️  M10警告: Refresh或Download Token使用派生密钥，建议在生产环境设置独立密钥')
+  console.warn('   请在.env中添加: JWT_REFRESH_SECRET 和 JWT_DOWNLOAD_SECRET')
+}
+
 export const authConfig = {
-  jwtSecret,
+  jwtSecret,              // Access Token密钥
+  jwtRefreshSecret,       // M10修复: Refresh Token密钥
+  jwtDownloadSecret,      // M10修复: Download Token密钥
   jwtExpiresIn: '24h',
-  jwtRefreshExpiresIn: '7d'
+  jwtRefreshExpiresIn: '7d',
+  jwtDownloadExpiresIn: '60s', // Download Token短期有效
+  bcryptRounds,           // M9修复：从环境变量读取，默认12次迭代
 }

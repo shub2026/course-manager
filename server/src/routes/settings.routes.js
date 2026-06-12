@@ -13,6 +13,7 @@ const DEFAULT_SETTINGS = {
 };
 
 // GET - 公开访问（登录页需要读取系统标识）
+// M11修复：移除GET请求中的写操作，符合RESTful规范
 router.get('/', async (req, res, next) => {
   try {
     const settings = await prisma.system_settings.findMany();
@@ -20,14 +21,16 @@ router.get('/', async (req, res, next) => {
     settings.forEach((s) => {
       map[s.key] = { value: s.value, description: s.description };
     });
+    
+    // M11修复：仅返回现有设置，不再自动创建缺失项
+    // 如需初始化默认设置，请使用 POST /api/settings/initialize 接口
     for (const [key, def] of Object.entries(DEFAULT_SETTINGS)) {
       if (!map[key]) {
-        const created = await prisma.system_settings.create({
-          data: { key, value: def.value, description: def.description },
-        });
-        map[key] = { value: created.value, description: created.description };
+        // 仅返回默认值，不写入数据库
+        map[key] = { value: def.value, description: def.description, isDefault: true };
       }
     }
+    
     success(res, map);
   } catch (e) { next(e); }
 });
@@ -36,6 +39,15 @@ router.get('/', async (req, res, next) => {
 router.put('/', authMiddleware, roleMiddleware('super_admin'), async (req, res, next) => {
   try {
     const updates = req.body;
+    
+    // H5修复：添加Key白名单验证
+    const allowedKeys = Object.keys(DEFAULT_SETTINGS);
+    const invalidKeys = Object.keys(updates).filter(key => !allowedKeys.includes(key));
+    
+    if (invalidKeys.length > 0) {
+      return fail(res, `不允许的设置项: ${invalidKeys.join(', ')}`, 400);
+    }
+    
     for (const [key, value] of Object.entries(updates)) {
       await prisma.system_settings.upsert({
         where: { key },
@@ -62,6 +74,45 @@ router.put('/', authMiddleware, roleMiddleware('super_admin'), async (req, res, 
       details: { keys: Object.keys(req.body) },
       result: 'failed',
       message: `更新系统设置失败: ${e.message}`,
+    });
+    next(e);
+  }
+});
+
+// POST /api/settings/initialize - M11修复：专门的初始化接口（替代GET中的写操作）
+router.post('/initialize', authMiddleware, roleMiddleware('super_admin'), async (req, res, next) => {
+  try {
+    const initialized = [];
+    
+    for (const [key, def] of Object.entries(DEFAULT_SETTINGS)) {
+      const existing = await prisma.system_settings.findUnique({ where: { key } });
+      if (!existing) {
+        await prisma.system_settings.create({
+          data: { key, value: def.value, description: def.description },
+        });
+        initialized.push(key);
+      }
+    }
+    
+    await createAuditLog({
+      action: 'initialize',
+      module: 'system',
+      userId: req.user?.id,
+      ip: req.ip,
+      details: { initializedKeys: initialized },
+      result: 'success',
+      message: `初始化系统设置：${initialized.join(', ') || '无新增'}`,
+    });
+    
+    success(res, { initialized }, initialized.length > 0 ? `已初始化 ${initialized.length} 项设置` : '所有设置已存在');
+  } catch (e) {
+    await createAuditLog({
+      action: 'initialize',
+      module: 'system',
+      userId: req.user?.id,
+      ip: req.ip,
+      result: 'failed',
+      message: `初始化系统设置失败: ${e.message}`,
     });
     next(e);
   }

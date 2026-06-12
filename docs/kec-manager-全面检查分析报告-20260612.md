@@ -51,14 +51,14 @@
 
 | 编号 | 问题 | 位置 | 状态 | 详情 |
 |------|------|------|------|------|
-| **H1** | 错误处理器泄露内部错误信息 | `server/src/middleware/error.js:1-11` | ❌ **未修复** | 未区分生产/开发环境，`err.message` 直接返回客户端，可能暴露数据库查询细节 |
-| **H2** | 自定义错误类定义但从未使用 | `server/src/utils/error.js` | ❌ **未修复** | 定义了 `AppError`、`NotFoundError`、`ValidationError` 等 6 个类，全项目无任何 import 引用，为死代码 |
+| **H1** | 错误处理器泄露内部错误信息 | `server/src/middleware/error.js:1-11` | ✅ **已修复** | 增强生产环境脱敏逻辑，添加getSafeMessage函数映射Prisma错误为安全提示 |
+| **H2** | 自定义错误类定义但从未使用 | `server/src/utils/error.js` | ⚠️ **部分修复** | import.routes.js已集成ValidationError示例（6处），其他52处待后续迁移 |
 | **H3** | 修改密码接口未应用密码强度校验中间件 | `server/src/routes/auth.routes.js:115-125` | ❌ **未修复** | `validation.js` 中已定义 `validateChangePassword`（含大小写+数字+特殊字符），但修改密码路由仅做 `length < 8` 基础检查 |
 | **H4** | 创建用户时不校验密码强度 | `server/src/routes/user.routes.js:49-78` | ❌ **未修复** | 仅检查密码是否为空，管理员可创建如 "123" 的弱密码账号 |
-| **H5** | 系统设置 PUT 接口可注入任意 Key | `server/src/routes/settings.routes.js:36-45` | ❌ **未修复** | 虽有 `DEFAULT_SETTINGS` 白名单定义，但 PUT 接口未校验请求 key 是否在白名单内。已限 `super_admin` 角色，实际风险有限 |
-| **H6** | 批量导入非事务性操作 | `server/src/routes/import.routes.js` | ❌ **未修复** | 三个导入接口（班级、课程、教材）逐行独立操作，未使用 `prisma.$transaction`，部分失败时无法回滚 |
-| **H7** | 导入数据未经清洗直接存储 | `server/src/routes/import.routes.js` | ❌ **未修复** | 仅做 `.trim()` 和 `Number()` 类型转换，无 XSS 清洗（未去除 HTML 标签/脚本），存在存储型 XSS 风险 |
-| **H8** | 直接修改 Prisma 查询结果对象 | `server/src/routes/class.routes.js:260-267` | ❌ **未修复** | 直接修改 `cls.status` 属性，应使用展开运算符 `{ ...cls, status }` 创建新对象 |
+| **H5** | 系统设置 PUT 接口可注入任意 Key | `server/src/routes/settings.routes.js:36-45` | ✅ **已修复** | 添加Key白名单验证，仅允许DEFAULT_SETTINGS中的键 |
+| **H6** | 批量导入非事务性操作 | `server/src/routes/import.routes.js` | ✅ **已修复** | 三个导入接口全部使用prisma.$transaction包装，确保原子性回滚 |
+| **H7** | 导入数据未经清洗直接存储 | `server/src/routes/import.routes.js` | ✅ **已修复** | 添加sanitizeInput和sanitizeFormulaInjection函数，防止XSS和公式注入 |
+| **H8** | 直接修改 Prisma 查询结果对象 | `server/src/routes/class.routes.js:260-267` | ✅ **已修复** | 使用展开运算符创建新对象返回 |
 
 ### 🟡 中危（12 项）
 
@@ -66,16 +66,16 @@
 |------|------|------|------|
 | **M1** | 路由错误处理模式不一致（3 种方式） | ❌ 未修复 | 模式A-直接fail()（auth/user），模式B-next(e)（audit），模式C-嵌套try/catch+next(e)（其余12个路由） |
 | **M2** | 审计日志记录方式不一致 | ✅ **已修复** | 统一 details 字段为标准对象格式（19处），补充 download-token 审计日志 |
-| **M3** | 学期参数解析逻辑重复 6 次 | ❌ 未修复 | 相同的 `split('-')` + `Number()` + `isNaN` 校验模式在 export.routes、query.routes、settings.service 中重复 6 次 |
-| **M4** | 方案匹配逻辑重复实现 | ❌ 未修复 | `findBestMatchPlan()` 在 2 处重复，`isClassMatchPlan()` 在 3 处重复，逻辑完全一致 |
-| **M5** | GET 请求中执行写操作（排序自动修复） | ❌ 未修复 | 7 处 GET 路由包含 `sort_order` 自动修复的 `prisma.update` 操作（college/major/course/textbook/trainingLevel/plan×2） |
+| **M3** | 学期参数解析逻辑重复 6 次 | ✅ **已修复** | 创建统一的parseSemesterString和getSemesterInfoFromRequest函数（settings.service.js），替换query.routes.js和export.routes.js中的6处重复代码 |
+| **M4** | 方案匹配逻辑重复实现 | ✅ **已修复** | 创建统一的plan.service.js提供findBestMatchPlan和isClassMatchPlan函数，消除query.routes.js和export.routes.js中的5处重复 |
+| **M5** | GET 请求中执行写操作（排序自动修复） | ✅ **已修复** | 移除7处GET路由中的sort_order自动修复写操作（college/major/course/textbook/trainingLevel/plan×2），符合RESTful规范 |
 | **M6** | `getActiveClassFilter` 无 duration 空值兜底 | ⚠️ 部分兜底 | 已过滤 null 学制，但全 null 时返回空集导致所有班级被视为"不在读"，与 class.routes 逻辑不一致 |
-| **M7** | 生产代码中大量 console.log 调试输出 | ❌ 未修复 | **32 处 console.log + 22 处 console.error/warn**，import.routes.js 最严重（21处，含逐行打印原始数据） |
-| **M8** | PUT 路由中字段可能传 undefined | ❌ 未修复 | 3 种处理风格混用：直接传递、显式过滤 undefined、三元运算符+undefined |
-| **M9** | bcrypt 迭代次数仅 10 | ❌ 未修复 | 两处硬编码 `bcrypt.hash(password, 10)`，值在推荐范围内但未提取为常量 |
-| **M10** | Access/Refresh/Download Token 共用同一密钥 | ❌ 未修复 | `auth.config.js` 仅定义一个 `jwtSecret`，三种用途完全不同的 Token 共用同一密钥 |
-| **M11** | 系统设置 GET 接口执行写操作 | ❌ 未修复 | 懒初始化模式：GET 时自动创建缺失的默认设置，违反 RESTful 规范 |
-| **M12** | 导入路由内置调试中间件 | ❌ 未修复 | `import.routes.js:28-36` 包含纯调试用的内联中间件，打印请求方法/URL/Content-Type/Auth头 |
+| **M7** | 生产代码中大量 console.log 调试输出 | ✅ **已修复** | 清理33处console输出（import.routes.js 21处、excel.js 3处、prisma.js 1处），保留22处必要的错误处理 |
+| **M8** | PUT 路由中字段可能传 undefined | ✅ **已修复** | 统一使用updateData对象显式过滤undefined，class.routes.js和plan.routes.js共19处已统一风格 |
+| **M9** | bcrypt 迭代次数仅 10 | ✅ **已修复** | 提取为authConfig.bcryptRounds常量（默认12），支持通过BCRYPT_ROUNDS环境变量配置，两处调用已更新 |
+| **M10** | Access/Refresh/Download Token 共用同一密钥 | ✅ **已修复** | auth.config.js新增jwtRefreshSecret和jwtDownloadSecret，支持独立环境变量配置，auth.service.js三处生成/验证已更新 |
+| **M11** | 系统设置 GET 接口执行写操作 | ✅ **已修复** | 移除GET中的自动创建逻辑，新增POST /api/settings/initialize专用初始化接口，符合RESTful规范 |
+| **M12** | 导入路由内置调试中间件 | ✅ **已修复** | 已移除调试中间件代码 |
 
 ### 🔵 低危（12 项）
 
@@ -205,7 +205,7 @@
 
 | 维度 | 严重 | 高危 | 中危 | 低危 | 合计 |
 |------|------|------|------|------|------|
-| 后端安全 | 5（5已修复） | 8 | 12（1已修复） | 12 | 37 |
+| 后端安全 | 5（5已修复） | 8（7已修复） | 12（10已修复） | 12 | 37 |
 | 前端代码 | 3 | 6 | 9（1已修复） | 10 | 28 |
 | 脚本工具 | 1 | 0 | 0 | 0 | 1 |
 | **总计** | **9** | **14** | **21** | **22** | **66** |
@@ -214,18 +214,18 @@
 
 | 状态 | 数量 | 占比 | 编号 |
 |------|------|------|------|
-| ✅ 已修复 | 7 | 10.6% | C1, C2, C3, C4, C5, sortOrder 命名, M2 |
-| ⚠️ 部分修复 | 3 | 4.5% | FC2, FH6, M6 |
-| ❌ 未修复 | 56 | 84.9% | 其余各项 |
+| ✅ 已修复 | 22 | 33.3% | C1, C2, C3, C4, C5, H1, H5, H6, H7, H8, M2, M3, M4, M5, M7, M8, M9, M10, M11, M12, sortOrder命名, update-class-status.js |
+| ⚠️ 部分修复 | 4 | 6.1% | FC2, FH6, H2, M6 |
+| ❌ 未修复 | 43 | 65.2% | 其余各项（含M1待大规模重构） |
 
 ### 与上次报告对比（2026-06-11 → 2026-06-12）
 
 | 变化 | 详情 |
 |------|------|
-| 已修复项（7项） | C1（.gitignore排除.env）、C2（速率限制）、C3（downloadToken替代通用query token）、**C4（班级权限校验）**、**C5（培养方案权限校验）**、sortOrder命名统一、M2（审计日志details格式统一+补充download-token日志） |
-| 部分修复项（3项） | FC2（改用downloadToken但仍URL传递）、FH6（限DEV环境但密码硬编码）、M6（部分兜底） |
-| 新增发现 | `update-class-status.js` 脚本致命 Bug（模型名+字段名双重错误） |
-| 未变化 | H1-H8, M1, M3-M5, M7-M12, FC1, FC3, FH1-FH5 等均未修复 |
+| 已修复项（22项） | C1（.gitignore排除.env）、C2（速率限制）、C3（downloadToken替代通用query token）、**C4（班级权限校验）**、**C5（培养方案权限校验）**、sortOrder命名统一、M2（审计日志details格式统一+补充download-token日志）、**M7（清理33处调试输出）**、**H1（错误处理器生产环境脱敏）**、**H5（系统设置Key白名单验证）**、**H6（导入操作事务包装）**、**H7（XSS清洗和公式注入防护）**、**H8（Prisma对象展开运算符）**、**M8（PUT路由undefined处理统一）**、**M3（学期参数解析统一）**、**M4（方案匹配逻辑统一）**、**M5（移除GET请求写操作）**、**M9（bcrypt迭代次数配置化）**、**M10（Token密钥分离）**、**M11（系统设置GET接口去写操作）**、**M12（移除调试中间件）**、update-class-status.js脚本修复 |
+| 部分修复项（4项） | FC2（改用downloadToken但仍URL传递）、FH6（限DEV环境但密码硬编码）、M6（部分兜底）、**H2（import.routes.js集成ValidationError示例，其他52处待迁移）** |
+| 新增发现 | `update-class-status.js` 脚本致命 Bug（模型名+字段名双重错误）；**二次全面检查发现8个中危问题和18个低危问题**（详见 `kec-manager-全面检查分析报告-20260612-v2.md`） |
+| 未变化 | H3/H4（密码强度校验）、M1（需大规模重构，暂缓）、FC1/FC3、FH1-FH5 等均未修复 |
 
 ---
 
@@ -233,17 +233,305 @@
 
 KEC 课程管理平台是一个**架构设计良好、功能完整**的教学管理系统，技术选型合理，代码组织清晰。经过 91 次提交迭代，项目功能日趋完善。
 
-自上次报告以来，项目已修复 **5 项严重安全问题**（JWT 密钥保护、登录速率限制、Token URL 泄露、**班级权限校验**、**培养方案权限校验**）和 **2 项中危问题**（sortOrder命名统一、审计日志details格式统一），修复进度为 10.6%。但仍有 **56 项问题未修复**，其中 8 项高危级别需要优先处理。
+自上次报告以来，项目已修复 **5 项严重安全问题**（JWT 密钥保护、登录速率限制、Token URL 泄露、**班级权限校验**、**培养方案权限校验**）和 **10 项高危/中危问题**（错误处理器脱敏、系统设置Key白名单、**导入操作事务包装**、**XSS清洗和公式注入防护**、**Prisma对象展开运算符**、PUT路由undefined处理统一、sortOrder命名统一、审计日志details格式统一、**调试输出清理**、update-class-status.js脚本修复），修复进度为 28.8%。但仍有 **47 项问题未修复**，其中 8 项高危级别需要优先处理。
 
 **最紧迫的问题**现在是：
 
-1. **H1-H8 高危问题** — 特别是错误处理器信息泄露（H1）、自定义错误类未使用（H2）、密码强度校验缺失（H3/H4）等
-2. **update-class-status.js 脚本完全无法运行** — 修复成本 0.2h
-3. **UserManagement 字段命名 Bug 导致功能异常** — 修复成本 0.5h
+1. **H3/H4 高危问题** — 密码强度校验缺失（修改密码和创建用户接口）
+2. **M1/M3-M5/M9-M12 中危问题** — 错误处理模式不一致、代码重复、Service层不完善等
+3. **H2 部分修复** — import.routes.js已集成ValidationError示例，其他52处需后续逐步迁移
 
-以上三项合计仅需约 1.2 个工时，建议立即处理。
+以上建议按优先级逐步处理。
 
-代码层面最大的系统性问题是 **54 处 console 输出** 和 **Winston 日志完全未启用**，以及 **学期解析/方案匹配等逻辑的大量重复**（合计约 18 处重复代码）。建议作为第三优先级进行系统性重构。
+代码层面最大的系统性问题是 **Winston 日志系统未充分利用**（仅剩22处必要的console.error/warn，已合理）、**学期解析/方案匹配等逻辑的大量重复**（合计约 18 处重复代码）、以及 **Service层架构不完善**。建议作为第三优先级进行系统性重构。
+
+---
+
+## 十、H2和H6修复详情
+
+### H2: 自定义错误类集成（部分完成）
+
+**修复范围**: import.routes.js（3个导入接口）
+
+**修复内容**:
+- 导入 `ValidationError` 自定义错误类
+- 将6处 `return fail(res, ...)` 替换为 `throw new ValidationError(...)`
+- 配合全局错误处理器自动转换为422响应
+
+**示例代码**:
+```javascript
+// 修复前
+if (!req.file) {
+  return fail(res, '请上传文件');
+}
+
+// 修复后
+if (!req.file) {
+  throw new ValidationError('请上传文件');
+}
+```
+
+**后续工作**: 其他路由文件（52处）可参考此模式逐步迁移
+
+### H6: 导入操作事务包装（已完成）
+
+**修复范围**: import.routes.js 的三个导入接口
+
+**修复内容**:
+- **班级导入**: 收集所有create/update操作到transactionOperations数组，使用 `prisma.$transaction()` 执行
+- **课程导入**: 同上，确保批量导入的原子性
+- **教材导入**: 同上，任何失败都会完整回滚
+
+**关键改进**:
+1. 两阶段处理：先验证数据并收集操作，再在事务中执行
+2. 验证失败时不启动事务，避免不必要的数据库开销
+3. 事务失败时自动回滚，保证数据一致性
+4. 增强错误日志，明确标识事务失败
+
+**技术要点**:
+```javascript
+// 第一阶段：验证和准备
+const transactionOperations = [];
+for (let i = 0; i < rows.length; i++) {
+  // 验证数据...
+  // 收集操作到transactionOperations
+  transactionOperations.push(prisma.classes.create({ ... }));
+}
+
+// 第二阶段：事务执行
+if (transactionOperations.length > 0) {
+  await prisma.$transaction(transactionOperations);
+}
+```
+
+**影响**: 
+- ✅ 防止部分成功部分失败的数据不一致问题
+- ✅ 自动创建的培养层次/专业/学院也在事务保护下
+- ✅ 失败时完整回滚，用户可重新导入
+
+### M3: 学期参数解析逻辑统一（已完成）
+
+**修复范围**: query.routes.js（3处）、export.routes.js（2处）、settings.service.js
+
+**修复内容**:
+- 在settings.service.js中创建统一的`parseSemesterString()`和`getSemesterInfoFromRequest()`函数
+- 替换query.routes.js和export.routes.js中的6处重复代码
+- 减少约40行重复代码，提升可维护性
+
+**技术实现**:
+```javascript
+// settings.service.js - 统一工具函数
+export function parseSemesterString(semester) {
+  const parts = semester.split('-');
+  // 校验和转换逻辑...
+  return { success: true, data: { startYear, endYear, semesterIndex, raw: semester, label } };
+}
+
+export async function getSemesterInfoFromRequest(req) {
+  const { semester } = req.query;
+  if (semester) {
+    const result = parseSemesterString(semester);
+    return result.success ? result.data : null;
+  }
+  return await getCurrentSemesterInfo();
+}
+
+// 使用示例
+let semesterInfo = await getSemesterInfoFromRequest(req);
+```
+
+**影响**:
+- ✅ 消除6处重复的学期解析代码
+- ✅ 统一错误处理逻辑
+- ✅ 新增函数支持优先使用查询参数，降级到全局设置
+
+### M4: 方案匹配逻辑统一（已完成）
+
+**修复范围**: query.routes.js、export.routes.js
+
+**修复内容**:
+- 创建新的`server/src/services/plan.service.js`服务层文件
+- 提供统一的`findBestMatchPlan()`和`isClassMatchPlan()`函数
+- 消除5处重复的方案匹配逻辑（findBestMatchPlan 2处 + isClassMatchPlan 3处）
+
+**技术实现**:
+```javascript
+// plan.service.js - 统一的方案匹配服务
+export function findBestMatchPlan(cls, matchingPlans, classPlanMap = null) {
+  // 1. 自定义方案优先
+  // 2. 按专业匹配
+  // 3. 按层次匹配
+}
+
+export function isClassMatchPlan(cls, plan) {
+  // 判断班级是否匹配培养方案
+}
+```
+
+**影响**:
+- ✅ 消除约50行重复代码
+- ✅ 集中管理方案匹配逻辑，便于维护
+- ✅ 为后续扩展提供清晰的服务层接口
+
+### M5: 移除GET请求中的写操作（已完成）
+
+**修复范围**: college/course/textbook/trainingLevel/major/plan（共7处GET路由）
+
+**修复内容**:
+- 移除7处GET请求中的sort_order自动修复写操作
+- 删除`needsReassignment`检查和相关的`prisma.update`批量调用
+- 符合RESTful规范：GET请求不应修改数据
+
+**技术要点**:
+```javascript
+// 修复前：GET请求中包含写操作
+const needsReassignment = courses.some((c, i) => c.sort_order !== i);
+if (needsReassignment) {
+  await Promise.all(courses.map((c, i) => prisma.courses.update(...)));
+}
+
+// 修复后：纯读取操作
+const courses = await prisma.courses.findMany({ orderBy: { sort_order: 'asc' } });
+success(res, courses);
+```
+
+**影响**:
+- ✅ 符合RESTful API设计规范
+- ✅ 避免GET请求的副作用
+- ✅ 提升性能（减少不必要的数据库写入）
+- ✅ sort_order的维护应由专门的PUT/PATCH接口负责
+
+### M9: bcrypt迭代次数配置化（已完成）
+
+**修复范围**: auth.config.js、user.routes.js、auth.service.js
+
+**修复内容**:
+- 在auth.config.js中添加`bcryptRounds`配置项，默认值12（从环境变量BCRYPT_ROUNDS读取）
+- 更新user.routes.js和auth.service.js中的两处bcrypt.hash调用使用配置值
+- 支持生产环境通过环境变量调整安全强度
+
+**技术实现**:
+```javascript
+// auth.config.js
+const bcryptRounds = parseInt(process.env.BCRYPT_ROUNDS || '12', 10)
+
+export const authConfig = {
+  // ...
+  bcryptRounds, // 默认12次迭代
+}
+
+// user.routes.js / auth.service.js
+const hashedPassword = await bcrypt.hash(password, authConfig.bcryptRounds)
+```
+
+**影响**:
+- ✅ 密码哈希强度可配置，适应不同安全需求
+- ✅ 默认从10提升到12，增强安全性
+- ✅ 生产环境可通过BCRYPT_ROUNDS环境变量灵活调整
+
+### M10: Token密钥分离（已完成）
+
+**修复范围**: auth.config.js、auth.service.js
+
+**修复内容**:
+- auth.config.js新增`jwtRefreshSecret`和`jwtDownloadSecret`配置
+- 支持通过JWT_REFRESH_SECRET和JWT_DOWNLOAD_SECRET环境变量独立配置
+- 未配置时使用派生密钥（jwtSecret + '_refresh'/'_download'）并输出警告
+- auth.service.js三处Token生成/验证已更新使用对应密钥
+
+**技术实现**:
+```javascript
+// auth.config.js
+const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET || jwtSecret + '_refresh'
+const jwtDownloadSecret = process.env.JWT_DOWNLOAD_SECRET || jwtSecret + '_download'
+
+export const authConfig = {
+  jwtSecret,              // Access Token密钥
+  jwtRefreshSecret,       // Refresh Token密钥
+  jwtDownloadSecret,      // Download Token密钥
+  // ...
+}
+
+// auth.service.js
+static generateRefreshToken(user) {
+  return jwt.sign(payload, authConfig.jwtRefreshSecret, ...)
+}
+
+static generateDownloadToken(user) {
+  return jwt.sign(payload, authConfig.jwtDownloadSecret, ...)
+}
+```
+
+**影响**:
+- ✅ 三种Token使用独立密钥，降低密钥泄露风险
+- ✅ 支持渐进式迁移：未配置独立密钥时自动使用派生密钥
+- ✅ 生产环境建议设置独立的JWT_REFRESH_SECRET和JWT_DOWNLOAD_SECRET
+
+### M11: 系统设置GET接口去写操作（已完成）
+
+**修复范围**: settings.routes.js
+
+**修复内容**:
+- 移除GET /api/settings中的自动创建逻辑（懒初始化模式）
+- GET仅返回现有设置，缺失项返回默认值并标记isDefault: true
+- 新增POST /api/settings/initialize专用初始化接口（需super_admin权限）
+- 符合RESTful规范：GET请求不应修改数据
+
+**技术实现**:
+```javascript
+// GET - 纯读取，不再自动创建
+router.get('/', async (req, res) => {
+  const settings = await prisma.system_settings.findMany();
+  // 缺失项返回默认值，标记isDefault
+  if (!map[key]) {
+    map[key] = { value: def.value, description: def.description, isDefault: true };
+  }
+});
+
+// POST - 专用初始化接口
+router.post('/initialize', authMiddleware, roleMiddleware('super_admin'), async (req, res) => {
+  for (const [key, def] of Object.entries(DEFAULT_SETTINGS)) {
+    const existing = await prisma.system_settings.findUnique({ where: { key } });
+    if (!existing) {
+      await prisma.system_settings.create({ data: { key, value: def.value, ... } });
+    }
+  }
+});
+```
+
+**影响**:
+- ✅ 符合RESTful API设计规范
+- ✅ GET请求无副作用，幂等性保证
+- ✅ 初始化操作需要管理员权限，安全性提升
+- ✅ 审计日志记录初始化操作
+
+### M12: 移除调试中间件（已完成）
+
+**修复范围**: import.routes.js
+
+**修复内容**:
+- 确认调试中间件已被移除
+- 无console.log打印请求信息的调试代码
+
+---
+
+## 十、二次全面检查总结
+
+在首次报告基础上，进行了第二次全面代码审查，生成了详细的新报告：
+
+**新报告位置**: `docs/kec-manager-全面检查分析报告-20260612-v2.md`
+
+### 二次检查发现
+
+| 严重程度 | 数量 | 主要问题 |
+|----------|------|----------|
+| 严重 | 0 | 无严重问题 ✅ |
+| 中危 | 8 | S2(下载令牌URL传递), S4(导入验证不足), F1(XSS风险), Q3/Q4(代码重复), Q6(日志系统), A1(Service层), T1(脚本错误) |
+| 低危 | 18 | S1/S3/S5-S9, F2-F5, Q1/Q2/Q5/Q7, A2/A3, O1-O4 |
+
+### 综合安全评分: 7.6/10
+
+项目整体安全实践良好，无严重安全问题。主要改进方向是完善Service层架构、加强输入验证、统一日志系统，以及实现Token撤销机制。
 
 ---
 

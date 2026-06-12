@@ -257,15 +257,17 @@ router.get('/', validatePagination(100), async (req, res, next) => {
     });
     
     // 动态计算每个班级的状态，确保状态与当前学期配置一致
+    // H8修复：使用展开运算符创建新对象，避免直接修改Prisma查询结果
     // is_left_school 优先级最高，直接标记为 'left_school'
     const semesterInfo = await getCurrentSemesterInfo();
     const classesWithDynamicStatus = classes.map(cls => {
+      let status;
       if (cls.is_left_school) {
-        cls.status = 'left_school';
+        status = 'left_school';
       } else if (cls.enrollment_year && cls.duration_years) {
-        cls.status = calculateClassStatus(cls.enrollment_year, cls.duration_years, semesterInfo);
+        status = calculateClassStatus(cls.enrollment_year, cls.duration_years, semesterInfo);
       }
-      return cls;
+      return { ...cls, status };
     });
 
     // 获取所有不重复的入学年份（用于前端筛选器，不受分页影响）
@@ -361,20 +363,24 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
         autoStatus = calculateClassStatus(calcEnrollmentYear, calcDurationYears, semesterInfo);
       }
 
+      // M8修复：统一处理undefined字段，使用展开运算符只传递有值的字段
+      const updateData = {
+        status: autoStatus,
+        is_left_school: leftSchool,
+      };
+      
+      if (name !== undefined) updateData.name = name;
+      if (enrollment_year !== undefined) updateData.enrollment_year = Number(enrollment_year);
+      if (duration_years !== undefined) updateData.duration_years = Number(duration_years);
+      if (major_id !== undefined) updateData.major_id = major_id ? Number(major_id) : null;
+      if (college_id !== undefined) updateData.college_id = college_id ? Number(college_id) : null;
+      if (training_level_id !== undefined) updateData.training_level_id = training_level_id ? Number(training_level_id) : null;
+      if (student_count !== undefined) updateData.student_count = Number(student_count);
+      if (custom_plan_id !== undefined) updateData.custom_plan_id = custom_plan_id ? Number(custom_plan_id) : null;
+
       const cls = await prisma.classes.update({
         where: { id: Number(id) },
-        data: {
-          name,
-          enrollment_year: enrollment_year ? Number(enrollment_year) : undefined,
-          duration_years: duration_years ? Number(duration_years) : undefined,
-          major_id: major_id !== undefined ? (major_id ? Number(major_id) : null) : undefined,
-          college_id: college_id !== undefined ? (college_id ? Number(college_id) : null) : undefined,
-          training_level_id: training_level_id !== undefined ? (training_level_id ? Number(training_level_id) : null) : undefined,
-          student_count: student_count !== undefined ? Number(student_count) : undefined,
-          custom_plan_id: custom_plan_id !== undefined ? (custom_plan_id ? Number(custom_plan_id) : null) : undefined,
-          status: autoStatus,
-          is_left_school: leftSchool,
-        },
+        data: updateData,
         include: { majors: true, colleges: true, training_levels: true, training_plans: true },
       });
 
