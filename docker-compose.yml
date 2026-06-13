@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # 后端服务
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: kec-server
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/kec.db
+      - PORT=3000
+      - JWT_SECRET=${JWT_SECRET:-change-this-to-a-random-string-in-production}
+      - CORS_ORIGINS=http://localhost:80,http://localhost
+    volumes:
+      - sqlite-data:/app/data
+      - uploads:/app/uploads
+    networks:
+      - kec-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # 前端服务
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: kec-client
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      server:
+        condition: service_healthy
+    networks:
+      - kec-network
+
+volumes:
+  sqlite-data:
+    driver: local
+  uploads:
+    driver: local
+
+networks:
+  kec-network:
+    driver: bridge

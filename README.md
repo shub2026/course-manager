@@ -564,9 +564,266 @@ server {
 }
 ```
 
-### 方式二：Docker 部署（推荐大规模）
+### 方式二：Docker Compose 部署（推荐）
 
-> 💡 Docker 部署方案将在后续版本提供，欢迎贡献 PR。
+本项目提供完整的容器化部署方案，使用 Docker Compose 一键启动前后端服务。
+
+#### 前置要求
+
+- **Docker**: 20.10+ 
+- **Docker Compose**: v2.0+
+
+检查安装：
+```bash
+docker --version
+docker compose version
+```
+
+#### 快速启动
+
+**1. 克隆项目并进入目录**
+```bash
+git clone https://github.com/shub2026/kec-manager.git
+cd kec-manager
+```
+
+**2. 配置环境变量**
+```bash
+# 复制环境变量示例文件
+cp .env.example .env
+
+# 生成安全的 JWT 密钥
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+
+# 编辑 .env 文件，填入生成的密钥
+vim .env
+```
+
+**3. 构建并启动服务**
+```bash
+# 首次启动（构建镜像）
+docker compose up -d --build
+
+# 查看服务状态
+docker compose ps
+
+# 查看日志
+docker compose logs -f
+```
+
+**4. 初始化管理员账号**
+```bash
+# 在后端容器中执行种子脚本
+docker compose exec server npm run db:seed
+```
+
+**5. 访问系统**
+
+| 地址 | 说明 |
+|------|------|
+| http://localhost | 前端管理界面 |
+| http://localhost:3000 | 后端 API 服务 |
+| http://localhost:3000/api/health | 健康检查接口 |
+
+默认管理员账号：`admin` / `admin@123456`
+
+#### 常用命令
+
+```bash
+# 启动服务
+docker compose up -d
+
+# 停止服务
+docker compose down
+
+# 重启服务
+docker compose restart
+
+# 查看日志
+docker compose logs -f server    # 仅后端
+docker compose logs -f client    # 仅前端
+
+# 进入容器 Shell
+docker compose exec server sh
+docker compose exec client sh
+
+# 重新构建镜像
+docker compose build --no-cache
+
+# 更新服务
+git pull
+docker compose up -d --build
+
+# 清理（删除容器、网络、卷）
+docker compose down -v
+```
+
+#### 数据持久化
+
+Docker Compose 配置中使用了命名卷来持久化数据：
+
+- **sqlite-data**: SQLite 数据库文件（位于 `/app/data/kec.db`）
+- **uploads**: 用户上传的文件（Excel、图片等）
+
+查看卷信息：
+```bash
+docker volume ls | grep kec
+docker volume inspect kec-manager_sqlite-data
+```
+
+备份数据：
+```bash
+# 备份数据库
+docker compose exec server tar czf /tmp/db-backup.tar.gz -C /app/data .
+docker compose cp server:/tmp/db-backup.tar.gz ./backup-$(date +%Y%m%d).tar.gz
+
+# 恢复数据库
+docker compose cp ./backup-20260613.tar.gz server:/tmp/restore.tar.gz
+docker compose exec server tar xzf /tmp/restore.tar.gz -C /app/data
+```
+
+#### 生产环境部署
+
+**1. 修改 docker-compose.yml**
+
+```yaml
+services:
+  client:
+    ports:
+      - "80:80"  # 根据实际需求修改端口
+
+  server:
+    environment:
+      - NODE_ENV=production
+      - CORS_ORIGINS=https://your-domain.com  # 修改为实际域名
+```
+
+**2. 配置 HTTPS（使用 Nginx 反向代理）**
+
+创建 `nginx-proxy.conf`：
+```nginx
+server {
+    listen 80;
+    server_name your-domain.com;
+    return 301 https://$server_name$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name your-domain.com;
+
+    ssl_certificate /etc/nginx/ssl/cert.pem;
+    ssl_certificate_key /etc/nginx/ssl/key.pem;
+
+    location / {
+        proxy_pass http://localhost:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /api/ {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+**3. 使用 PM2 管理 Docker Compose**
+
+创建 `ecosystem.config.js`：
+```javascript
+module.exports = {
+  apps: [
+    {
+      name: 'kec-manager',
+      script: 'docker compose up -d'
+    }
+  ]
+};
+```
+
+#### 故障排查
+
+**问题1：容器启动失败**
+```bash
+# 查看详细日志
+docker compose logs server
+
+# 检查健康状态
+docker compose ps
+
+# 重新构建并启动
+docker compose up -d --build --force-recreate
+```
+
+**问题2：数据库连接错误**
+```bash
+# 检查数据卷权限
+docker compose exec server ls -la /app/data
+
+# 重置数据库（⚠️ 会丢失所有数据）
+docker compose down -v
+docker compose up -d --build
+docker compose exec server npm run db:seed
+```
+
+**问题3：前端无法访问后端 API**
+```bash
+# 检查 CORS 配置
+docker compose exec server env | grep CORS
+
+# 检查网络连接
+docker compose exec client ping server
+```
+
+**问题4：端口被占用**
+```bash
+# 修改 docker-compose.yml 中的端口映射
+ports:
+  - "8080:80"  # 将宿主机 8080 映射到容器 80
+```
+
+#### 性能优化
+
+**1. 多阶段构建减小镜像体积**
+```bash
+# 查看镜像大小
+docker images | grep kec
+
+# 前端约 50MB，后端约 150MB（基于 Alpine Linux）
+```
+
+**2. 资源限制**
+在 `docker-compose.yml` 中添加：
+```yaml
+services:
+  server:
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+```
+
+**3. 日志轮转**
+```yaml
+services:
+  server:
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+```
 
 ---
 
