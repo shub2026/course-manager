@@ -109,6 +109,9 @@
       <el-main class="layout-main">
         <router-view />
       </el-main>
+      <el-footer class="layout-footer" height="32px">
+        <span>KEC课程管理平台 v{{ version }}</span>
+      </el-footer>
     </el-container>
   </el-container>
 
@@ -132,6 +135,7 @@ const router = useRouter()
 const settingsStore = useSettingsStore()
 const authStore = useAuthStore()
 const isCollapse = ref(false)
+const version = __APP_VERSION__
 
 // 修改密码相关
 const passwordDialogVisible = ref(false)
@@ -251,5 +255,16 @@ function handlePasswordChangeSuccess() {
   overflow-x: hidden;
   flex: 1;
   min-height: 0;
+}
+
+.layout-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #909399;
+  font-size: 12px;
+  background: #fff;
+  border-top: 1px solid #e6e6e6;
+  flex-shrink: 0;
 }
 </style>
