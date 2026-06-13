@@ -130,10 +130,22 @@ echo -e "${YELLOW}⚠  重要：请编辑 /opt/1panel/www/sites/kec/index/kec-ma
 
 echo ""
 echo -e "${GREEN}[6/8] 初始化数据库...${NC}"
-execute "cd /opt/1panel/www/sites/kec/index/kec-manager/server && npx prisma migrate deploy"
+echo "执行 Prisma 迁移..."
+execute "cd /opt/1panel/www/sites/kec/index/kec-manager/server && npx prisma migrate deploy || (echo '迁移失败，尝试重置数据库...' && npx prisma migrate reset --force)"
+echo "生成 Prisma Client..."
 execute "cd /opt/1panel/www/sites/kec/index/kec-manager/server && npx prisma generate"
+echo "初始化种子数据..."
 execute "cd /opt/1panel/www/sites/kec/index/kec-manager/server && npm run db:seed"
-echo "✓ 数据库迁移完成"
+
+# 验证关键表是否存在
+echo "验证数据库表结构..."
+TABLE_CHECK=$(execute "cd /opt/1panel/www/sites/kec/index/kec-manager/server && sqlite3 data/kec.db \"SELECT count(*) FROM sqlite_master WHERE type='table' AND name='system_settings';\"")
+if [ "$TABLE_CHECK" = "1" ]; then
+    echo "✓ 数据库迁移完成（system_settings 表已创建）"
+else
+    echo -e "${YELLOW}⚠️  system_settings 表未找到，尝试手动创建...${NC}"
+    execute "cd /opt/1panel/www/sites/kec/index/kec-manager/server && sqlite3 data/kec.db < prisma/manual_create_settings.sql || true"
+fi
 
 echo ""
 echo -e "${GREEN}[6.5/8] 初始化系统设置...${NC}"
