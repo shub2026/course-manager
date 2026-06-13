@@ -34,12 +34,18 @@ router.get('/', async (req, res, next) => {
     success(res, map);
   } catch (e) { 
     console.error('[Settings GET Error]', e.message);
+    console.error('[Settings GET Error Stack]', e.stack);
     // 生产环境友好降级：返回默认设置而不是500错误
     const defaultMap = {};
     for (const [key, def] of Object.entries(DEFAULT_SETTINGS)) {
       defaultMap[key] = { value: def.value, description: def.description, isDefault: true };
     }
-    success(res, defaultMap);
+    // 明确返回200状态码，确保前端能正常接收
+    return res.status(200).json({
+      code: 200,
+      message: '使用默认设置',
+      data: defaultMap
+    });
   }
 });
 
