@@ -112,6 +112,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useAuthStore } from '../../stores/auth'
 import { getSemesterQuery } from '../../api/query'
 import { getMajors } from '../../api/major'
 import { getTrainingLevels } from '../../api/trainingLevel'
@@ -233,6 +234,8 @@ function resetFilters() {
   totalClasses.value = 0
 }
 
+const authStore = useAuthStore()
+
 async function exportExcel() {
   if (!selectedSemester.value) {
     ElMessage.warning('请先选择学期')
@@ -253,6 +256,7 @@ async function exportExcel() {
     const response = await fetch('/api/export/semester', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${authStore.token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(params),

@@ -100,6 +100,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useAuthStore } from '../../stores/auth'
 import { getSemesterQuery } from '../../api/query'
 import { getMajors } from '../../api/major'
 import { getTrainingLevels } from '../../api/trainingLevel'
@@ -183,6 +184,8 @@ function resetPaginationAndLoad() {
   load()
 }
 
+const authStore = useAuthStore()
+
 async function exportExcel() {
   try {
     // FC2修复：使用POST请求 + Authorization Header，避免token暴露在URL中
@@ -197,6 +200,7 @@ async function exportExcel() {
     const response = await fetch('/api/export/semester', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${authStore.token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(params),
