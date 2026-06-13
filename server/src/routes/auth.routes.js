@@ -26,9 +26,20 @@ const refreshLimiter = rateLimit({
   message: { success: false, message: '刷新Token请求过于频繁，请稍后再试' },
 })
 
+// 自定义限流key生成器：优先使用用户ID，降级到IP
+const generateKeyByUserOrIp = (req) => {
+  // 如果用户已认证，使用用户ID作为限流key
+  if (req.user && req.user.id) {
+    return `user:${req.user.id}`
+  }
+  // 否则使用IP地址
+  return `ip:${req.ip}`
+}
+
 const passwordLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 10, // 每个用户/IP最多10次
+  keyGenerator: generateKeyByUserOrIp,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: '修改密码请求过于频繁，请15分钟后再试' },
