@@ -845,12 +845,12 @@ onMounted(load)
   flex: 1;
   background: linear-gradient(135deg, #ecf5ff 0%, #d9ecff 100%);
   border-radius: 12px;
-  padding: 20px;
+  padding: 32px 24px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 16px;
   border: 1px dashed #409eff;
   position: relative;
 }
@@ -863,20 +863,20 @@ onMounted(load)
 
 .semester-preview.empty p {
   margin: 0;
-  font-size: 13px;
+  font-size: 15px;
 }
 
 .preview-badge {
   position: absolute;
-  top: -10px;
+  top: -12px;
   left: 50%;
   transform: translateX(-50%);
   background: #409eff;
   color: #fff;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
-  padding: 3px 12px;
-  border-radius: 10px;
+  padding: 5px 16px;
+  border-radius: 12px;
 }
 
 .preview-main {
@@ -884,28 +884,28 @@ onMounted(load)
 }
 
 .preview-year {
-  font-size: 18px;
+  font-size: 24px;
   font-weight: 700;
   color: #1d2129;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .preview-detail {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .preview-semester-index {
-  font-size: 13px;
+  font-size: 16px;
   color: #86909c;
 }
 
 .preview-footer {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 8px;
+  font-size: 15px;
   color: #e6a23c;
 }
 
