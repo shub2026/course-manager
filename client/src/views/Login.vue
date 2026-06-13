@@ -80,7 +80,7 @@
 
       <!-- 底部 -->
       <footer class="page-footer">
-        <span>KEC Platform v1.0</span>
+        <span>KEC Platform v{{ appVersion }}</span>
       </footer>
     </div>
   </div>
@@ -92,6 +92,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
 import { ElMessage } from 'element-plus'
+import packageJson from '../../package.json'
 
 const router = useRouter()
 const route = useRoute()
@@ -102,6 +103,7 @@ const formRef = ref(null)
 const loading = ref(false)
 const organizationName = ref('欢迎回来')
 const showTestAccounts = import.meta.env.DEV
+const appVersion = ref(packageJson.version)
 
 const loginForm = reactive({
   username: '',
