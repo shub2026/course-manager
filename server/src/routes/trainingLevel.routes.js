@@ -3,13 +3,14 @@ import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { roleMiddleware } from '../middleware/auth.middleware.js';
 import { createAuditLog } from '../services/audit.service.js';
+import { autoFixSortOrder } from '../utils/sort.js';
 
 const router = Router();
 
 // GET - 所有登录用户可访问
 router.get('/', async (req, res, next) => {
   try {
-    // M5修复：移除GET请求中的sort_order自动修复写操作
+    await autoFixSortOrder('training_levels');
     const levels = await prisma.training_levels.findMany({
       include: { _count: { select: { classes: true } } },
       orderBy: { sort_order: 'asc' },

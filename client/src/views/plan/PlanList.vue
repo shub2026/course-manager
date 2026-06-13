@@ -309,10 +309,13 @@ async function handleMoveUp(row) {
   const currentItem = filteredlist.value[idx]
   const prevItem = filteredlist.value[idx - 1]
   
+  // 如果排序值相同，使用基于位置的值
+  const newCurrentSort = currentItem.sortOrder === prevItem.sortOrder ? idx - 1 : prevItem.sortOrder
+  const newPrevSort = currentItem.sortOrder === prevItem.sortOrder ? idx : currentItem.sortOrder
+  
   // 乐观更新：先本地交换位置，避免 loading 遮罩闪烁
-  const tempOrder = currentItem.sortOrder
-  currentItem.sortOrder = prevItem.sortOrder
-  prevItem.sortOrder = tempOrder
+  currentItem.sortOrder = newCurrentSort
+  prevItem.sortOrder = newPrevSort
   const newList = [...filteredlist.value]
   newList[idx] = prevItem
   newList[idx - 1] = currentItem
@@ -322,8 +325,8 @@ async function handleMoveUp(row) {
   
   try {
     await Promise.all([
-      updatePlan(currentItem.id, { sortOrder: currentItem.sortOrder }),
-      updatePlan(prevItem.id, { sortOrder: prevItem.sortOrder })
+      updatePlan(currentItem.id, { sortOrder: newCurrentSort }),
+      updatePlan(prevItem.id, { sortOrder: newPrevSort })
     ])
     ElMessage.success('排序已更新')
   } catch (e) {
@@ -340,10 +343,13 @@ async function handleMoveDown(row) {
   const currentItem = filteredlist.value[idx]
   const nextItem = filteredlist.value[idx + 1]
   
+  // 如果排序值相同，使用基于位置的值
+  const newCurrentSort = currentItem.sortOrder === nextItem.sortOrder ? idx + 1 : nextItem.sortOrder
+  const newNextSort = currentItem.sortOrder === nextItem.sortOrder ? idx : currentItem.sortOrder
+  
   // 乐观更新：先本地交换位置，避免 loading 遮罩闪烁
-  const tempOrder = currentItem.sortOrder
-  currentItem.sortOrder = nextItem.sortOrder
-  nextItem.sortOrder = tempOrder
+  currentItem.sortOrder = newCurrentSort
+  nextItem.sortOrder = newNextSort
   const newList = [...filteredlist.value]
   newList[idx] = nextItem
   newList[idx + 1] = currentItem
@@ -353,8 +359,8 @@ async function handleMoveDown(row) {
   
   try {
     await Promise.all([
-      updatePlan(currentItem.id, { sortOrder: currentItem.sortOrder }),
-      updatePlan(nextItem.id, { sortOrder: nextItem.sortOrder })
+      updatePlan(currentItem.id, { sortOrder: newCurrentSort }),
+      updatePlan(nextItem.id, { sortOrder: newNextSort })
     ])
     ElMessage.success('排序已更新')
   } catch (e) {

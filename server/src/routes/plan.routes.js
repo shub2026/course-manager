@@ -4,6 +4,7 @@ import { success, fail } from '../utils/response.js';
 import { roleMiddleware } from '../middleware/auth.middleware.js';
 import { NotFoundError, ValidationError, ConflictError } from '../utils/error.js';
 import { createAuditLog } from '../services/audit.service.js';
+import { autoFixSortOrder } from '../utils/sort.js';
 
 const router = Router();
 
@@ -19,6 +20,7 @@ router.get('/', async (req, res, next) => {
     }
     
     // M5修复：移除GET请求中的sort_order自动修复写操作
+    await autoFixSortOrder('training_plans');
     const plans = await prisma.training_plans.findMany({
       where,
       include: {

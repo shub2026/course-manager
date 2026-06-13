@@ -337,9 +337,13 @@ async function handleMoveUp(row, index) {
   const prevItem = list.value[index - 1]
   
   try {
+    // 如果排序值相同，使用基于位置的值
+    const newCurrentSort = currentItem.sortOrder === prevItem.sortOrder ? index - 1 : prevItem.sortOrder
+    const newPrevSort = currentItem.sortOrder === prevItem.sortOrder ? index : currentItem.sortOrder
+
     await Promise.all([
-      updateCourse(currentItem.id, { sortOrder: prevItem.sortOrder }),
-      updateCourse(prevItem.id, { sortOrder: currentItem.sortOrder })
+      updateCourse(currentItem.id, { sortOrder: newCurrentSort }),
+      updateCourse(prevItem.id, { sortOrder: newPrevSort })
     ])
     ElMessage.success('排序已更新')
     await silentReload()
@@ -356,9 +360,13 @@ async function handleMoveDown(row, index) {
   const nextItem = list.value[index + 1]
   
   try {
+    // 如果排序值相同，使用基于位置的值
+    const newCurrentSort = currentItem.sortOrder === nextItem.sortOrder ? index + 1 : nextItem.sortOrder
+    const newNextSort = currentItem.sortOrder === nextItem.sortOrder ? index : currentItem.sortOrder
+
     await Promise.all([
-      updateCourse(currentItem.id, { sortOrder: nextItem.sortOrder }),
-      updateCourse(nextItem.id, { sortOrder: currentItem.sortOrder })
+      updateCourse(currentItem.id, { sortOrder: newCurrentSort }),
+      updateCourse(nextItem.id, { sortOrder: newNextSort })
     ])
     ElMessage.success('排序已更新')
     await silentReload()

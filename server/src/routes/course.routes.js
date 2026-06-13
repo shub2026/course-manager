@@ -3,6 +3,7 @@ import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { roleMiddleware } from '../middleware/auth.middleware.js';
 import { createAuditLog } from '../services/audit.service.js';
+import { autoFixSortOrder } from '../utils/sort.js';
 
 const router = Router();
 
@@ -11,7 +12,7 @@ router.get('/', async (req, res, next) => {
   try {
     const { type } = req.query;
     const where = type ? { type } : {};
-    // M5修复：移除GET请求中的sort_order自动修复写操作
+    await autoFixSortOrder('courses', type ? { type } : {});
     const courses = await prisma.courses.findMany({ where, orderBy: { sort_order: 'asc' } });
     success(res, courses);
   } catch (e) { next(e); }

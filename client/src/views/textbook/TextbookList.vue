@@ -595,9 +595,13 @@ async function handleMoveUp(row) {
   const prevItem = filteredlist.value[idx - 1]
   
   try {
+    // 如果排序值相同，使用基于位置的值
+    const newCurrentSort = currentItem.sortOrder === prevItem.sortOrder ? idx - 1 : prevItem.sortOrder
+    const newPrevSort = currentItem.sortOrder === prevItem.sortOrder ? idx : currentItem.sortOrder
+
     await Promise.all([
-      updateTextbook(currentItem.id, { sortOrder: prevItem.sortOrder }),
-      updateTextbook(prevItem.id, { sortOrder: currentItem.sortOrder })
+      updateTextbook(currentItem.id, { sortOrder: newCurrentSort }),
+      updateTextbook(prevItem.id, { sortOrder: newPrevSort })
     ])
     ElMessage.success('排序已更新')
     await silentReload()
@@ -615,9 +619,13 @@ async function handleMoveDown(row) {
   const nextItem = filteredlist.value[idx + 1]
   
   try {
+    // 如果排序值相同，使用基于位置的值
+    const newCurrentSort = currentItem.sortOrder === nextItem.sortOrder ? idx + 1 : nextItem.sortOrder
+    const newNextSort = currentItem.sortOrder === nextItem.sortOrder ? idx : currentItem.sortOrder
+
     await Promise.all([
-      updateTextbook(currentItem.id, { sortOrder: nextItem.sortOrder }),
-      updateTextbook(nextItem.id, { sortOrder: currentItem.sortOrder })
+      updateTextbook(currentItem.id, { sortOrder: newCurrentSort }),
+      updateTextbook(nextItem.id, { sortOrder: newNextSort })
     ])
     ElMessage.success('排序已更新')
     await silentReload()

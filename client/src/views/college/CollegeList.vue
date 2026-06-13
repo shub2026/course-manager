@@ -148,9 +148,13 @@ async function handleMoveUp(row, index) {
   const prevSortOrder = prevCollege.sortOrder
   
   try {
+    // 如果排序值相同，使用基于位置的值
+    const newCurrentSort = currentSortOrder === prevSortOrder ? index - 1 : prevSortOrder
+    const newPrevSort = currentSortOrder === prevSortOrder ? index : currentSortOrder
+
     await Promise.all([
-      updateCollege(currentId, { sortOrder: prevSortOrder }),
-      updateCollege(prevId, { sortOrder: currentSortOrder })
+      updateCollege(currentId, { sortOrder: newCurrentSort }),
+      updateCollege(prevId, { sortOrder: newPrevSort })
     ])
     ElMessage.success('排序已更新')
     await silentReload()
@@ -172,9 +176,13 @@ async function handleMoveDown(row, index) {
   const nextSortOrder = nextCollege.sortOrder
   
   try {
+    // 如果排序值相同，使用基于位置的值
+    const newCurrentSort = currentSortOrder === nextSortOrder ? index + 1 : nextSortOrder
+    const newNextSort = currentSortOrder === nextSortOrder ? index : currentSortOrder
+
     await Promise.all([
-      updateCollege(currentId, { sortOrder: nextSortOrder }),
-      updateCollege(nextId, { sortOrder: currentSortOrder })
+      updateCollege(currentId, { sortOrder: newCurrentSort }),
+      updateCollege(nextId, { sortOrder: newNextSort })
     ])
     ElMessage.success('排序已更新')
     await silentReload()
