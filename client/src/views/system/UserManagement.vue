@@ -54,6 +54,7 @@
               size="small"
               :type="row.isActive ? 'warning' : 'success'"
               @click="toggleUserStatus(row)"
+              :disabled="row.role === 'super_admin'"
             >
               {{ row.isActive ? '禁用' : '激活' }}
             </el-button>
@@ -61,7 +62,7 @@
               size="small"
               type="danger"
               @click="deleteUser(row)"
-              :disabled="row.id === authStore.userInfo?.id"
+              :disabled="row.id === authStore.userInfo?.id || row.role === 'super_admin'"
             >
               删除
             </el-button>
@@ -109,18 +110,11 @@
 
         <el-form-item label="角色" prop="role">
           <el-select v-model="formData.role" placeholder="请选择角色" style="width: 100%">
-            <!-- 只有超级管理员可以创建所有角色 -->
-            <template v-if="authStore.userInfo?.role === 'super_admin'">
-              <el-option label="超级管理员" value="super_admin">
-                <span>超级管理员</span>
-                <span style="color: #999; font-size: 12px; margin-left: 10px;">所有权限，包括系统设置</span>
-              </el-option>
-              <el-option label="管理员" value="admin">
-                <span>管理员</span>
-                <span style="color: #999; font-size: 12px; margin-left: 10px;">基础数据和培养方案维护</span>
-              </el-option>
-            </template>
-            <!-- 所有管理员都可以创建访客 -->
+            <!-- 所有管理员都可以创建管理员和访客 -->
+            <el-option label="管理员" value="admin">
+              <span>管理员</span>
+              <span style="color: #999; font-size: 12px; margin-left: 10px;">基础数据和培养方案维护</span>
+            </el-option>
             <el-option label="访客" value="viewer">
               <span>访客</span>
               <span style="color: #999; font-size: 12px; margin-left: 10px;">仅查询权限</span>
@@ -135,14 +129,9 @@
           :closable="false"
           style="margin-top: 10px;"
         >
-          <template v-if="authStore.userInfo?.role === 'super_admin'">
-            <p><strong>超级管理员：</strong>拥有所有权限，可以管理系统设置、重置系统、管理用户</p>
-            <p><strong>管理员（二级管理员）：</strong>可以维护基础数据（专业、学院、课程等）和培养方案，但不能配置系统设置和重置系统</p>
-            <p><strong>访客：</strong>只能访问查询页面</p>
-          </template>
-          <template v-else>
-            <p><strong>访客：</strong>只能访问查询页面，适合需要查看数据但不需要修改的用户</p>
-          </template>
+          <p><strong>管理员（二级管理员）：</strong>可以维护基础数据（专业、学院、课程等）和培养方案，但不能配置系统设置和重置系统</p>
+          <p><strong>访客：</strong>只能访问查询页面，适合需要查看数据但不需要修改的用户</p>
+          <p style="margin-top: 8px; color: #f56c6c;"><strong>注意：</strong>超级管理员是系统唯一角色，不能通过此界面创建。</p>
         </el-alert>
       </el-form>
 

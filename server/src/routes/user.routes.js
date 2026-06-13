@@ -204,6 +204,11 @@ router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, re
       throw new NotFoundError('用户不存在')
     }
 
+    // 不能操作超级管理员（系统唯一）
+    if (user.role === 'super_admin') {
+      throw new AuthorizationError('不能操作超级管理员账户')
+    }
+
     // admin只能管理访客用户
     if (req.user.role === 'admin' && user.role !== 'viewer') {
       throw new AuthorizationError('权限不足，管理员只能管理访客账号')
@@ -250,6 +255,11 @@ router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, n
 
     if (!user) {
       throw new NotFoundError('用户不存在')
+    }
+
+    // 不能删除超级管理员（系统唯一）
+    if (user.role === 'super_admin') {
+      throw new AuthorizationError('不能删除超级管理员账户')
     }
 
     // admin只能删除访客用户
