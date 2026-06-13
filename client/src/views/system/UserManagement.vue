@@ -35,8 +35,8 @@
         </el-table-column>
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.isActive ? 'success' : 'danger'" size="small">
-              {{ row.isActive ? '激活' : '禁用' }}
+            <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
+              {{ row.is_active ? '激活' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
@@ -198,6 +198,11 @@ async function loadUsers() {
   loading.value = true
   try {
     const response = await request.get('/users')
+    console.log('[DEBUG] loadUsers response:', JSON.stringify(response))
+    console.log('[DEBUG] loadUsers response.data:', JSON.stringify(response.data))
+    if (Array.isArray(response.data)) {
+      console.log('[DEBUG] First user:', response.data[0])
+    }
     users.value = response.data
   } catch (error) {
     ElMessage.error('加载用户列表失败：' + (error.message || '未知错误'))
@@ -235,7 +240,7 @@ function showEditDialog(user) {
     real_name: user.real_name,
     email: user.email,
     role: user.role,
-    isActive: user.is_active
+    is_active: user.is_active
   }
   dialogVisible.value = true
 }
@@ -272,7 +277,10 @@ async function handleSubmit() {
 }
 
 async function toggleUserStatus(user) {
-  const action = user.isActive ? '禁用' : '激活'
+  console.log('[DEBUG] toggleUserStatus called with user:', JSON.stringify(user))
+  const action = user.is_active ? '禁用' : '激活'
+  console.log('[DEBUG] action:', action, 'is_active:', user.is_active)
+  
   await ElMessageBox.confirm(`确定要${action}用户 "${user.username}" 吗？`, '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
@@ -280,12 +288,16 @@ async function toggleUserStatus(user) {
   })
 
   try {
-    await request.put(`/users/${user.id}/status`, {
-      isActive: !user.isActive
-    })
+    const requestData = { is_active: !user.is_active }
+    console.log('[DEBUG] Sending PUT request to /users/', user.id, '/status with data:', JSON.stringify(requestData))
+    
+    const response = await request.put(`/users/${user.id}/status`, requestData)
+    console.log('[DEBUG] PUT response:', JSON.stringify(response))
+    
     ElMessage.success(`${action}成功`)
     await silentReload()
   } catch (error) {
+    console.error('[ERROR] toggleUserStatus failed:', error)
     ElMessage.error(`${action}失败：` + (error.message || '未知错误'))
   }
 }
