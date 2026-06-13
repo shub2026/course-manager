@@ -219,7 +219,7 @@ router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, re
       module: 'user',
       userId: req.user.id,
       ip: req.ip,
-      details: { id: user.id, username, is_active: isActive },
+      details: { id: user.id, username: user.username, is_active: isActive },
       result: 'success',
       message: `${isActive ? '激活' : '禁用'}用户：${user.username}`,
     })
