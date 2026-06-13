@@ -32,7 +32,15 @@ router.get('/', async (req, res, next) => {
     }
     
     success(res, map);
-  } catch (e) { next(e); }
+  } catch (e) { 
+    console.error('[Settings GET Error]', e.message);
+    // 生产环境友好降级：返回默认设置而不是500错误
+    const defaultMap = {};
+    for (const [key, def] of Object.entries(DEFAULT_SETTINGS)) {
+      defaultMap[key] = { value: def.value, description: def.description, isDefault: true };
+    }
+    success(res, defaultMap);
+  }
 });
 
 // PUT - 需要登录且为super_admin权限
