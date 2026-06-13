@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '../lib/prisma.js'
 import { authConfig } from '../config/auth.config.js'
 import { createAuditLog } from './audit.service.js'
+import { AuthenticationError, ValidationError } from '../utils/error.js'
 
 export class AuthService {
   static async login(username, password, ip) {
@@ -19,7 +20,7 @@ export class AuthService {
         result: 'failed',
         message: `登录失败：用户 ${username} 不存在`,
       })
-      throw new Error('用户名或密码错误')
+      throw new AuthenticationError('用户名或密码错误')
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password)
@@ -33,7 +34,7 @@ export class AuthService {
         result: 'failed',
         message: `登录失败：密码错误`,
       })
-      throw new Error('用户名或密码错误')
+      throw new AuthenticationError('用户名或密码错误')
     }
 
     if (!user.is_active) {
@@ -46,7 +47,7 @@ export class AuthService {
         result: 'failed',
         message: `登录失败：账号已被禁用`,
       })
-      throw new Error('账号已被禁用')
+      throw new AuthenticationError('账号已被禁用')
     }
 
     const token = this.generateToken(user)
@@ -85,7 +86,7 @@ export class AuthService {
       const decoded = jwt.verify(refreshTokenValue, authConfig.jwtRefreshSecret) // M10修复：使用Refresh密钥验证
 
       if (decoded.type !== 'refresh') {
-        throw new Error('无效的Token类型')
+        throw new AuthenticationError('无效的Token类型')
       }
 
       const user = await prisma.users.findUnique({
@@ -93,13 +94,13 @@ export class AuthService {
       })
 
       if (!user || !user.is_active) {
-        throw new Error('用户不存在或已被禁用')
+        throw new AuthenticationError('用户不存在或已被禁用')
       }
 
       const newToken = this.generateToken(user)
       return { token: newToken }
     } catch (error) {
-      throw new Error('Refresh Token已过期或无效')
+      throw new AuthenticationError('Refresh Token已过期或无效')
     }
   }
 
@@ -156,7 +157,7 @@ export class AuthService {
     })
 
     if (!user) {
-      throw new Error('用户不存在')
+      throw new AuthenticationError('用户不存在')
     }
 
     const isValid = await bcrypt.compare(oldPassword, user.password)
@@ -170,7 +171,7 @@ export class AuthService {
         result: 'failed',
         message: `修改密码失败：原密码错误`,
       })
-      throw new Error('原密码错误')
+      throw new AuthenticationError('原密码错误')
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, authConfig.bcryptRounds) // M9修复：使用配置的迭代次数

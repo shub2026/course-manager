@@ -21,6 +21,9 @@ import { convertResponseNaming, convertRequestNaming } from './middleware/naming
 
 const app = express();
 
+// 信任代理（Nginx 反向代理需要）
+app.set('trust proxy', 1);
+
 // CORS 配置：生产环境使用白名单，开发环境允许 localhost
 const allowedOrigins = process.env.CORS_ORIGINS 
   ? process.env.CORS_ORIGINS.split(',')
