@@ -62,16 +62,16 @@ fi
 
 echo ""
 echo -e "${GREEN}[2/8] 创建部署目录...${NC}"
-execute "mkdir -p /var/www/kec-manager/server/data"
-execute "mkdir -p /var/www/kec-manager/client"
-execute "mkdir -p /var/log/kec-manager"
+execute "mkdir -p /opt/1panel/www/sites/kec/index/kec-manager/server/data"
+execute "mkdir -p /opt/1panel/www/sites/kec/index/kec-manager/client"
+execute "mkdir -p /opt/1panel/www/sites/kec/index/log/kec-manager"
 echo "✓ 目录创建完成"
 
 echo ""
 echo -e "${GREEN}[3/8] 克隆/更新代码...${NC}"
-if execute "test -d /var/www/kec-manager/.git"; then
+if execute "test -d /opt/1panel/www/sites/kec/index/kec-manager/.git"; then
     echo "更新现有代码..."
-    execute "cd /var/www/kec-manager && git pull"
+    execute "cd /opt/1panel/www/sites/kec/index/kec-manager && git pull"
 else
     echo "首次克隆代码..."
     execute "cd /var/www && git clone https://github.com/shub2026/kec-manager.git"
@@ -80,9 +80,9 @@ echo "✓ 代码准备完成"
 
 echo ""
 echo -e "${GREEN}[4/8] 安装依赖...${NC}"
-execute "cd /var/www/kec-manager && npm install"
-execute "cd /var/www/kec-manager/server && npm install --production"
-execute "cd /var/www/kec-manager/client && npm install"
+execute "cd /opt/1panel/www/sites/kec/index/kec-manager && npm install"
+execute "cd /opt/1panel/www/sites/kec/index/kec-manager/server && npm install --production"
+execute "cd /opt/1panel/www/sites/kec/index/kec-manager/client && npm install"
 echo "✓ 依赖安装完成"
 
 echo ""
@@ -99,7 +99,7 @@ cat > /tmp/kec-env << EOF
 NODE_ENV=production
 
 # 数据库配置
-DATABASE_URL="file:/var/www/kec-manager/server/data/kec.db"
+DATABASE_URL="file:/opt/1panel/www/sites/kec/index/kec-manager/server/data/kec.db"
 
 # 服务器端口
 PORT=3000
@@ -123,21 +123,21 @@ LOG_LEVEL=info
 MAX_FILE_SIZE=10
 EOF
 
-copy_file /tmp/kec-env "/var/www/kec-manager/server/.env"
-execute "chmod 600 /var/www/kec-manager/server/.env"
+copy_file /tmp/kec-env "/opt/1panel/www/sites/kec/index/kec-manager/server/.env"
+execute "chmod 600 /opt/1panel/www/sites/kec/index/kec-manager/server/.env"
 echo "✓ 环境变量配置完成"
-echo -e "${YELLOW}⚠  重要：请编辑 /var/www/kec-manager/server/.env 修改 CORS_ORIGINS 为你的实际域名${NC}"
+echo -e "${YELLOW}⚠  重要：请编辑 /opt/1panel/www/sites/kec/index/kec-manager/server/.env 修改 CORS_ORIGINS 为你的实际域名${NC}"
 
 echo ""
 echo -e "${GREEN}[6/8] 初始化数据库...${NC}"
-execute "cd /var/www/kec-manager/server && npx prisma migrate deploy"
-execute "cd /var/www/kec-manager/server && npx prisma generate"
-execute "cd /var/www/kec-manager/server && npm run db:seed"
+execute "cd /opt/1panel/www/sites/kec/index/kec-manager/server && npx prisma migrate deploy"
+execute "cd /opt/1panel/www/sites/kec/index/kec-manager/server && npx prisma generate"
+execute "cd /opt/1panel/www/sites/kec/index/kec-manager/server && npm run db:seed"
 echo "✓ 数据库初始化完成"
 
 echo ""
 echo -e "${GREEN}[7/8] 构建前端...${NC}"
-execute "cd /var/www/kec-manager/client && npm run build"
+execute "cd /opt/1panel/www/sites/kec/index/kec-manager/client && npm run build"
 echo "✓ 前端构建完成"
 
 echo ""
@@ -151,10 +151,10 @@ fi
 # 启动或重启服务
 if execute "pm2 list | grep -q kec-server"; then
     echo "重启现有服务..."
-    execute "cd /var/www/kec-manager/server && pm2 restart kec-server"
+    execute "cd /opt/1panel/www/sites/kec/index/kec-manager/server && pm2 restart kec-server"
 else
     echo "启动新服务..."
-    execute "cd /var/www/kec-manager/server && pm2 start src/server.js --name kec-server"
+    execute "cd /opt/1panel/www/sites/kec/index/kec-manager/server && pm2 start src/server.js --name kec-server"
     execute "pm2 save"
     execute "pm2 startup"
 fi
@@ -173,7 +173,7 @@ echo -e "${GREEN}查看日志：${NC}"
 echo "  pm2 logs kec-server"
 echo ""
 echo -e "${YELLOW}后续步骤：${NC}"
-echo "1. 编辑 /var/www/kec-manager/server/.env 修改 CORS_ORIGINS"
+echo "1. 编辑 /opt/1panel/www/sites/kec/index/kec-manager/server/.env 修改 CORS_ORIGINS"
 echo "2. 配置 Nginx（参考 docs/PRODUCTION_DEPLOYMENT.md）"
 echo "3. 设置 HTTPS 证书（推荐 Let's Encrypt）"
 echo "4. 配置备份脚本"
