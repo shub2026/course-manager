@@ -8,6 +8,31 @@
 加载系统标识失败: AxiosError: Request failed with status code 500
 ```
 
+## 快速修复（针对诊断提示"缺少设置"的情况）
+
+**如果你看到诊断结果提示：**
+```
+缺少 organization_name 设置
+缺少 current_semester 设置
+```
+
+**这不是错误！只需执行以下命令初始化默认设置：**
+
+```bash
+cd /opt/1panel/www/sites/kec/index/kec-manager/server
+npm run init:settings
+pm2 restart kec-server
+```
+
+执行后再次运行诊断确认：
+```bash
+npm run diagnose
+```
+
+应该看到所有检查都通过 ✅
+
+---
+
 ## 根本原因
 
 `/api/settings` 接口在登录页被调用以获取系统标识（organization_name），但在生产环境中可能因为以下原因返回 500 错误：

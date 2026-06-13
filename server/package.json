@@ -8,6 +8,7 @@
     "dev": "node --watch-path=src src/server.js",
     "start": "node src/server.js",
     "diagnose": "node scripts/diagnose.js",
+    "init:settings": "node scripts/init-settings.js",
     "db:migrate": "npx prisma migrate dev",
     "db:generate": "npx prisma generate",
     "db:seed": "node prisma/seed.js",

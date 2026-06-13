@@ -133,7 +133,12 @@ echo -e "${GREEN}[6/8] 初始化数据库...${NC}"
 execute "cd /opt/1panel/www/sites/kec/index/kec-manager/server && npx prisma migrate deploy"
 execute "cd /opt/1panel/www/sites/kec/index/kec-manager/server && npx prisma generate"
 execute "cd /opt/1panel/www/sites/kec/index/kec-manager/server && npm run db:seed"
-echo "✓ 数据库初始化完成"
+echo "✓ 数据库迁移完成"
+
+echo ""
+echo -e "${GREEN}[6.5/8] 初始化系统设置...${NC}"
+execute "cd /opt/1panel/www/sites/kec/index/kec-manager/server && npm run init:settings || true"
+echo "✓ 系统设置初始化完成"
 
 echo ""
 echo -e "${GREEN}[7/8] 构建前端...${NC}"
