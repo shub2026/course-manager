@@ -489,8 +489,8 @@ const confirmInput = ref('')
 const clearAuditDialogVisible = ref(false)
 const saveConfirmVisible = ref(false)
 
-// 生成可选学期列表
-function generateAvailableSemesters() {
+// 生成可选学期列表（动态计算，始终包含当前年份前后各3年）
+const availableSemesters = computed(() => {
   const currentYear = new Date().getFullYear()
   const semesters = []
   for (let y = currentYear - 3; y <= currentYear + 3; y++) {
@@ -500,9 +500,7 @@ function generateAvailableSemesters() {
     )
   }
   return semesters
-}
-
-const availableSemesters = ref(generateAvailableSemesters())
+})
 
 // 学期预览
 const currentSemesterPreview = computed(() => {
