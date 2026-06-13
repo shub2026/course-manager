@@ -489,11 +489,11 @@ const confirmInput = ref('')
 const clearAuditDialogVisible = ref(false)
 const saveConfirmVisible = ref(false)
 
-// 生成可选学期列表（动态计算，始终包含当前年份前后各3年）
+// 生成可选学期列表（动态计算，基于5年制学制：前5年覆盖所有在读班级，后3年预留未来）
 const availableSemesters = computed(() => {
   const currentYear = new Date().getFullYear()
   const semesters = []
-  for (let y = currentYear - 3; y <= currentYear + 3; y++) {
+  for (let y = currentYear - 5; y <= currentYear + 3; y++) {
     semesters.push(
       { value: `${y}-${y + 1}-1`, label: `${y}-${y + 1}学年 秋季(第1学期)` },
       { value: `${y}-${y + 1}-2`, label: `${y}-${y + 1}学年 春季(第2学期)` }
