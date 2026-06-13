@@ -44,7 +44,7 @@
       <template #header>
         <div class="card-header">
           <span class="title">KEC 课程管理平台</span>
-          <el-tag type="success" size="small">v1.0.0</el-tag>
+          <el-tag type="success" size="small">v{{ version }}</el-tag>
         </div>
       </template>
       <div class="intro-content">
@@ -107,6 +107,7 @@ import { getWithCache } from '../utils/cache'
 const settingsStore = useSettingsStore()
 const semesterLabel = computed(() => settingsStore.semesterLabel)
 const stats = ref({ majors: 0, courses: 0, classes: 0, textbooks: 0, plans: 0, totalStudents: 0 })
+const version = __APP_VERSION__
 
 onMounted(async () => {
   try {

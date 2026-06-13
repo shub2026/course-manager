@@ -27,7 +27,7 @@ app.set('trust proxy', 1);
 // CORS 配置：生产环境使用白名单，开发环境允许 localhost
 const allowedOrigins = process.env.CORS_ORIGINS 
   ? process.env.CORS_ORIGINS.split(',')
-  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:3000'];
+  : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:5176', 'http://localhost:5177', 'http://localhost:3000'];
 
 app.use(cors({
   origin: function (origin, callback) {

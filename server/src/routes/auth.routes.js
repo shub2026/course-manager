@@ -32,14 +32,15 @@ const generateKeyByUserOrIp = (req) => {
   if (req.user && req.user.id) {
     return `user:${req.user.id}`
   }
-  // 否则使用IP地址
-  return `ip:${req.ip}`
+  // 否则返回null，让express-rate-limit使用默认的IP检测
+  return null
 }
 
 const passwordLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10, // 每个用户/IP最多10次
   keyGenerator: generateKeyByUserOrIp,
+  validate: false, // 禁用IPv6验证警告
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, message: '修改密码请求过于频繁，请15分钟后再试' },
