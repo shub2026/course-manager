@@ -184,7 +184,12 @@ router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next
 router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
   try {
     const { id } = req.params
-    const { is_active } = req.body
+    const { isActive } = req.body
+    
+    // 调试日志
+    console.log('[DEBUG] PUT /api/users/:id/status')
+    console.log('[DEBUG] req.body:', JSON.stringify(req.body))
+    console.log('[DEBUG] isActive:', isActive)
 
     // 不能禁用自己
     if (parseInt(id) === req.user.id) {
@@ -206,7 +211,7 @@ router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, re
 
     await prisma.users.update({
       where: { id: parseInt(id) },
-      data: { is_active }
+      data: { is_active: isActive }
     })
 
     await createAuditLog({
@@ -214,13 +219,14 @@ router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, re
       module: 'user',
       userId: req.user.id,
       ip: req.ip,
-      details: { id: user.id, username, is_active },
+      details: { id: user.id, username, is_active: isActive },
       result: 'success',
-      message: `${is_active ? '激活' : '禁用'}用户：${user.username}`,
+      message: `${isActive ? '激活' : '禁用'}用户：${user.username}`,
     })
 
-    success(res, null, `${is_active ? '激活' : '禁用'}成功`)
+    success(res, null, `${isActive ? '激活' : '禁用'}成功`)
   } catch (error) {
+    console.error('[ERROR]', error)
     next(error)
   }
 })

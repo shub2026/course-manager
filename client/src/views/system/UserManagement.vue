@@ -35,8 +35,8 @@
         </el-table-column>
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.is_active ? 'success' : 'danger'" size="small">
-              {{ row.is_active ? '激活' : '禁用' }}
+            <el-tag :type="row.isActive ? 'success' : 'danger'" size="small">
+              {{ row.isActive ? '激活' : '禁用' }}
             </el-tag>
           </template>
         </el-table-column>
@@ -52,10 +52,10 @@
             <el-button size="small" type="primary" @click="showEditDialog(row)">编辑</el-button>
             <el-button
               size="small"
-              :type="row.is_active ? 'warning' : 'success'"
+              :type="row.isActive ? 'warning' : 'success'"
               @click="toggleUserStatus(row)"
             >
-              {{ row.is_active ? '禁用' : '激活' }}
+              {{ row.isActive ? '禁用' : '激活' }}
             </el-button>
             <el-button
               size="small"
@@ -278,8 +278,8 @@ async function handleSubmit() {
 
 async function toggleUserStatus(user) {
   console.log('[DEBUG] toggleUserStatus called with user:', JSON.stringify(user))
-  const action = user.is_active ? '禁用' : '激活'
-  console.log('[DEBUG] action:', action, 'is_active:', user.is_active)
+  const action = user.isActive ? '禁用' : '激活'
+  console.log('[DEBUG] action:', action, 'isActive:', user.isActive)
   
   await ElMessageBox.confirm(`确定要${action}用户 "${user.username}" 吗？`, '提示', {
     confirmButtonText: '确定',
@@ -288,7 +288,7 @@ async function toggleUserStatus(user) {
   })
 
   try {
-    const requestData = { is_active: !user.is_active }
+    const requestData = { isActive: !user.isActive }
     console.log('[DEBUG] Sending PUT request to /users/', user.id, '/status with data:', JSON.stringify(requestData))
     
     const response = await request.put(`/users/${user.id}/status`, requestData)
