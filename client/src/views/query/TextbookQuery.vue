@@ -27,7 +27,7 @@
 
         <el-alert :title="`共 ${detail.totalClasses} 个班级使用，合计 ${detail.totalStudents} 名学生`" type="success" :closable="false" class="alert-success" />
 
-        <el-table :data="detail.classes" stripe v-loading="loadingDetail">
+        <el-table :data="paginatedClasses" stripe v-loading="loadingDetail">
           <el-table-column prop="className" label="班级" min-width="180" fixed />
           <el-table-column prop="courseName" label="对应课程" min-width="180" />
           <el-table-column prop="majorName" label="专业" min-width="150" show-overflow-tooltip />
@@ -45,6 +45,19 @@
             </template>
           </el-table-column>
         </el-table>
+        
+        <!-- 分页 -->
+        <div class="pagination-container">
+          <el-pagination
+            v-model:current-page="pagination.page"
+            v-model:page-size="pagination.pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            :total="pagination.total"
+            layout="total, sizes, prev, pager, next, jumper"
+            @size-change="handleSizeChange"
+            @current-change="handlePageChange"
+          />
+        </div>
       </div>
 
       <el-empty v-else-if="!selectedTextbook" description="请选择要查询的教材" />
@@ -53,7 +66,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '../../stores/auth'
 import { getTextbooks } from '../../api/textbook'
@@ -64,17 +77,50 @@ const loadingDetail = ref(false)
 const selectedTextbook = ref(null)
 const detail = ref(null)
 
+// 分页状态
+const pagination = ref({
+  page: 1,
+  pageSize: 50,
+  total: 0,
+})
+
+// 计算分页后的班级数据
+const paginatedClasses = computed(() => {
+  if (!detail.value || !detail.value.classes) return []
+  const start = (pagination.value.page - 1) * pagination.value.pageSize
+  const end = start + pagination.value.pageSize
+  return detail.value.classes.slice(start, end)
+})
+
 async function loadDetail(id) {
-  if (!id) { detail.value = null; return }
+  if (!id) { 
+    detail.value = null
+    pagination.value.total = 0
+    return 
+  }
   loadingDetail.value = true
   try {
     const res = await getTextbookQuery(id)
     detail.value = res.data
+    // 重置分页并设置总数
+    pagination.value.page = 1
+    pagination.value.total = res.data?.totalClasses || 0
   } catch (e) { 
     ElMessage.error('加载教材使用详情失败')
     detail.value = null 
+    pagination.value.total = 0
   }
   finally { loadingDetail.value = false }
+}
+
+// 分页处理函数
+function handlePageChange(page) {
+  pagination.value.page = page
+}
+
+function handleSizeChange(size) {
+  pagination.value.pageSize = size
+  pagination.value.page = 1 // 重置到第一页
 }
 
 async function exportExcel() {
@@ -142,5 +188,11 @@ onMounted(async () => {
 }
 .alert-success {
   margin-bottom: 16px;
+}
+.pagination-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding: 12px 0;
 }
 </style>

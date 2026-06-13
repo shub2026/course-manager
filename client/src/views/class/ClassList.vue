@@ -86,7 +86,7 @@
         </el-table-column>
         <el-table-column label="当前方案" min-width="130" show-overflow-tooltip>
           <template #default="{ row }">
-            <el-tag :type="row.trainingPlans ? 'warning' : 'success'" size="small">
+            <el-tag :type="getPlanTagType(row)" size="small">
               {{ getCurrentPlanName(row) }}
             </el-tag>
           </template>
@@ -200,11 +200,11 @@
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="培养方案">
+            <el-form-item label="特殊培养方案">
               <el-select v-model="form.customPlanId" clearable placeholder="默认使用专业方案" class="full-width">
                 <el-option v-for="p in plans" :key="p.id" :label="p.name" :value="p.id" />
               </el-select>
-              <div class="form-hint">不设置则使用培养方案类型进行关联</div>
+              <div class="form-hint">最高优先级：一旦设置，将覆盖按层次或专业的默认关联</div>
             </el-form-item>
           </el-col>
         </el-row>
@@ -370,6 +370,26 @@ function getCurrentPlanName(row) {
   }
   
   return '-'
+}
+
+// 获取培养方案标签的颜色类型
+// 橙色(warning): 特殊培养方案（最高优先级，手动设置）
+// 绿色(success): 自动关联方案（按专业或层次匹配）
+// 灰色(info): 未关联任何方案
+function getPlanTagType(row) {
+  // 1. 有特殊培养方案
+  if (row.trainingPlans) {
+    return 'warning'
+  }
+  
+  // 2. 检查是否能通过专业或层次匹配到方案
+  const planName = getCurrentPlanName(row)
+  if (planName && planName !== '-') {
+    return 'success'
+  }
+  
+  // 3. 完全未关联
+  return 'info'
 }
 
 /**

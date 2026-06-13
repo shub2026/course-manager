@@ -42,7 +42,10 @@ router.get('/semester', async (req, res, next) => {
       }
     }
 
-    const { majorId, collegeId, trainingLevelId, enrollmentYear, grade } = req.query;
+    const { majorId, collegeId, trainingLevelId, enrollmentYear, grade, page, pageSize } = req.query;
+    const pageNum = page ? Number(page) : 1;
+    const pageSizeNum = pageSize ? Number(pageSize) : 50;
+    
     // 动态构建在读班级过滤条件（排除离校和已毕业）
     const activeFilter = await getActiveClassFilter();
     const extraConditions = {};
@@ -54,6 +57,9 @@ router.get('/semester', async (req, res, next) => {
     const classWhere = Object.keys(extraConditions).length > 0
       ? { AND: [activeFilter, extraConditions] }
       : activeFilter;
+
+    // 获取总数
+    const totalClassesCount = await prisma.classes.count({ where: classWhere });
 
     const classes = await prisma.classes.findMany({
       where: classWhere,
@@ -79,6 +85,8 @@ router.get('/semester', async (req, res, next) => {
         },
       },
       orderBy: { enrollment_year: 'desc' },
+      skip: (pageNum - 1) * pageSizeNum,
+      take: pageSizeNum,
     });
 
     // 收集需要查询的方案ID：按专业匹配的和按层次匹配的
@@ -181,6 +189,9 @@ router.get('/semester', async (req, res, next) => {
         ...semesterInfo,
       },
       totalClasses: results.length,
+      total: totalClassesCount,
+      page: pageNum,
+      pageSize: pageSizeNum,
       data: results,
     });
   } catch (e) { next(e); }

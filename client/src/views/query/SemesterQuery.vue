@@ -5,19 +5,19 @@
         <div class="card-header">
           <span>当前学期开课查询</span>
           <div class="card-header-actions">
-            <el-select v-model="filterCollege" clearable placeholder="按学院筛选" @change="load" class="filter-select">
+            <el-select v-model="filterCollege" clearable placeholder="按学院筛选" @change="resetPaginationAndLoad" class="filter-select">
               <el-option v-for="c in colleges" :key="c.id" :label="c.name" :value="c.id" />
             </el-select>
-            <el-select v-model="filterMajor" clearable placeholder="按专业筛选" @change="load" class="filter-select">
+            <el-select v-model="filterMajor" clearable placeholder="按专业筛选" @change="resetPaginationAndLoad" class="filter-select">
               <el-option v-for="m in majors" :key="m.id" :label="m.name" :value="m.id" />
             </el-select>
-            <el-select v-model="filterLevel" clearable placeholder="按层次筛选" @change="load" class="filter-select">
+            <el-select v-model="filterLevel" clearable placeholder="按层次筛选" @change="resetPaginationAndLoad" class="filter-select">
               <el-option v-for="l in levels" :key="l.id" :label="l.name" :value="l.id" />
             </el-select>
-            <el-select v-model="filterEnrollmentYear" clearable placeholder="按入学年份筛选" @change="load" class="filter-select">
+            <el-select v-model="filterEnrollmentYear" clearable placeholder="按入学年份筛选" @change="resetPaginationAndLoad" class="filter-select">
               <el-option v-for="year in enrollmentYears" :key="year" :label="year + '年'" :value="year" />
             </el-select>
-            <el-select v-model="filterGrade" clearable placeholder="按年级筛选" @change="load" class="filter-select">
+            <el-select v-model="filterGrade" clearable placeholder="按年级筛选" @change="resetPaginationAndLoad" class="filter-select">
               <el-option v-for="g in grades" :key="g" :label="g + '年级'" :value="g" />
             </el-select>
             <el-button type="success" @click="exportExcel">
@@ -80,6 +80,19 @@
         </el-table-column>
         <el-table-column prop="planName" label="培养方案" min-width="180" show-overflow-tooltip />
       </el-table>
+      
+      <!-- 分页 -->
+      <div class="pagination-container">
+        <el-pagination
+          v-model:current-page="pagination.page"
+          v-model:page-size="pagination.pageSize"
+          :page-sizes="[10, 20, 50, 100]"
+          :total="pagination.total"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handlePageChange"
+        />
+      </div>
     </el-card>
   </div>
 </template>
@@ -106,6 +119,13 @@ const filterGrade = ref(null)
 const semesterLabel = ref('')
 const totalClasses = ref(0)
 
+// 分页状态
+const pagination = ref({
+  page: 1,
+  pageSize: 50,
+  total: 0,
+})
+
 // 计算可用的入学年份列表（从数据中提取）
 const enrollmentYears = computed(() => {
   const years = new Set()
@@ -127,7 +147,10 @@ const grades = computed(() => {
 async function load() {
   loading.value = true
   try {
-    const params = {}
+    const params = {
+      page: pagination.value.page,
+      pageSize: pagination.value.pageSize,
+    }
     if (filterCollege.value) params.collegeId = filterCollege.value
     if (filterMajor.value) params.majorId = filterMajor.value
     if (filterLevel.value) params.trainingLevelId = filterLevel.value
@@ -137,8 +160,27 @@ async function load() {
     data.value = res.data?.data || []
     semesterLabel.value = res.data?.semesterInfo?.label || ''
     totalClasses.value = res.data?.totalClasses || 0
+    pagination.value.total = res.data?.total || 0
   } catch (e) { console.error(e) }
   finally { loading.value = false }
+}
+
+// 分页处理函数
+function handlePageChange(page) {
+  pagination.value.page = page
+  load()
+}
+
+function handleSizeChange(size) {
+  pagination.value.pageSize = size
+  pagination.value.page = 1 // 重置到第一页
+  load()
+}
+
+// 筛选条件变化时重置页码
+function resetPaginationAndLoad() {
+  pagination.value.page = 1
+  load()
 }
 
 async function exportExcel() {
@@ -217,5 +259,11 @@ onMounted(async () => {
 }
 .no-textbook {
   color: #999;
+}
+.pagination-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding: 12px 0;
 }
 </style>
