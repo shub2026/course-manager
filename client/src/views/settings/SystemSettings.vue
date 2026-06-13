@@ -783,7 +783,7 @@ onMounted(load)
 }
 
 .semester-selector {
-  flex: 1;
+  flex: 2;
   min-width: 0;
 }
 
@@ -842,8 +842,7 @@ onMounted(load)
 
 /* 学期预览卡片 */
 .semester-preview {
-  width: 240px;
-  flex-shrink: 0;
+  flex: 1;
   background: linear-gradient(135deg, #ecf5ff 0%, #d9ecff 100%);
   border-radius: 12px;
   padding: 20px;
