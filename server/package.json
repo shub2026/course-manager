@@ -1,6 +1,6 @@
 {
   "name": "kec-manager-server",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "KEC课程管理平台后端",
   "main": "src/server.js",
   "type": "module",
@@ -11,10 +11,6 @@
   "scripts": {
     "dev": "node --watch-path=src src/server.js",
     "start": "node src/server.js",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:ui": "vitest --ui",
     "diagnose": "node scripts/diagnose.js",
     "init:settings": "node scripts/init-settings.js",
     "db:migrate": "npx prisma migrate dev",
@@ -37,10 +33,6 @@
     "winston": "^3.19.0"
   },
   "devDependencies": {
-    "@types/supertest": "^7.2.0",
-    "@vitest/coverage-v8": "^4.1.8",
-    "prisma": "^6.19.3",
-    "supertest": "^7.2.2",
-    "vitest": "^4.1.8"
+    "prisma": "^6.19.3"
   }
 }

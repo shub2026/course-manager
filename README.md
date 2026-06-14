@@ -279,8 +279,6 @@ npm run db:seed:dev      # 开发模式：创建测试数据
 npm run db:seed:reset    # ⚠️ 强制重置：清空所有数据
 npm run init:settings    # 初始化系统设置（学期、单位名称）
 npm run diagnose         # 运行诊断工具
-npm test                 # 运行测试套件
-npm run test:coverage    # 运行测试并生成覆盖率报告
 ```
 
 ### 前端 (client/)
@@ -387,10 +385,6 @@ kec-manager/
 │   │   ├── lib/                     # 第三方库封装
 │   │   ├── app.js                   # Express 应用
 │   │   └── server.js                # 服务入口
-│   ├── tests/                       # 测试套件
-│   │   ├── auth.test.js             # 认证测试
-│   │   ├── rbac.test.js             # 权限测试
-│   │   └── validation.test.js       # 验证测试
 │   ├── scripts/                     # 运维脚本
 │   │   ├── diagnose.js              # 环境诊断工具
 │   │   └── init-settings.js         # 系统设置初始化

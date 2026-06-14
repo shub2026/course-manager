@@ -1,6 +1,6 @@
 {
   "name": "kec-manager",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "private": true,
   "type": "module",
   "description": "KEC课程管理平台",
@@ -16,9 +16,7 @@
     "version:major": "node scripts/version.js major"
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "^5.2.4",
-    "concurrently": "^9.2.1",
-    "vite": "^5.4.21"
+    "concurrently": "^9.2.1"
   },
   "dependencies": {
     "dotenv": "^17.4.2"
