@@ -74,7 +74,8 @@ echo ""
 echo -e "${GREEN}[3/9] 克隆/更新代码...${NC}"
 if execute "test -d ${PROJECT_DIR}/.git"; then
     echo "更新现有代码..."
-    execute "cd ${PROJECT_DIR} && git pull"
+    # 强制丢弃本地修改（package-lock.json 等由 npm install 产生，应以远程为准）
+    execute "cd ${PROJECT_DIR} && git fetch origin && git reset --hard origin/main"
 else
     echo "首次克隆代码..."
     execute "mkdir -p $(dirname ${PROJECT_DIR})"
