@@ -9,6 +9,7 @@
 [![Express](https://img.shields.io/badge/express-5.1+-blue.svg)](https://expressjs.com/)
 [![Prisma](https://img.shields.io/badge/prisma-6.19+-blue.svg)](https://www.prisma.io/)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.0.5-blue.svg)](CHANGELOG.md)
 
 一站式教学管理解决方案 · 前后端分离架构 · 开箱即用
 
@@ -18,7 +19,7 @@
 
 ---
 
-## 项目简介
+## 📋 项目简介
 
 KEC（Knowledge Education Course）课程管理平台是一套专为中小型教育机构设计的独立教学管理系统，提供从基础数据管理、班级编排、培养方案制定到教材调配的完整业务流程支持。
 
@@ -37,10 +38,11 @@ KEC（Knowledge Education Course）课程管理平台是一套专为中小型教
 | **智能自动化** | 年级自动推算、课程矩阵可视化、批量导入导出 |
 | **安全可靠** | JWT 双令牌认证、操作审计日志、细粒度权限控制 |
 | **灵活扩展** | Prisma ORM 支持无缝切换 MySQL |
+| **代码质量** | 分层架构清晰，Controller层职责明确 |
 
 ---
 
-## 核心功能
+## ✨ 核心功能
 
 ### 基础数据管理
 
@@ -75,7 +77,7 @@ KEC（Knowledge Education Course）课程管理平台是一套专为中小型教
 
 ---
 
-## 技术架构
+## 🏗️ 技术架构
 
 ### 技术栈
 
@@ -86,7 +88,8 @@ KEC（Knowledge Education Course）课程管理平台是一套专为中小型教
 │ Element Plus │◄──►│ Prisma 6.19+     │◄──►│ MySQL (可选)    │
 │ Pinia 3.0+   │    │ JWT 9.0+         │    └─────────────────┘
 │ Vite 5.4+    │    │ Winston 3.19+    │
-└──────────────┘    └──────────────────┘
+└──────────────┘    │ Helmet 8.2+      │
+                    └──────────────────┘
 ```
 
 ### 核心技术
@@ -100,10 +103,11 @@ KEC（Knowledge Education Course）课程管理平台是一套专为中小型教
 | **HTTP 客户端** | Axios 1.17 | 请求拦截器 + Token 自动刷新 |
 | **后端框架** | Express 5.1 | 轻量级 Web 框架 |
 | **ORM** | Prisma 6.19 | 类型安全，Schema 驱动 |
-| **认证** | JWT 9.0 | Access + Refresh Token 双令牌 |
-| **密码加密** | bcryptjs 3.0 | 加盐哈希存储 |
+| **认证** | JWT 9.0 | Access (15m) + Refresh (7d) Token |
+| **密码加密** | bcryptjs 3.0 | 加盐哈希存储 (12轮) |
 | **Excel** | ExcelJS 4.4 | 纯 JS 实现，无系统依赖 |
 | **速率限制** | express-rate-limit 8.5 | API 限流保护 |
+| **安全头** | Helmet 8.2 | HTTP 安全响应头 |
 
 ### 系统架构
 
@@ -119,8 +123,8 @@ KEC（Knowledge Education Course）课程管理平台是一套专为中小型教
 ┌────────────────────────┴──────────────────────────────┐
 │                  Express 后端服务                       │
 │  ┌────────┐  ┌──────────┐  ┌────────┐  ┌───────────┐  │
-│  │ 路由层  │→│ 中间件链  │→│ 业务层  │→│ 数据访问层 │  │
-│  │14个模块│  │认证/审计  │  │Service │  │Prisma ORM │  │
+│  │ 路由层  │→│ 中间件链  │→│控制器层│→│ 数据访问层 │  │
+│  │14个模块│  │认证/审计  │  │Controller│ │Prisma ORM │  │
 │  └────────┘  └──────────┘  └────────┘  └───────────┘  │
 └────────────────────────┬──────────────────────────────┘
                          │ Prisma Client
@@ -130,9 +134,35 @@ KEC（Knowledge Education Course）课程管理平台是一套专为中小型教
 └───────────────────────────────────────────────────────┘
 ```
 
+### 后端分层架构
+
+```
+server/src/
+├── routes/               # 路由层：定义API端点和权限
+│   ├── plan.routes.js    # 培养方案路由 (81行)
+│   ├── export.routes.js  # 导出路由 (50行)
+│   └── ...
+├── controllers/          # 控制器层：业务逻辑处理
+│   ├── plan/
+│   │   ├── plan.controller.js           # 方案CRUD (295行)
+│   │   └── plan-matrix.controller.js    # 课程矩阵 (406行)
+│   └── export/
+│       ├── export-template.controller.js      # 模板下载 (84行)
+│       ├── semester-export.controller.js      # 开课导出 (356行)
+│       └── data-export.controller.js          # 数据导出 (293行)
+├── services/           # 服务层：跨模块业务逻辑
+│   ├── auth.service.js
+│   ├── audit.service.js
+│   └── plan.service.js
+└── middleware/         # 中间件层：认证、审计、错误处理
+    ├── auth.middleware.js
+    ├── audit.middleware.js
+    └── error.middleware.js
+```
+
 ---
 
-## 环境要求
+## 📦 环境要求
 
 - **Node.js**: 18.x 或更高版本（推荐 20.x LTS）
 - **npm**: 8.x 或更高版本
@@ -142,7 +172,7 @@ KEC（Knowledge Education Course）课程管理平台是一套专为中小型教
 
 ---
 
-## 快速开始
+## 🚀 快速开始
 
 ### 1. 克隆项目
 
@@ -208,7 +238,7 @@ npm run dev:client   # 前端：http://localhost:5173
 | 密码 | `admin@123456` |
 | 角色 | `super_admin` |
 
-> 首次登录后请立即修改默认密码。
+> ⚠️ **安全提醒**：首次登录后请立即修改默认密码！
 
 ### 6. 导入基础数据
 
@@ -224,7 +254,7 @@ npm run dev:client   # 前端：http://localhost:5173
 
 ---
 
-## 常用命令
+## 📝 常用命令
 
 ### 根目录
 
@@ -234,6 +264,9 @@ npm run dev:server       # 仅启动后端（端口 3000）
 npm run dev:client       # 仅启动前端（端口 5173）
 npm run db:migrate       # 执行数据库迁移
 npm run db:generate      # 生成 Prisma Client
+npm run version:patch    # 递增补丁版本号
+npm run version:minor    # 递增次版本号
+npm run version:major    # 递增主版本号
 ```
 
 ### 后端 (server/)
@@ -246,6 +279,8 @@ npm run db:seed:dev      # 开发模式：创建测试数据
 npm run db:seed:reset    # ⚠️ 强制重置：清空所有数据
 npm run init:settings    # 初始化系统设置（学期、单位名称）
 npm run diagnose         # 运行诊断工具
+npm test                 # 运行测试套件
+npm run test:coverage    # 运行测试并生成覆盖率报告
 ```
 
 ### 前端 (client/)
@@ -258,7 +293,7 @@ npm run preview          # 预览构建结果
 
 ---
 
-## 生产部署
+## 🌐 生产部署
 
 项目提供一键部署脚本 `deploy.sh`，自动完成环境检查、代码克隆、依赖安装、数据库初始化、前端构建和服务启动全流程。
 
@@ -306,7 +341,7 @@ git pull && bash deploy.sh
 
 ---
 
-## 项目结构
+## 📁 项目结构
 
 ```
 kec-manager/
@@ -314,8 +349,12 @@ kec-manager/
 │   ├── src/
 │   │   ├── api/                     # API 接口封装
 │   │   ├── components/              # 公共组件
+│   │   │   ├── Layout.vue           # 主布局组件
+│   │   │   └── CourseMatrix.vue     # 课程矩阵编辑器
 │   │   ├── router/                  # 路由配置
 │   │   ├── stores/                  # Pinia 状态管理
+│   │   │   ├── auth.js              # 认证状态
+│   │   │   └── settings.js          # 系统设置
 │   │   ├── utils/                   # 工具函数
 │   │   └── views/                   # 页面组件（19 个）
 │   │       ├── Login.vue            # 登录页
@@ -338,6 +377,9 @@ kec-manager/
 │   │   └── seed.js                  # 种子数据脚本
 │   ├── src/
 │   │   ├── routes/                  # API 路由（14 个模块）
+│   │   ├── controllers/             # 控制器层（新增）
+│   │   │   ├── plan/                # 培养方案控制器
+│   │   │   └── export/              # 数据导出控制器
 │   │   ├── services/                # 业务逻辑层
 │   │   ├── middleware/              # 中间件（认证/审计/错误处理）
 │   │   ├── config/                  # 配置文件
@@ -345,6 +387,10 @@ kec-manager/
 │   │   ├── lib/                     # 第三方库封装
 │   │   ├── app.js                   # Express 应用
 │   │   └── server.js                # 服务入口
+│   ├── tests/                       # 测试套件
+│   │   ├── auth.test.js             # 认证测试
+│   │   ├── rbac.test.js             # 权限测试
+│   │   └── validation.test.js       # 验证测试
 │   ├── scripts/                     # 运维脚本
 │   │   ├── diagnose.js              # 环境诊断工具
 │   │   └── init-settings.js         # 系统设置初始化
@@ -356,6 +402,7 @@ kec-manager/
 ├── docs/                            # 项目文档
 │   ├── DEPLOYMENT_GUIDE.md          # 生产环境部署指南
 │   ├── PRODUCTION_DEPLOYMENT.md     # 部署检查清单
+│   ├── CODE_AUDIT_REPORT_2026-06-14.md  # 代码审计报告
 │   └── semester-calculation.md      # 学期计算逻辑
 ├── package.json                     # 根级脚本
 └── README.md                        # 项目说明
@@ -363,7 +410,7 @@ kec-manager/
 
 ---
 
-## 数据库模型
+## 🗄️ 数据库模型
 
 系统包含 13 张核心数据表：
 
@@ -387,31 +434,34 @@ kec-manager/
 
 ---
 
-## 安全特性
+## 🔒 安全特性
 
 ### 认证与授权
 
 - **JWT 双令牌**：Access Token（15 分钟）+ Refresh Token（7 天）
-- **密码加密**：bcryptjs 加盐哈希存储
-- **Token 自动刷新**：前端无感知刷新
+- **密码加密**：bcryptjs 加盐哈希存储（12轮迭代）
+- **Token 自动刷新**：前端无感知刷新机制
 - **三级权限**：超级管理员 / 管理员 / 访客，路由级权限控制
+- **速率限制**：登录接口 10 次/15 分钟限流
 
 ### 数据安全
 
 - **SQL 注入防护**：Prisma ORM 参数化查询
-- **XSS 防护**：Vue 3 自动转义输出
+- **XSS 防护**：Vue 3 自动转义输出 + 输入 sanitization
 - **CORS 白名单**：严格限制跨域来源
-- **API 限流**：登录等敏感接口速率限制
+- **HTTP 安全头**：Helmet 中间件（HSTS, X-Frame-Options 等）
+- **公式注入防护**：Excel 导入时过滤危险公式
 
 ### 审计追踪
 
 - **全操作记录**：登录、增删改查等关键操作自动记录
 - **IP 地址追踪**：记录操作来源 IP
+- **Winston 日志**：结构化日志，支持文件轮转
 - **日志导出**：支持按时间、用户、操作类型筛选导出
 
 ---
 
-## 环境变量
+## ⚙️ 环境变量
 
 后端配置文件 `server/.env`：
 
@@ -425,13 +475,14 @@ kec-manager/
 | `JWT_DOWNLOAD_SECRET` | 下载 Token 密钥 | （自动生成） |
 | `JWT_EXPIRES_IN` | Token 过期时间 | 15m |
 | `JWT_REFRESH_EXPIRES_IN` | Refresh Token 过期时间 | 7d |
+| `BCRYPT_ROUNDS` | bcrypt 迭代次数 | 12 |
 | `CORS_ORIGINS` | 允许的前端域名 | （部署时配置） |
 | `LOG_LEVEL` | 日志级别 | info |
 | `MAX_FILE_SIZE` | 上传文件大小限制（MB） | 10 |
 
 ---
 
-## 常见问题
+## ❓ 常见问题
 
 ### 忘记管理员密码
 
@@ -481,15 +532,17 @@ pm2 restart kec-server
 
 ---
 
-## 相关文档
+## 📚 相关文档
 
 - [生产环境部署指南](docs/DEPLOYMENT_GUIDE.md) — 完整部署流程、Nginx 配置、HTTPS 设置
 - [部署检查清单](docs/PRODUCTION_DEPLOYMENT.md) — 服务器准备、部署步骤、监控维护
+- [代码审计报告](docs/CODE_AUDIT_REPORT_2026-06-14.md) — 全面代码质量与安全分析
 - [学期计算逻辑](docs/semester-calculation.md) — 学期自动推算算法说明
+- [重构指南](docs/REFACTORING_GUIDE.md) — 代码重构策略与最佳实践
 
 ---
 
-## 开源协议
+## 📄 开源协议
 
 本项目采用 [MIT License](LICENSE) 开源协议。
 
@@ -498,5 +551,7 @@ pm2 restart kec-server
 <div align="center">
 
 **KEC 课程管理平台** © 2026
+
+Made with ❤️ for Education
 
 </div>
