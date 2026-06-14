@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { autoFixSortOrder } from '../utils/sort.js';
+import { getNextSortOrder, buildUpdateData } from '../utils/sort-helper.js';
 
 export async function listColleges(req, res, next) {
   try {
@@ -23,10 +24,10 @@ export async function createCollege(req, res, next) {
   try {
     const { name, code, description, sort_order } = req.body;
     if (!name) return fail(res, '学院名称不能为空');
-    const maxSort = await prisma.colleges.aggregate({ _max: { sort_order: true } });
-    const newSortOrder = sort_order !== undefined ? Number(sort_order) : (maxSort._max.sort_order || 0) + 1;
+    const newSortOrder = await getNextSortOrder(prisma, 'colleges');
+    const finalSortOrder = sort_order !== undefined ? Number(sort_order) : newSortOrder;
     const college = await prisma.colleges.create({
-      data: { name, code, description, sort_order: newSortOrder },
+      data: { name, code, description, sort_order: finalSortOrder },
     });
     
     await createAuditLog({
@@ -58,12 +59,7 @@ export async function createCollege(req, res, next) {
 export async function updateCollege(req, res, next) {
   try {
     const { id } = req.params;
-    const { name, code, description, sort_order } = req.body;
-    const data = {};
-    if (name !== undefined) data.name = name;
-    if (code !== undefined) data.code = code;
-    if (description !== undefined) data.description = description;
-    if (sort_order !== undefined) data.sort_order = Number(sort_order);
+    const data = buildUpdateData(req.body, ['name', 'code', 'description', 'sort_order']);
     try {
       const college = await prisma.colleges.update({ where: { id: Number(id) }, data });
       

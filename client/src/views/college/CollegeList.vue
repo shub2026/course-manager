@@ -77,12 +77,16 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { getColleges, createCollege, updateCollege, deleteCollege } from '../../api/college'
+import { useSortable } from '../../composables/useSortable'
 
 const list = ref([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const saving = ref(false)
 const form = ref({ id: null, name: '', code: '', description: '' })
+
+// 使用排序 composable
+const { handleMoveUp, handleMoveDown } = useSortable(list, updateCollege, silentReload)
 
 async function load() {
   loading.value = true
@@ -133,62 +137,6 @@ async function handleDelete(id) {
   } catch (e) {
     console.error('删除学院失败:', e)
     ElMessage.error('删除失败，请重试')
-  }
-}
-
-async function handleMoveUp(row, index) {
-  if (index === 0) return
-  
-  const currentCollege = list.value[index]
-  const prevCollege = list.value[index - 1]
-  
-  const currentId = currentCollege.id
-  const prevId = prevCollege.id
-  const currentSortOrder = currentCollege.sortOrder
-  const prevSortOrder = prevCollege.sortOrder
-  
-  try {
-    // 如果排序值相同，使用基于位置的值
-    const newCurrentSort = currentSortOrder === prevSortOrder ? index - 1 : prevSortOrder
-    const newPrevSort = currentSortOrder === prevSortOrder ? index : currentSortOrder
-
-    await Promise.all([
-      updateCollege(currentId, { sortOrder: newCurrentSort }),
-      updateCollege(prevId, { sortOrder: newPrevSort })
-    ])
-    ElMessage.success('排序已更新')
-    await silentReload()
-  } catch (e) {
-    console.error('排序更新失败:', e)
-    ElMessage.error('排序更新失败')
-  }
-}
-
-async function handleMoveDown(row, index) {
-  if (index === list.value.length - 1) return
-  
-  const currentCollege = list.value[index]
-  const nextCollege = list.value[index + 1]
-  
-  const currentId = currentCollege.id
-  const nextId = nextCollege.id
-  const currentSortOrder = currentCollege.sortOrder
-  const nextSortOrder = nextCollege.sortOrder
-  
-  try {
-    // 如果排序值相同，使用基于位置的值
-    const newCurrentSort = currentSortOrder === nextSortOrder ? index + 1 : nextSortOrder
-    const newNextSort = currentSortOrder === nextSortOrder ? index : currentSortOrder
-
-    await Promise.all([
-      updateCollege(currentId, { sortOrder: newCurrentSort }),
-      updateCollege(nextId, { sortOrder: newNextSort })
-    ])
-    ElMessage.success('排序已更新')
-    await silentReload()
-  } catch (e) {
-    console.error('排序更新失败:', e)
-    ElMessage.error('排序更新失败')
   }
 }
 

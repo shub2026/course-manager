@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { autoFixSortOrder } from '../utils/sort.js';
+import { getNextSortOrder, buildUpdateData } from '../utils/sort-helper.js';
 
 export async function listTextbooks(req, res, next) {
   try {
@@ -15,8 +16,8 @@ export async function createTextbook(req, res, next) {
   try {
     const { title, isbn, publisher, author, edition, publish_date, price, category, description, is_active, sort_order } = req.body;
     if (!title) return fail(res, '书名不能为空');
-    const maxSort = await prisma.textbooks.aggregate({ _max: { sort_order: true } });
-    const newSortOrder = sort_order !== undefined ? Number(sort_order) : (maxSort._max.sort_order || 0) + 1;
+    const newSortOrder = await getNextSortOrder(prisma, 'textbooks');
+    const finalSortOrder = sort_order !== undefined ? Number(sort_order) : newSortOrder;
     const textbook = await prisma.textbooks.create({
       data: {
         title, isbn, publisher, author, edition,
@@ -25,7 +26,7 @@ export async function createTextbook(req, res, next) {
         category: category || null,
         description,
         is_active: is_active !== undefined ? is_active : true,
-        sort_order: newSortOrder,
+        sort_order: finalSortOrder,
       },
     });
 
@@ -57,19 +58,15 @@ export async function createTextbook(req, res, next) {
 export async function updateTextbook(req, res, next) {
   try {
     const { id } = req.params;
-    const { title, isbn, publisher, author, edition, publish_date, price, category, description, is_active, sort_order } = req.body;
-    const updateData = {};
-    if (title !== undefined) updateData.title = title;
-    if (isbn !== undefined) updateData.isbn = isbn;
-    if (publisher !== undefined) updateData.publisher = publisher;
-    if (author !== undefined) updateData.author = author;
-    if (edition !== undefined) updateData.edition = edition;
-    if (publish_date !== undefined) updateData.publish_date = publish_date || null;
-    if (price !== undefined) updateData.price = price ? Number(price) : null;
-    if (category !== undefined) updateData.category = category;
-    if (description !== undefined) updateData.description = description;
-    if (is_active !== undefined) updateData.is_active = is_active;
-    if (sort_order !== undefined) updateData.sort_order = Number(sort_order);
+    const updateData = buildUpdateData(req.body, [
+      'title', 'isbn', 'publisher', 'author', 'edition', 
+      'publish_date', 'price', 'category', 'description', 
+      'is_active', 'sort_order'
+    ]);
+    // 特殊处理：确保 price 和 publish_date 的正确转换
+    if (req.body.price !== undefined) updateData.price = req.body.price ? Number(req.body.price) : null;
+    if (req.body.publish_date !== undefined) updateData.publish_date = req.body.publish_date || null;
+    
     try {
       const textbook = await prisma.textbooks.update({ where: { id: Number(id) }, data: updateData });
 

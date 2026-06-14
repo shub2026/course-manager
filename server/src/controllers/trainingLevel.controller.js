@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { autoFixSortOrder } from '../utils/sort.js';
+import { getNextSortOrder, buildUpdateData } from '../utils/sort-helper.js';
 
 export async function listTrainingLevels(req, res, next) {
   try {
@@ -23,10 +24,10 @@ export async function createTrainingLevel(req, res, next) {
   try {
     const { name, code, description, sort_order } = req.body;
     if (!name) return fail(res, '层次名称不能为空');
-    const maxSort = await prisma.training_levels.aggregate({ _max: { sort_order: true } });
-    const newSortOrder = sort_order !== undefined ? Number(sort_order) : (maxSort._max.sort_order || 0) + 1;
+    const newSortOrder = await getNextSortOrder(prisma, 'training_levels');
+    const finalSortOrder = sort_order !== undefined ? Number(sort_order) : newSortOrder;
     const level = await prisma.training_levels.create({
-      data: { name, code, description, sort_order: newSortOrder },
+      data: { name, code, description, sort_order: finalSortOrder },
     });
     await createAuditLog({
       action: 'create',
@@ -56,12 +57,7 @@ export async function createTrainingLevel(req, res, next) {
 export async function updateTrainingLevel(req, res, next) {
   try {
     const { id } = req.params;
-    const { name, code, description, sort_order } = req.body;
-    const data = {};
-    if (name !== undefined) data.name = name;
-    if (code !== undefined) data.code = code;
-    if (description !== undefined) data.description = description;
-    if (sort_order !== undefined) data.sort_order = Number(sort_order);
+    const data = buildUpdateData(req.body, ['name', 'code', 'description', 'sort_order']);
     try {
       const level = await prisma.training_levels.update({ where: { id: Number(id) }, data });
       await createAuditLog({

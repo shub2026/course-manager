@@ -104,6 +104,8 @@ import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { useAuthStore } from '../../stores/auth'
 import request from '../../utils/request'
 import { getCourses, createCourse, updateCourse, deleteCourse } from '../../api/course'
+import { useExport } from '../../composables/useExport'
+import { useSortable } from '../../composables/useSortable'
 
 const list = ref([])
 const authStore = useAuthStore()
@@ -114,6 +116,12 @@ const form = ref({ id: null, name: '', code: '', type: 'public', description: ''
 
 // 导入相关状态
 const pendingFile = ref(null)
+
+// 使用导出 composable
+const { exportData, downloadTemplate } = useExport('courses', '课程数据')
+
+// 使用排序 composable
+const { handleMoveUp, handleMoveDown } = useSortable(list, updateCourse, silentReload)
 
 async function load() {
   loading.value = true
@@ -164,50 +172,6 @@ async function handleDelete(id) {
   } catch (e) {
     console.error('删除课程失败:', e)
     ElMessage.error('删除失败，请重试')
-  }
-}
-
-async function exportData() {
-  try {
-    const response = await request.get('/export/courses', {
-      responseType: 'blob'
-    })
-    
-    const blob = new Blob([response], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `课程数据_${new Date().getTime()}.xlsx`
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
-    
-    ElMessage.success('导出成功')
-  } catch (error) {
-    ElMessage.error('导出失败')
-  }
-}
-
-async function downloadTemplate() {
-  try {
-    const response = await request.get('/export/template/courses', {
-      responseType: 'blob'
-    })
-    
-    const blob = new Blob([response], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = '课程导入模板.xlsx'
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
-    
-    ElMessage.success('模板下载成功')
-  } catch (error) {
-    ElMessage.error('下载模板失败')
   }
 }
 
@@ -308,52 +272,6 @@ function onImportSuccess(res) {
 function onImportError(err) {
   console.error('导入错误:', err)
   ElMessage.error('导入失败，请检查文件格式或联系管理员')
-}
-
-async function handleMoveUp(row, index) {
-  if (index === 0) return
-  
-  const currentItem = list.value[index]
-  const prevItem = list.value[index - 1]
-  
-  try {
-    // 如果排序值相同，使用基于位置的值
-    const newCurrentSort = currentItem.sortOrder === prevItem.sortOrder ? index - 1 : prevItem.sortOrder
-    const newPrevSort = currentItem.sortOrder === prevItem.sortOrder ? index : currentItem.sortOrder
-
-    await Promise.all([
-      updateCourse(currentItem.id, { sortOrder: newCurrentSort }),
-      updateCourse(prevItem.id, { sortOrder: newPrevSort })
-    ])
-    ElMessage.success('排序已更新')
-    await silentReload()
-  } catch (e) {
-    console.error('排序更新失败:', e)
-    ElMessage.error('排序更新失败')
-  }
-}
-
-async function handleMoveDown(row, index) {
-  if (index === list.value.length - 1) return
-  
-  const currentItem = list.value[index]
-  const nextItem = list.value[index + 1]
-  
-  try {
-    // 如果排序值相同，使用基于位置的值
-    const newCurrentSort = currentItem.sortOrder === nextItem.sortOrder ? index + 1 : nextItem.sortOrder
-    const newNextSort = currentItem.sortOrder === nextItem.sortOrder ? index : currentItem.sortOrder
-
-    await Promise.all([
-      updateCourse(currentItem.id, { sortOrder: newCurrentSort }),
-      updateCourse(nextItem.id, { sortOrder: newNextSort })
-    ])
-    ElMessage.success('排序已更新')
-    await silentReload()
-  } catch (e) {
-    console.error('排序更新失败:', e)
-    ElMessage.error('排序更新失败')
-  }
 }
 
 onMounted(() => {

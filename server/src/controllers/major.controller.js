@@ -2,6 +2,7 @@ import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { autoFixSortOrder } from '../utils/sort.js';
+import { getNextSortOrder, buildUpdateData } from '../utils/sort-helper.js';
 
 /**
  * 获取专业列表
@@ -33,11 +34,11 @@ export async function createMajor(req, res, next) {
     const { name, code, description, sort_order } = req.body;
     if (!name) return fail(res, '专业名称不能为空');
     
-    const maxSort = await prisma.majors.aggregate({ _max: { sort_order: true } });
-    const newSortOrder = sort_order !== undefined ? Number(sort_order) : (maxSort._max.sort_order || 0) + 1;
+    const newSortOrder = await getNextSortOrder(prisma, 'majors');
+    const finalSortOrder = sort_order !== undefined ? Number(sort_order) : newSortOrder;
     
     const major = await prisma.majors.create({ 
-      data: { name, code, description, sort_order: newSortOrder } 
+      data: { name, code, description, sort_order: finalSortOrder } 
     });
     
     await createAuditLog({
@@ -71,13 +72,8 @@ export async function createMajor(req, res, next) {
 export async function updateMajor(req, res, next) {
   try {
     const { id } = req.params;
-    const { name, code, description, sort_order } = req.body;
     
-    const data = {};
-    if (name !== undefined) data.name = name;
-    if (code !== undefined) data.code = code;
-    if (description !== undefined) data.description = description;
-    if (sort_order !== undefined) data.sort_order = Number(sort_order);
+    const data = buildUpdateData(req.body, ['name', 'code', 'description', 'sort_order']);
     
     try {
       const major = await prisma.majors.update({

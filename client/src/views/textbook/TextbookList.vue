@@ -216,6 +216,8 @@ import { ArrowUp, ArrowDown, Edit, Delete } from '@element-plus/icons-vue'
 import { useAuthStore } from '../../stores/auth'
 import request from '../../utils/request'
 import { getTextbooks, createTextbook, updateTextbook, deleteTextbook, toggleTextbookStatus } from '../../api/textbook'
+import { useExport } from '../../composables/useExport'
+import { useSortable } from '../../composables/useSortable'
 
 const list = ref([])
 const authStore = useAuthStore()
@@ -242,6 +244,12 @@ const batchForm = ref({
 
 // 导入相关状态
 const pendingFile = ref(null)
+
+// 使用导出 composable
+const { exportData, downloadTemplate } = useExport('textbooks', '教材数据')
+
+// 使用排序 composable（注意：TextbookList 使用 filteredlist 而非 list）
+const { handleMoveUp, handleMoveDown } = useSortable(filteredlist, updateTextbook, silentReload)
 
 // 获取所有出版社列表
 const publishers = computed(() => {
@@ -421,50 +429,6 @@ async function handleBatchDelete() {
   } catch (e) {
     console.error('批量删除失败:', e)
     ElMessage.error('批量删除失败')
-  }
-}
-
-async function exportData() {
-  try {
-    const response = await request.get('/export/textbooks', {
-      responseType: 'blob'
-    })
-    
-    const blob = new Blob([response], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `教材数据_${new Date().getTime()}.xlsx`
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
-    
-    ElMessage.success('导出成功')
-  } catch (error) {
-    ElMessage.error('导出失败')
-  }
-}
-
-async function downloadTemplate() {
-  try {
-    const response = await request.get('/export/template/textbooks', {
-      responseType: 'blob'
-    })
-    
-    const blob = new Blob([response], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = '教材导入模板.xlsx'
-    document.body.appendChild(a)
-    a.click()
-    window.URL.revokeObjectURL(url)
-    document.body.removeChild(a)
-    
-    ElMessage.success('模板下载成功')
-  } catch (error) {
-    ElMessage.error('下载模板失败')
   }
 }
 
