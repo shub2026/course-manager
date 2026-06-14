@@ -5,6 +5,7 @@
  * 自动按当前列表顺序分配递增的排序值。
  */
 import { prisma } from '../lib/prisma.js';
+import { log } from './logger.js'; // L1修复：使用winston logger
 
 /**
  * 检查并自动修复重复的 sort_order 值
@@ -42,7 +43,7 @@ export async function autoFixSortOrder(modelName, where = {}) {
     await prisma.$transaction(updates);
     return true;
   } catch (e) {
-    console.error(`自动修复 ${modelName} 排序失败:`, e.message);
+    log.error(`自动修复 ${modelName} 排序失败`, { error: e.message });
     return false;
   }
 }

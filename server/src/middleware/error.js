@@ -1,4 +1,5 @@
 import { AppError } from '../utils/error.js';
+import { log } from '../utils/logger.js'; // L1修复：使用winston logger
 
 /**
  * 将 Prisma/数据库错误消息转换为安全的用户友好提示
@@ -41,7 +42,7 @@ export function errorHandler(err, req, res, next) {
 
   // 自定义应用错误
   if (err instanceof AppError) {
-    console.error(`[AppError] ${err.message} (statusCode: ${err.statusCode}, code: ${err.code})`);
+    log.error(`[AppError] ${err.message}`, { statusCode: err.statusCode, code: err.code });
     return res.status(err.statusCode).json({
       success: false,
       message: isProduction ? (err.isOperational ? err.message : getSafeMessage(err)) : err.message,
@@ -50,7 +51,7 @@ export function errorHandler(err, req, res, next) {
   }
 
   // 未知错误
-  console.error('[Unhandled Error]', err.message);
+  log.error('[Unhandled Error]', { message: err.message, stack: err.stack });
   const status = err.statusCode || err.status || 500;
 
   res.status(status).json({

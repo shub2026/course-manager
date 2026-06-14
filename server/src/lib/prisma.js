@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client';
+import { log } from '../utils/logger.js'; // L1修复：使用winston logger
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -20,10 +21,10 @@ export const prisma = new PrismaClient(prismaOptions);
 // 开发环境下监听错误和警告事件
 if (isDevelopment) {
   prisma.$on('error', (e) => {
-    console.error('[Prisma Error]', e.message);
+    log.error('[Prisma Error]', { message: e.message });
   });
   
   prisma.$on('warn', (e) => {
-    console.warn('[Prisma Warning]', e.message);
+    log.warn('[Prisma Warning]', { message: e.message });
   });
 }

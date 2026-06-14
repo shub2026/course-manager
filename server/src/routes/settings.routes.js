@@ -4,6 +4,8 @@ import { success, fail } from '../utils/response.js';
 import { getCurrentSemesterInfo } from '../services/settings.service.js';
 import { authMiddleware, roleMiddleware } from '../middleware/auth.middleware.js';
 import { createAuditLog } from '../services/audit.service.js';
+import { sanitizeBody } from '../middleware/xss.js'; // H7修复：XSS防护中间件
+import { log } from '../utils/logger.js'; // L1修复：使用winston logger
 
 const router = Router();
 
@@ -33,8 +35,7 @@ router.get('/', async (req, res, next) => {
     
     success(res, map);
   } catch (e) { 
-    console.error('[Settings GET Error]', e.message);
-    console.error('[Settings GET Error Stack]', e.stack);
+    log.error('Settings GET Error', { error: e.message, stack: e.stack });
     // 生产环境友好降级：返回默认设置而不是500错误
     const defaultMap = {};
     for (const [key, def] of Object.entries(DEFAULT_SETTINGS)) {
@@ -50,7 +51,7 @@ router.get('/', async (req, res, next) => {
 });
 
 // PUT - 需要登录且为super_admin权限
-router.put('/', authMiddleware, roleMiddleware('super_admin'), async (req, res, next) => {
+router.put('/', authMiddleware, roleMiddleware('super_admin'), sanitizeBody, async (req, res, next) => {
   try {
     const updates = req.body;
     

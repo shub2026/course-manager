@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma.js';
+import { log } from '../utils/logger.js'; // L1修复：使用winston logger
 
 export async function getCurrentSemesterInfo() {
   const setting = await prisma.system_settings.findUnique({ where: { key: 'current_semester' } });
@@ -7,7 +8,7 @@ export async function getCurrentSemesterInfo() {
   // #19修复：校验数据格式，防止NaN传播
   const parts = setting.value.split('-');
   if (parts.length !== 3) {
-    console.error(`Invalid current_semester format: ${setting.value}, expected format: YYYY-YYYY-N`);
+    log.error('Invalid current_semester format', { value: setting.value, expectedFormat: 'YYYY-YYYY-N' });
     return null;
   }
   
@@ -16,7 +17,7 @@ export async function getCurrentSemesterInfo() {
   const semesterIndex = Number(parts[2]);
   
   if (isNaN(startYear) || isNaN(endYear) || isNaN(semesterIndex)) {
-    console.error(`Invalid current_semester values: startYear=${parts[0]}, endYear=${parts[1]}, semesterIndex=${parts[2]}`);
+    log.error('Invalid current_semester values', { startYear: parts[0], endYear: parts[1], semesterIndex: parts[2] });
     return null;
   }
   

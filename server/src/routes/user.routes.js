@@ -6,6 +6,8 @@ import bcrypt from 'bcryptjs'
 import { createAuditLog } from '../services/audit.service.js'
 import { NotFoundError, ValidationError, AuthorizationError } from '../utils/error.js'
 import { authConfig } from '../config/auth.config.js' // M9修复：导入配置
+import { sanitizeBody } from '../middleware/xss.js' // H7修复：XSS防护中间件
+import { log } from '../utils/logger.js' // L1修复：使用winston logger
 
 const router = express.Router()
 
@@ -48,7 +50,7 @@ router.get('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) =
  * POST /api/users
  * 创建用户
  */
-router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
+router.post('/', roleMiddleware('admin', 'super_admin'), sanitizeBody, async (req, res, next) => {
   try {
     const { username, password, real_name, email, role } = req.body
 
@@ -119,7 +121,7 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
  * PUT /api/users/:id
  * 更新用户信息
  */
-router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
+router.put('/:id', roleMiddleware('admin', 'super_admin'), sanitizeBody, async (req, res, next) => {
   try {
     const { id } = req.params
     const { real_name, email, role } = req.body
@@ -226,8 +228,8 @@ router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, re
 
     success(res, null, `${isActive ? '激活' : '禁用'}成功`)
   } catch (error) {
-    console.error('[ERROR]', error)
-    next(error)
+    log.error('用户状态更新失败', { error: error.message, stack: error.stack });
+    next(error);
   }
 })
 

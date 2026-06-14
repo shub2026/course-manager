@@ -49,6 +49,7 @@ model classes {
   @@index([major_id, status])
   @@index([training_level_id])
   @@index([college_id])
+  @@index([custom_plan_id])
 }
 
 model colleges {
@@ -102,6 +103,7 @@ model plan_course_semesters {
   plan_textbooks plan_textbooks[]
 
   @@unique([plan_course_id, semester])
+  @@index([semester])
 }
 
 model plan_courses {
@@ -132,6 +134,9 @@ model plan_textbooks {
   created_at            DateTime              @default(now())
   plan_course_semesters plan_course_semesters @relation(fields: [semester_id], references: [id], onDelete: Cascade)
   textbooks             textbooks             @relation(fields: [textbook_id], references: [id])
+
+  @@index([semester_id])
+  @@index([textbook_id])
 }
 
 model system_settings {
@@ -191,6 +196,10 @@ model training_plans {
   majors            majors?          @relation(fields: [major_id], references: [id])
   colleges          colleges?        @relation(fields: [college_id], references: [id])
   training_levels   training_levels? @relation(fields: [training_level_id], references: [id])
+
+  @@index([major_id])
+  @@index([college_id])
+  @@index([training_level_id])
 }
 
 model users {
@@ -207,5 +216,4 @@ model users {
   audit_logs    audit_logs[]
 
   @@index([role])
-  @@index([username])
 }

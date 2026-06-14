@@ -187,11 +187,6 @@ async function loadUsers() {
   loading.value = true
   try {
     const response = await request.get('/users')
-    console.log('[DEBUG] loadUsers response:', JSON.stringify(response))
-    console.log('[DEBUG] loadUsers response.data:', JSON.stringify(response.data))
-    if (Array.isArray(response.data)) {
-      console.log('[DEBUG] First user:', response.data[0])
-    }
     users.value = response.data
   } catch (error) {
     ElMessage.error('加载用户列表失败：' + (error.message || '未知错误'))
@@ -266,9 +261,7 @@ async function handleSubmit() {
 }
 
 async function toggleUserStatus(user) {
-  console.log('[DEBUG] toggleUserStatus called with user:', JSON.stringify(user))
   const action = user.isActive ? '禁用' : '激活'
-  console.log('[DEBUG] action:', action, 'isActive:', user.isActive)
   
   await ElMessageBox.confirm(`确定要${action}用户 "${user.username}" 吗？`, '提示', {
     confirmButtonText: '确定',
@@ -278,15 +271,12 @@ async function toggleUserStatus(user) {
 
   try {
     const requestData = { isActive: !user.isActive }
-    console.log('[DEBUG] Sending PUT request to /users/', user.id, '/status with data:', JSON.stringify(requestData))
     
-    const response = await request.put(`/users/${user.id}/status`, requestData)
-    console.log('[DEBUG] PUT response:', JSON.stringify(response))
+    await request.put(`/users/${user.id}/status`, requestData)
     
     ElMessage.success(`${action}成功`)
     await silentReload()
   } catch (error) {
-    console.error('[ERROR] toggleUserStatus failed:', error)
     ElMessage.error(`${action}失败：` + (error.message || '未知错误'))
   }
 }

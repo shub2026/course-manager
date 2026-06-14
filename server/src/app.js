@@ -19,6 +19,7 @@ import auditRoutes from './routes/audit.routes.js';
 import { authMiddleware, roleMiddleware } from './middleware/auth.middleware.js';
 import { errorHandler } from './middleware/error.js';
 import { convertResponseNaming, convertRequestNaming } from './middleware/naming.middleware.js';
+import { log } from './utils/logger.js'; // L1修复：使用winston logger
 
 const app = express();
 
@@ -44,7 +45,7 @@ app.use(cors({
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
-      console.warn(`CORS blocked request from origin: ${origin}`);
+      log.warn('CORS blocked request from origin', { origin });
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -52,7 +53,7 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
+  log.info(`${req.method} ${req.path}`, { ip: req.ip });
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   next();
 });

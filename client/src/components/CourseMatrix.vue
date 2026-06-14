@@ -624,7 +624,6 @@ async function handleMoveDown(course, group) {
 // 加载数据
 async function loadData() {
   if (!props.planId) {
-    console.warn('CourseMatrix: planId is not provided')
     return
   }
   

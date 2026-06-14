@@ -1,21 +1,23 @@
 import { Router } from 'express';
 import multer from 'multer';
 import fs from 'fs';
+import xss from 'xss';
 import { prisma } from '../lib/prisma.js';
 import { success, fail } from '../utils/response.js';
 import { readWorkbook } from '../utils/excel.js';
 import { getCurrentSemesterInfo } from '../services/settings.service.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { ValidationError } from '../utils/error.js'; // H2修复：导入自定义错误类
+import { log } from '../utils/logger.js'; // L1修复：使用winston logger
 
 const router = Router();
 
-// H7修复：XSS清洗函数
+// H7修复：使用xss库进行专业的XSS清洗
 function sanitizeInput(value) {
   if (value === null || value === undefined) return value;
   const str = String(value).trim();
-  // 移除HTML标签和脚本
-  return str.replace(/<[^>]*>/g, '').replace(/javascript:/gi, '');
+  // 使用xss库进行专业的HTML标签和脚本过滤
+  return xss(str);
 }
 
 // H7修复：防止公式注入（Excel CSV Injection）
@@ -342,7 +344,7 @@ router.post('/classes', upload.single('file'), async (req, res, next) => {
     success(res, result, message);
   } catch (e) {
     // H6修复：事务失败时自动回滚
-    console.error('[班级导入] 事务执行失败，已回滚:', e);
+    log.error('[班级导入] 事务执行失败，已回滚', { error: e.message, stack: e.stack });
     
     // 记录错误日志
     await createAuditLog({
@@ -488,7 +490,7 @@ router.post('/courses', upload.single('file'), async (req, res, next) => {
     success(res, result, message);
   } catch (e) {
     // H6修复：事务失败时自动回滚
-    console.error('[课程导入] 事务执行失败，已回滚:', e);
+    log.error('[课程导入] 事务执行失败，已回滚', { error: e.message, stack: e.stack });
     
     // 记录错误日志
     await createAuditLog({
@@ -648,7 +650,7 @@ router.post('/textbooks', upload.single('file'), async (req, res, next) => {
     success(res, result, message);
   } catch (e) {
     // H6修复：事务失败时自动回滚
-    console.error('[教材导入] 事务执行失败，已回滚:', e);
+    log.error('[教材导入] 事务执行失败，已回滚', { error: e.message, stack: e.stack });
     
     // 记录错误日志
     await createAuditLog({

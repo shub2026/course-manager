@@ -4,6 +4,7 @@ import { success, fail } from '../utils/response.js';
 import { roleMiddleware } from '../middleware/auth.middleware.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { autoFixSortOrder } from '../utils/sort.js';
+import { sanitizeBody } from '../middleware/xss.js'; // H7修复：XSS防护中间件
 
 const router = Router();
 
@@ -26,7 +27,7 @@ router.get('/', async (req, res, next) => {
 });
 
 // POST/PUT/DELETE - 需要admin权限
-router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
+router.post('/', roleMiddleware('admin', 'super_admin'), sanitizeBody, async (req, res, next) => {
   try {
     const { name, code, description, sort_order } = req.body;
     if (!name) return fail(res, '专业名称不能为空');
@@ -61,7 +62,7 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
   }
 });
 
-router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
+router.put('/:id', roleMiddleware('admin', 'super_admin'), sanitizeBody, async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, code, description, sort_order } = req.body;

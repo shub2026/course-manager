@@ -1,4 +1,5 @@
 import { AuthService } from '../services/auth.service.js'
+import { log } from '../utils/logger.js' // L1修复：使用winston logger
 
 export function authMiddleware(req, res, next) {
   let token = null
@@ -51,7 +52,7 @@ export function roleMiddleware(...allowedRoles) {
     }
 
     if (!allowedRoles.includes(req.user.role)) {
-      console.warn(`用户 ${req.user.username} (${req.user.role}) 尝试访问受限资源`)
+      log.warn('用户尝试访问受限资源', { username: req.user.username, role: req.user.role });
 
       return res.status(403).json({
         success: false,

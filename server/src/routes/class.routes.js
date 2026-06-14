@@ -7,6 +7,7 @@ import { getCurrentSemesterInfo } from '../services/settings.service.js';
 import { createAuditLog } from '../services/audit.service.js';
 import { validatePagination } from '../middleware/pagination.js';
 import { getActiveClassFilter } from '../services/class.service.js';
+import { sanitizeBody } from '../middleware/xss.js'; // H7修复：XSS防护中间件
 
 const router = Router();
 
@@ -284,7 +285,7 @@ router.get('/', validatePagination(100), async (req, res, next) => {
   } catch (e) { next(e); }
 });
 
-router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
+router.post('/', roleMiddleware('admin', 'super_admin'), sanitizeBody, async (req, res, next) => {
   try {
     const { name, enrollment_year, duration_years, major_id, college_id, training_level_id, student_count, custom_plan_id, is_left_school } = req.body;
     if (!name || !enrollment_year || !duration_years || !training_level_id) {
@@ -342,7 +343,7 @@ router.post('/', roleMiddleware('admin', 'super_admin'), async (req, res, next) 
   }
 });
 
-router.put('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, next) => {
+router.put('/:id', roleMiddleware('admin', 'super_admin'), sanitizeBody, async (req, res, next) => {
   try {
     const { id } = req.params;
     const { name, enrollment_year, duration_years, major_id, college_id, training_level_id, student_count, custom_plan_id, is_left_school } = req.body;

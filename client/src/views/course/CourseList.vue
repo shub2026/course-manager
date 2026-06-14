@@ -102,6 +102,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { useAuthStore } from '../../stores/auth'
+import request from '../../utils/request'
 import { getCourses, createCourse, updateCourse, deleteCourse } from '../../api/course'
 
 const list = ref([])
@@ -168,19 +169,11 @@ async function handleDelete(id) {
 
 async function exportData() {
   try {
-    const response = await fetch('/api/export/courses', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`,
-        'Content-Type': 'application/json'
-      }
+    const response = await request.get('/export/courses', {
+      responseType: 'blob'
     })
     
-    if (!response.ok) {
-      throw new Error('导出失败')
-    }
-    
-    const blob = await response.blob()
+    const blob = new Blob([response], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -192,26 +185,17 @@ async function exportData() {
     
     ElMessage.success('导出成功')
   } catch (error) {
-    console.error('导出失败:', error)
     ElMessage.error('导出失败')
   }
 }
 
 async function downloadTemplate() {
   try {
-    const response = await fetch('/api/export/template/courses', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${authStore.token}`,
-        'Content-Type': 'application/json'
-      }
+    const response = await request.get('/export/template/courses', {
+      responseType: 'blob'
     })
     
-    if (!response.ok) {
-      throw new Error('下载模板失败')
-    }
-    
-    const blob = await response.blob()
+    const blob = new Blob([response], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -223,7 +207,6 @@ async function downloadTemplate() {
     
     ElMessage.success('模板下载成功')
   } catch (error) {
-    console.error('下载模板失败:', error)
     ElMessage.error('下载模板失败')
   }
 }
@@ -264,16 +247,13 @@ async function confirmImport() {
     const formData = new FormData()
     formData.append('file', pendingFile.value)
     
-    const response = await fetch('/api/import/courses', {
-      method: 'POST',
+    const response = await request.post('/import/courses', formData, {
       headers: {
-        'Authorization': authStore.token ? `Bearer ${authStore.token}` : '',
+        'Content-Type': 'multipart/form-data',
       },
-      body: formData,
     })
     
-    const data = await response.json()
-    onImportSuccess(data)
+    onImportSuccess(response)
   } catch (err) {
     onImportError(err)
   } finally {
