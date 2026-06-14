@@ -1,252 +1,55 @@
 <template>
   <div class="matrix-container">
     <!-- 顶部工具栏 -->
-    <div class="matrix-toolbar">
-      <el-button type="primary" @click="$emit('add-course')">
-        <el-icon><Plus /></el-icon> 添加课程
-      </el-button>
-      <div class="matrix-toolbar-right">
-        <span class="total-courses-label">共 {{ allCourses.length }} 门课程</span>
-      </div>
-    </div>
+    <CourseMatrixToolbar
+      :all-courses="allCourses"
+      @add-course="$emit('add-course')"
+    />
 
-    <!-- 矩阵表 -->
-    <div class="matrix-scroll" v-loading="loading">
-      <table class="matrix-table" v-if="rawCourses.length > 0">
-        <thead>
-          <tr>
-            <th class="matrix-fixed-col matrix-course-header">课程名称</th>
-            <th
-              v-for="s in maxSemester"
-              :key="s"
-              class="matrix-semester-header"
-            >
-              第{{ s }}学期
-            </th>
-            <th class="matrix-total-header">总课时</th>
-            <th class="matrix-action-header">操作</th>
-          </tr>
-        </thead>
-        <tbody v-for="group in groups" :key="group.type">
-          <!-- 分组标题行 -->
-          <tr class="matrix-group-row">
-            <td :colspan="maxSemester + 3" class="matrix-group-cell" :class="group.type">
-              <span class="group-label">{{ group.label }}</span>
-              <span class="group-count">{{ group.courses.length }} 门</span>
-            </td>
-          </tr>
-          <!-- 课程行 -->
-          <tr
-            v-for="course in group.courses"
-            :key="course.id"
-            class="matrix-course-row"
-          >
-            <td class="matrix-fixed-col matrix-course-name">
-              <span class="course-name-text">{{ course.courseName }}</span>
-              <el-tag
-                size="small"
-                :type="group.type === 'public' ? 'success' : 'warning'"
-                class="course-type-tag"
-              >
-                {{ group.type === 'public' ? '公共' : '专业' }}
-              </el-tag>
-            </td>
-            <!-- 学期单元格 -->
-            <td
-              v-for="s in maxSemester"
-              :key="s"
-              class="matrix-cell"
-              :class="cellClass(course, s)"
-              @click="openEdit(course, s)"
-            >
-              <template v-if="isInRange(course, s)">
-                <div class="cell-hours">
-                  {{ getHours(course, s) || '-' }}
-                </div>
-                <div class="cell-textbook" v-if="getTextbookName(course, s)">
-                  {{ getTextbookName(course, s) }}
-                </div>
-              </template>
-            </td>
-            <!-- 总课时 -->
-            <td class="matrix-cell matrix-total-cell">
-              <strong>{{ calcTotalHours(course) }}</strong>
-            </td>
-            <!-- 操作按钮 -->
-            <td class="matrix-cell matrix-action-cell">
-              <div class="action-buttons">
-                <el-button 
-                  size="small" 
-                  :icon="ArrowUp" 
-                  :disabled="isFirstInGroup(course, group)"
-                  @click="handleMoveUp(course, group)"
-                  circle
-                  title="上移"
-                />
-                <el-button 
-                  size="small" 
-                  :icon="ArrowDown" 
-                  :disabled="isLastInGroup(course, group)"
-                  @click="handleMoveDown(course, group)"
-                  circle
-                  title="下移"
-                />
-                <el-button size="small" @click="openSemesterSettings(course)" title="设置学期">
-                  <el-icon><Setting /></el-icon>
-                </el-button>
-                <el-popconfirm title="确定删除该课程？" @confirm="$emit('delete-course', course)">
-                  <template #reference>
-                    <el-button size="small" type="danger" title="删除课程">
-                      <el-icon><Delete /></el-icon>
-                    </el-button>
-                  </template>
-                </el-popconfirm>
-              </div>
-            </td>
-          </tr>
-          <!-- 分组小计 -->
-          <tr class="matrix-subtotal-row">
-            <td class="matrix-fixed-col matrix-subtotal-label">小计</td>
-            <td
-              v-for="s in maxSemester"
-              :key="s"
-              class="matrix-cell matrix-subtotal-cell"
-            >
-              {{ calcSemesterSubtotal(group, s) || '-' }}
-            </td>
-            <td class="matrix-cell matrix-subtotal-cell">
-              <strong>{{ calcGroupTotal(group) }}</strong>
-            </td>
-            <td></td>
-          </tr>
-        </tbody>
-      </table>
-      <el-empty v-else description="暂无课程，请添加课程到方案" />
-    </div>
+    <!-- 矩阵表格 -->
+    <CourseMatrixTable
+      :raw-courses="rawCourses"
+      :loading="loading"
+      :global-weeks="globalWeeks"
+      :total-all-hours="totalAllHours"
+      @edit="openEdit"
+      @delete-course="$emit('delete-course')"
+      @move-up="handleMoveUp"
+      @move-down="handleMoveDown"
+      @set-semester="openSemesterSettings"
+      @apply-weeks="applyGlobalWeeks"
+      @update-global-weeks="globalWeeks = $event"
+    />
 
-    <!-- 底部控制栏：统一学期周数 -->
-    <div class="matrix-footer">
-      <div class="footer-section">
-        <span class="footer-label">学期周数：</span>
-        <el-input-number
-          v-model="globalWeeks"
-          :min="1"
-          :max="30"
-          size="small"
-          controls-position="right"
-        />
-        <el-button type="primary" size="small" @click="applyGlobalWeeks">
-          <el-icon><Check /></el-icon> 应用
-        </el-button>
-        <span class="footer-hint">统一应用于所有学期</span>
-      </div>
-      <div class="footer-summary">
-        <el-tag type="info" size="large">
-          方案总课时：<strong>{{ totalAllHours }}</strong>
-        </el-tag>
-      </div>
-    </div>
-
-    <!-- Popover 编辑卡片 -->
-    <el-popover
-      ref="editPopover"
-      :visible="popoverVisible"
-      placement="bottom"
-      :width="360"
-      trigger="click"
-      :teleported="true"
-    >
-      <template #default>
-        <div class="popover-content" v-if="editingSemester">
-          <div class="popover-title">
-            {{ editingCourse?.courseName }} — 第{{ editingSemester.semester }}学期
-          </div>
-
-          <el-form label-width="80px" size="small">
-            <el-form-item label="周课时">
-              <el-radio-group v-model="editingSemester.weeklyHours" class="full-width">
-                <el-radio-button :value="0">0</el-radio-button>
-                <el-radio-button :value="2">2</el-radio-button>
-                <el-radio-button :value="4">4</el-radio-button>
-                <el-radio-button :value="6">6</el-radio-button>
-                <el-radio-button :value="8">8</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-            <el-form-item label="关联教材">
-              <el-select
-                v-model="editingTextbookId"
-                filterable
-                clearable
-                placeholder="选择教材（可选）"
-                class="full-width"
-                :disabled="editingSemester.weeklyHours === 0"
-              >
-                <el-option
-                  v-for="t in allTextbooks"
-                  :key="t.id"
-                  :label="`${t.title} (${t.publisher || ''})`"
-                  :value="t.id"
-                />
-              </el-select>
-              <div v-if="editingSemester.weeklyHours === 0" class="textbook-disabled-tip">
-                周课时为0时不可选择教材
-              </div>
-            </el-form-item>
-          </el-form>
-
-          <div class="popover-actions">
-            <el-button size="small" @click="popoverVisible = false">取消</el-button>
-            <el-button size="small" type="primary" @click="saveEdit" :loading="saving">
-              保存
-            </el-button>
-          </div>
-        </div>
-      </template>
-    </el-popover>
-
-    <!-- 开课学期设置对话框 -->
-    <el-dialog v-model="semesterDialogVisible" title="设置开课学期" width="450px">
-      <el-form label-width="100px">
-        <el-alert
-          :title="`课程：${editingCourseForSemester?.courseName || ''}`"
-          type="info"
-          :closable="false"
-          show-icon
-          style="margin-bottom: 16px"
-        />
-        <el-row :gutter="16">
-          <el-col :span="12">
-            <el-form-item label="起始学期" required>
-              <el-input-number v-model="semesterForm.startSemester" :min="1" :max="12" class="full-width" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="结束学期" required>
-              <el-input-number v-model="semesterForm.endSemester" :min="1" :max="12" class="full-width" />
-            </el-form-item>
-          </el-col>
-        </el-row>
-        <el-alert
-          title="提示：修改后将自动创建或删除对应的学期记录"
-          type="warning"
-          :closable="false"
-          show-icon
-        />
-      </el-form>
-      <template #footer>
-        <el-button @click="semesterDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveSemesterSettings" :loading="saving">
-          保存
-        </el-button>
-      </template>
-    </el-dialog>
+    <!-- 编辑对话框 -->
+    <CourseEditPopover
+      :popover-visible="popoverVisible"
+      :semester-dialog-visible="semesterDialogVisible"
+      :editing-course="editingCourse"
+      :editing-semester="editingSemester"
+      :editing-course-for-semester="editingCourseForSemester"
+      :semester-form="semesterForm"
+      :editing-textbook-id="editingTextbookId"
+      :saving="saving"
+      :all-textbooks="allTextbooks"
+      @close-popover="popoverVisible = false"
+      @save-edit="saveEdit"
+      @close-semester="semesterDialogVisible = false"
+      @save-semester="saveSemesterSettings"
+      @update-editing-semester="editingSemester = $event"
+      @update-editing-textbook-id="editingTextbookId = $event"
+      @update-semester-dialog-visible="semesterDialogVisible = $event"
+      @update-semester-form="semesterForm = $event"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
+import CourseMatrixToolbar from './CourseMatrixToolbar.vue'
+import CourseMatrixTable from './CourseMatrixTable.vue'
+import CourseEditPopover from './CourseEditPopover.vue'
 import {
   getPlanCourses,
   createSemester,
@@ -305,7 +108,7 @@ function buildSemesterWeeks(planSemesters, courses) {
   return Array(maxSemester.value).fill(defaultWeeks)
 }
 
-// 按类型分组
+// 按类型分组（用于计算总课时）
 const groups = computed(() => {
   const map = { public: [], professional: [] }
   rawCourses.value.forEach(c => {
@@ -344,23 +147,6 @@ function getHours(course, semester) {
   return sem ? sem.weeklyHours : null
 }
 
-// 获取某学期教材名
-function getTextbookName(course, semester) {
-  const sem = course.semesters.find(s => s.semester === semester)
-  if (!sem || !sem.planTextbooks?.length) return ''
-  return sem.planTextbooks.map(t => t.textbooks?.title).join(', ')
-}
-
-// 单元格样式
-function cellClass(course, semester) {
-  if (!isInRange(course, semester)) return 'cell-out-of-range'
-  const hours = getHours(course, semester) || 0
-  if (hours === 0) return 'cell-zero'
-  if (hours <= 2) return 'cell-low'
-  if (hours <= 4) return 'cell-mid'
-  return 'cell-high'
-}
-
 // 计算总课时
 function calcTotalHours(course) {
   let total = 0
@@ -379,17 +165,6 @@ function calcTotalHours(course) {
     }
   }
   return Math.round(total)
-}
-
-// 分组小计
-function calcSemesterSubtotal(group, semester) {
-  let total = 0
-  group.courses.forEach(c => {
-    if (isInRange(c, semester)) {
-      total += getHours(c, semester) || 0
-    }
-  })
-  return total || null
 }
 
 function calcGroupTotal(group) {
@@ -486,7 +261,6 @@ async function saveEdit() {
 // 应用全局周数 — 批量更新所有学期记录
 async function applyGlobalWeeks() {
   const weeks = globalWeeks.value
-  semesterWeeks.value = Array(maxSemester.value).fill(weeks)
 
   // 收集所有需要更新的学期记录ID
   const semesterIds = []
@@ -635,7 +409,6 @@ async function loadData() {
     ])
     rawCourses.value = coursesRes.data || []
     semesterWeeks.value = buildSemesterWeeks(semestersRes.data || [], rawCourses.value)
-    // FC3修复：移除调试输出，保留错误处理
   } catch (e) {
     console.error('CourseMatrix load error:', e)
   } finally {
@@ -670,301 +443,5 @@ watch(
   flex-direction: column;
   height: calc(100vh - 260px);
   min-height: 500px;
-}
-
-.matrix-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.matrix-toolbar-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.total-courses-label {
-  color: #909399;
-  font-size: 13px;
-}
-
-/* 矩阵滚动区 */
-.matrix-scroll {
-  flex: 1;
-  overflow: auto;
-  border: 1px solid #e4e7ed;
-  border-radius: 4px;
-}
-
-.matrix-table {
-  border-collapse: collapse;
-  width: max-content;
-  min-width: 100%;
-  font-size: 13px;
-}
-
-.matrix-table thead {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-}
-
-.matrix-table th {
-  background: #f5f7fa;
-  border: 1px solid #e4e7ed;
-  padding: 8px 6px;
-  text-align: center;
-  font-weight: 600;
-  color: #303133;
-  white-space: nowrap;
-}
-
-.matrix-semester-header {
-  min-width: 80px;
-}
-
-.matrix-course-header {
-  min-width: 160px;
-  text-align: left !important;
-  padding-left: 12px !important;
-}
-
-.matrix-total-header {
-  min-width: 70px;
-  background: #ecf5ff !important;
-  color: #409eff !important;
-}
-
-.matrix-action-header {
-  min-width: 140px;
-  text-align: center;
-  background: #f5f7fa !important;
-}
-
-/* 固定列 */
-.matrix-fixed-col {
-  position: sticky;
-  left: 0;
-  z-index: 1;
-  background: #fff;
-}
-
-.matrix-course-name {
-  padding: 8px 12px;
-  border: 1px solid #e4e7ed;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.course-name-text {
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.course-type-tag {
-  flex-shrink: 0;
-}
-
-/* 分组行 */
-.matrix-group-row td {
-  position: sticky;
-  left: 0;
-}
-
-.matrix-group-cell {
-  padding: 6px 16px !important;
-  font-weight: 600;
-  font-size: 14px;
-  border: 1px solid #e4e7ed;
-}
-
-.matrix-group-cell.public {
-  background: #f0f9eb;
-  color: #67c23a;
-}
-
-.matrix-group-cell.professional {
-  background: #fdf6ec;
-  color: #e6a23c;
-}
-
-.group-label {
-  margin-right: 8px;
-}
-
-.group-count {
-  font-weight: 400;
-  font-size: 12px;
-  color: #909399;
-}
-
-/* 单元格 */
-.matrix-cell {
-  border: 1px solid #e4e7ed;
-  padding: 4px 6px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  min-width: 80px;
-  vertical-align: middle;
-}
-
-.matrix-cell:hover {
-  box-shadow: inset 0 0 0 2px #409eff;
-}
-
-.cell-out-of-range {
-  background: #fafafa;
-  cursor: default;
-}
-
-.cell-zero {
-  background: #fff;
-}
-
-.cell-low {
-  background: #ecf5ff;
-}
-
-.cell-mid {
-  background: #d9ecff;
-}
-
-.cell-high {
-  background: #b3d8ff;
-}
-
-.cell-hours {
-  font-weight: 600;
-  font-size: 14px;
-  color: #303133;
-}
-
-.cell-textbook {
-  font-size: 11px;
-  color: #909399;
-  margin-top: 2px;
-  max-width: 80px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* 总课时列 */
-.matrix-total-cell {
-  background: #ecf5ff !important;
-  font-size: 14px;
-}
-
-/* 操作列 */
-.matrix-action-cell {
-  text-align: center;
-  cursor: default !important;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  justify-content: center;
-}
-
-.action-buttons .el-button.is-disabled {
-  opacity: 0.4;
-}
-
-.matrix-action-cell .el-button {
-  padding: 4px 8px;
-}
-
-/* 小计行 */
-.matrix-subtotal-row td {
-  background: #f5f7fa;
-  border-top: 2px solid #c0c4cc;
-}
-
-.matrix-subtotal-label {
-  padding: 6px 12px;
-  font-weight: 600;
-  color: #606266;
-  text-align: left;
-  border: 1px solid #e4e7ed;
-}
-
-.matrix-subtotal-cell {
-  font-weight: 500;
-  color: #606266;
-  cursor: default !important;
-}
-
-/* 底部控制栏 */
-.matrix-footer {
-  margin-top: 16px;
-  padding: 12px 16px;
-  background: #f5f7fa;
-  border-radius: 4px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 16px;
-}
-
-.footer-section {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.footer-label {
-  font-weight: 600;
-  font-size: 13px;
-  color: #303133;
-}
-
-.footer-hint {
-  font-size: 12px;
-  color: #909399;
-}
-
-.footer-summary {
-  flex-shrink: 0;
-  padding-top: 20px;
-}
-
-/* Popover */
-.popover-content {
-  padding: 4px 0;
-}
-
-.popover-title {
-  font-weight: 600;
-  font-size: 14px;
-  color: #303133;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #e4e7ed;
-}
-
-.popover-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 12px;
-  padding-top: 8px;
-  border-top: 1px solid #e4e7ed;
-}
-
-.textbook-disabled-tip {
-  font-size: 12px;
-  color: #f56c6c;
-  margin-top: 4px;
-}
-
-.full-width {
-  width: 100%;
 }
 </style>
