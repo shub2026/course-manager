@@ -135,13 +135,16 @@ global.testUtils = {
 export default async function setup() {
   console.log('🧪 初始化测试环境...')
 
-  // 确保测试数据库文件存在
-  if (!fs.existsSync(TEST_DB_PATH)) {
+  // 确保测试数据库文件存在并包含正确的表结构
+  if (!fs.existsSync(TEST_DB_PATH) || fs.statSync(TEST_DB_PATH).size === 0) {
     console.log('📦 创建测试数据库...')
-    // 运行Prisma迁移
-    execSync('npx prisma migrate dev --name init --skip-seed', {
+    // 清理可能存在的空文件
+    if (fs.existsSync(TEST_DB_PATH)) fs.unlinkSync(TEST_DB_PATH)
+    // 使用 prisma db push 创建测试数据库表结构
+    execSync('npx prisma db push --accept-data-loss --skip-generate', {
       cwd: process.cwd(),
-      stdio: 'pipe'
+      stdio: 'pipe',
+      env: { ...process.env, DATABASE_URL: `file:${TEST_DB_PATH}` }
     })
   }
 

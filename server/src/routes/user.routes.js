@@ -271,7 +271,7 @@ router.delete('/:id', roleMiddleware('admin', 'super_admin'), async (req, res, n
       module: 'user',
       userId: req.user.id,
       ip: req.ip,
-      details: { id: user.id, username },
+      details: { id: user.id, username: user.username },
       result: 'success',
       message: `删除用户：${user.username}`,
     })

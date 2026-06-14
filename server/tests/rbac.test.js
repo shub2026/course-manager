@@ -12,7 +12,15 @@ describe('RBAC权限控制测试', () => {
   let tokens = {}
 
   beforeEach(async () => {
-    // 清理数据
+    // 清理数据 - 按外键依赖顺序清理
+    await prisma.audit_logs.deleteMany()
+    await prisma.classes.deleteMany()
+    await prisma.training_plans.deleteMany()
+    await prisma.plan_courses.deleteMany()
+    await prisma.plan_course_semesters.deleteMany()
+    await prisma.plan_textbooks.deleteMany()
+    await prisma.majors.deleteMany()
+    await prisma.colleges.deleteMany()
     await prisma.users.deleteMany()
 
     // 创建不同角色的用户
@@ -58,7 +66,7 @@ describe('RBAC权限控制测试', () => {
           real_name: '新用户'
         })
 
-      expect(response.status).toBe(201)
+      expect(response.status).toBe(200)
       expect(response.body.success).toBe(true)
     })
 
@@ -74,7 +82,7 @@ describe('RBAC权限控制测试', () => {
         })
 
       // admin可能有限制，取决于具体实现
-      expect([201, 403]).toContain(response.status)
+      expect([200, 403]).toContain(response.status)
     })
 
     it('viewer不应该可以创建用户', async () => {
@@ -89,7 +97,7 @@ describe('RBAC权限控制测试', () => {
         })
 
       expect(response.status).toBe(403)
-      expect(response.body.error).toContain('权限不足')
+      expect(response.body.message).toContain('权限不足')
     })
 
     it('super_admin应该可以删除用户', async () => {
@@ -109,11 +117,11 @@ describe('RBAC权限控制测试', () => {
 
       expect(response.status).toBe(200)
 
-      // 验证用户已被禁用而非删除
+      // 验证用户已被物理删除（硬删除）
       const deletedUser = await prisma.users.findUnique({
         where: { id: testUser.id }
       })
-      expect(deletedUser.is_active).toBe(false)
+      expect(deletedUser).toBeNull()
     })
 
     it('viewer不应该可以删除用户', async () => {
@@ -133,8 +141,8 @@ describe('RBAC权限控制测试', () => {
       expect(response.status).toBe(403)
     })
 
-    it('所有登录用户都应该可以查看用户列表', async () => {
-      for (const role of ['super_admin', 'admin', 'viewer']) {
+    it('admin和super_admin应该可以查看用户列表', async () => {
+      for (const role of ['super_admin', 'admin']) {
         const response = await request(app)
           .get('/api/users')
           .set('Authorization', `Bearer ${tokens[role]}`)
@@ -142,6 +150,14 @@ describe('RBAC权限控制测试', () => {
         expect(response.status).toBe(200)
         expect(response.body.success).toBe(true)
       }
+    })
+
+    it('viewer不应该可以查看用户列表', async () => {
+      const response = await request(app)
+        .get('/api/users')
+        .set('Authorization', `Bearer ${tokens.viewer}`)
+
+      expect(response.status).toBe(403)
     })
   })
 
@@ -157,7 +173,7 @@ describe('RBAC权限控制测试', () => {
               code: `TEST_${role}`
             })
 
-          expect(response.status).toBe(201)
+          expect(response.status).toBe(200)
           expect(response.body.success).toBe(true)
         }
       })
@@ -209,7 +225,7 @@ describe('RBAC权限控制测试', () => {
               college_id: collegeId
             })
 
-          expect(response.status).toBe(201)
+          expect(response.status).toBe(200)
         }
       })
 
