@@ -25,7 +25,7 @@ async function resetDatabase() {
 
     // 3. 创建默认用户
     console.log('创建默认用户...');
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+    const hashedPassword = await bcrypt.hash('admin@123456', 10);
 
     const adminUser = await prisma.users.create({
       data: {
@@ -37,7 +37,7 @@ async function resetDatabase() {
         is_active: true
       }
     });
-    console.log(`✓ 超级管理员已创建: ${adminUser.username} (密码: admin123)\n`);
+    console.log(`✓ 超级管理员已创建: ${adminUser.username} (密码: admin@123456)\n`);
 
     // 4. 初始化系统设置
     console.log('初始化系统设置...');
@@ -89,7 +89,7 @@ async function resetDatabase() {
     console.log('=== 数据库重置完成! ===\n');
     console.log('登录信息:');
     console.log('  用户名: admin');
-    console.log('  密码: admin123');
+    console.log('  密码: admin@123456');
     console.log('  角色: super_admin\n');
 
   } catch (error) {
