@@ -1,9 +1,13 @@
 {
   "name": "kec-manager-server",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "KEC课程管理平台后端",
   "main": "src/server.js",
   "type": "module",
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "node --watch-path=src src/server.js",
     "start": "node src/server.js",
