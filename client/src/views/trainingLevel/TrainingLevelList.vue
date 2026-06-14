@@ -77,12 +77,16 @@ import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { ArrowUp, ArrowDown } from '@element-plus/icons-vue'
 import { getTrainingLevels, createTrainingLevel, updateTrainingLevel, deleteTrainingLevel } from '../../api/trainingLevel'
+import { useSortable } from '../../composables/useSortable'
 
 const list = ref([])
 const loading = ref(false)
 const dialogVisible = ref(false)
 const saving = ref(false)
 const form = ref({ id: null, name: '', code: '', description: '' })
+
+// 使用排序 composable
+const { handleMoveUp, handleMoveDown } = useSortable(list, updateTrainingLevel, silentReload)
 
 async function load() {
   loading.value = true
@@ -133,52 +137,6 @@ async function handleDelete(id) {
   } catch (e) {
     console.error('删除培养层次失败:', e)
     ElMessage.error('删除失败，请重试')
-  }
-}
-
-async function handleMoveUp(row, index) {
-  if (index === 0) return
-  
-  const currentItem = list.value[index]
-  const prevItem = list.value[index - 1]
-  
-  try {
-    // 如果排序值相同，使用基于位置的值
-    const newCurrentSort = currentItem.sortOrder === prevItem.sortOrder ? index - 1 : prevItem.sortOrder
-    const newPrevSort = currentItem.sortOrder === prevItem.sortOrder ? index : currentItem.sortOrder
-
-    await Promise.all([
-      updateTrainingLevel(currentItem.id, { sortOrder: newCurrentSort }),
-      updateTrainingLevel(prevItem.id, { sortOrder: newPrevSort })
-    ])
-    ElMessage.success('排序已更新')
-    await silentReload()
-  } catch (e) {
-    console.error('排序更新失败:', e)
-    ElMessage.error('排序更新失败')
-  }
-}
-
-async function handleMoveDown(row, index) {
-  if (index === list.value.length - 1) return
-  
-  const currentItem = list.value[index]
-  const nextItem = list.value[index + 1]
-  
-  try {
-    // 如果排序值相同，使用基于位置的值
-    const newCurrentSort = currentItem.sortOrder === nextItem.sortOrder ? index + 1 : nextItem.sortOrder
-    const newNextSort = currentItem.sortOrder === nextItem.sortOrder ? index : currentItem.sortOrder
-
-    await Promise.all([
-      updateTrainingLevel(currentItem.id, { sortOrder: newCurrentSort }),
-      updateTrainingLevel(nextItem.id, { sortOrder: newNextSort })
-    ])
-    ElMessage.success('排序已更新')
-    await silentReload()
-  } catch (e) {
-    console.error('排序更新失败:', e)
-    ElMessage.error('排序更新失败')
   }
 }
 

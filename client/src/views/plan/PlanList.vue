@@ -147,6 +147,7 @@ import { getPlans, createPlan, updatePlan, deletePlan } from '../../api/plan'
 import { getMajors } from '../../api/major'
 import { getTrainingLevels } from '../../api/trainingLevel'
 import { getColleges } from '../../api/college'
+import { useSortable } from '../../composables/useSortable'
 
 const list = ref([])
 const loading = ref(false)
@@ -167,6 +168,16 @@ const form = ref({
   version: '', 
   description: '' 
 })
+
+// 使用排序 composable（针对 filteredlist）
+const { handleMoveUp, handleMoveDown } = useSortable(
+  filteredlist, 
+  updatePlan, 
+  silentReload,
+  {
+    indexFinder: (item) => filteredlist.value.findIndex(i => i.id === item.id)
+  }
+)
 
 async function load() {
   loading.value = true
@@ -299,74 +310,6 @@ async function handleDelete(id) {
   } catch (e) {
     console.error('删除培养方案失败:', e)
     ElMessage.error('删除失败，请重试')
-  }
-}
-
-async function handleMoveUp(row) {
-  const idx = filteredlist.value.findIndex(item => item.id === row.id)
-  if (idx === 0 || idx === -1) return
-  
-  const currentItem = filteredlist.value[idx]
-  const prevItem = filteredlist.value[idx - 1]
-  
-  // 如果排序值相同，使用基于位置的值
-  const newCurrentSort = currentItem.sortOrder === prevItem.sortOrder ? idx - 1 : prevItem.sortOrder
-  const newPrevSort = currentItem.sortOrder === prevItem.sortOrder ? idx : currentItem.sortOrder
-  
-  // 乐观更新：先本地交换位置，避免 loading 遮罩闪烁
-  currentItem.sortOrder = newCurrentSort
-  prevItem.sortOrder = newPrevSort
-  const newList = [...filteredlist.value]
-  newList[idx] = prevItem
-  newList[idx - 1] = currentItem
-  filteredlist.value = newList
-  // 同步到 list
-  list.value = [...list.value]
-  
-  try {
-    await Promise.all([
-      updatePlan(currentItem.id, { sortOrder: newCurrentSort }),
-      updatePlan(prevItem.id, { sortOrder: newPrevSort })
-    ])
-    ElMessage.success('排序已更新')
-  } catch (e) {
-    console.error('排序更新失败:', e)
-    ElMessage.error('排序更新失败')
-    await load() // 失败时回滚
-  }
-}
-
-async function handleMoveDown(row) {
-  const idx = filteredlist.value.findIndex(item => item.id === row.id)
-  if (idx === -1 || idx === filteredlist.value.length - 1) return
-  
-  const currentItem = filteredlist.value[idx]
-  const nextItem = filteredlist.value[idx + 1]
-  
-  // 如果排序值相同，使用基于位置的值
-  const newCurrentSort = currentItem.sortOrder === nextItem.sortOrder ? idx + 1 : nextItem.sortOrder
-  const newNextSort = currentItem.sortOrder === nextItem.sortOrder ? idx : currentItem.sortOrder
-  
-  // 乐观更新：先本地交换位置，避免 loading 遮罩闪烁
-  currentItem.sortOrder = newCurrentSort
-  nextItem.sortOrder = newNextSort
-  const newList = [...filteredlist.value]
-  newList[idx] = nextItem
-  newList[idx + 1] = currentItem
-  filteredlist.value = newList
-  // 同步到 list
-  list.value = [...list.value]
-  
-  try {
-    await Promise.all([
-      updatePlan(currentItem.id, { sortOrder: newCurrentSort }),
-      updatePlan(nextItem.id, { sortOrder: newNextSort })
-    ])
-    ElMessage.success('排序已更新')
-  } catch (e) {
-    console.error('排序更新失败:', e)
-    ElMessage.error('排序更新失败')
-    await load() // 失败时回滚
   }
 }
 

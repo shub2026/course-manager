@@ -7,16 +7,29 @@ import { ElMessage } from 'element-plus'
  * @param {Function} reloadFn - 重新加载函数 () => Promise
  * @param {object} options - 可选配置
  * @param {string} options.sortField - 排序字段名（默认 'sortOrder'）
+ * @param {Function} options.indexFinder - 自定义索引查找函数 (item) => number，用于 filtered list
  * @returns {object} { handleMoveUp, handleMoveDown }
  */
 export function useSortable(list, updateFn, reloadFn, options = {}) {
   const sortField = options.sortField || 'sortOrder'
+  const indexFinder = options.indexFinder || null
+
+  /**
+   * 获取项目索引
+   */
+  function getItemIndex(item) {
+    if (indexFinder) {
+      return indexFinder(item)
+    }
+    return list.value.findIndex(i => i.id === item.id)
+  }
 
   /**
    * 上移
    */
-  async function handleMoveUp(item, index) {
-    if (index === 0) return
+  async function handleMoveUp(item, providedIndex) {
+    const index = providedIndex !== undefined ? providedIndex : getItemIndex(item)
+    if (index === 0 || index === -1) return
 
     const currentItem = list.value[index]
     const prevItem = list.value[index - 1]
@@ -42,8 +55,9 @@ export function useSortable(list, updateFn, reloadFn, options = {}) {
   /**
    * 下移
    */
-  async function handleMoveDown(item, index) {
-    if (index === list.value.length - 1) return
+  async function handleMoveDown(item, providedIndex) {
+    const index = providedIndex !== undefined ? providedIndex : getItemIndex(item)
+    if (index === -1 || index === list.value.length - 1) return
 
     const currentItem = list.value[index]
     const nextItem = list.value[index + 1]

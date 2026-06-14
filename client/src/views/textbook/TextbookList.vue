@@ -249,7 +249,14 @@ const pendingFile = ref(null)
 const { exportData, downloadTemplate } = useExport('textbooks', '教材数据')
 
 // 使用排序 composable（注意：TextbookList 使用 filteredlist 而非 list）
-const { handleMoveUp, handleMoveDown } = useSortable(filteredlist, updateTextbook, silentReload)
+const { handleMoveUp, handleMoveDown } = useSortable(
+  filteredlist, 
+  updateTextbook, 
+  silentReload,
+  {
+    indexFinder: (item) => filteredlist.value.findIndex(i => i.id === item.id)
+  }
+)
 
 // 获取所有出版社列表
 const publishers = computed(() => {
@@ -529,54 +536,6 @@ function onImportSuccess(res) {
 function onImportError(err) {
   console.error('导入错误:', err)
   ElMessage.error('导入失败，请检查文件格式或联系管理员')
-}
-
-async function handleMoveUp(row) {
-  const idx = filteredlist.value.findIndex(item => item.id === row.id)
-  if (idx === 0 || idx === -1) return
-  
-  const currentItem = filteredlist.value[idx]
-  const prevItem = filteredlist.value[idx - 1]
-  
-  try {
-    // 如果排序值相同，使用基于位置的值
-    const newCurrentSort = currentItem.sortOrder === prevItem.sortOrder ? idx - 1 : prevItem.sortOrder
-    const newPrevSort = currentItem.sortOrder === prevItem.sortOrder ? idx : currentItem.sortOrder
-
-    await Promise.all([
-      updateTextbook(currentItem.id, { sortOrder: newCurrentSort }),
-      updateTextbook(prevItem.id, { sortOrder: newPrevSort })
-    ])
-    ElMessage.success('排序已更新')
-    await silentReload()
-  } catch (e) {
-    console.error('排序更新失败:', e)
-    ElMessage.error('排序更新失败')
-  }
-}
-
-async function handleMoveDown(row) {
-  const idx = filteredlist.value.findIndex(item => item.id === row.id)
-  if (idx === -1 || idx === filteredlist.value.length - 1) return
-  
-  const currentItem = filteredlist.value[idx]
-  const nextItem = filteredlist.value[idx + 1]
-  
-  try {
-    // 如果排序值相同，使用基于位置的值
-    const newCurrentSort = currentItem.sortOrder === nextItem.sortOrder ? idx + 1 : nextItem.sortOrder
-    const newNextSort = currentItem.sortOrder === nextItem.sortOrder ? idx : currentItem.sortOrder
-
-    await Promise.all([
-      updateTextbook(currentItem.id, { sortOrder: newCurrentSort }),
-      updateTextbook(nextItem.id, { sortOrder: newNextSort })
-    ])
-    ElMessage.success('排序已更新')
-    await silentReload()
-  } catch (e) {
-    console.error('排序更新失败:', e)
-    ElMessage.error('排序更新失败')
-  }
 }
 
 onMounted(() => {
