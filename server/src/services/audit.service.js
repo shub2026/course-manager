@@ -1,4 +1,5 @@
 import { prisma } from '../lib/prisma.js';
+import { logger } from '../config/logger.js';
 
 /**
  * 记录操作日志
@@ -25,7 +26,16 @@ export async function createAuditLog({ action, module, userId, ip, details, resu
       },
     });
   } catch (error) {
-    console.error('创建审计日志失败:', error);
+    // 安全修复：使用winston记录审计失败，便于生产环境追踪
+    logger.error('创建审计日志失败:', { 
+      error: error.message, 
+      action, 
+      module, 
+      userId,
+      result 
+    });
+    // 注意：不抛出错误以避免中断主业务流程
+    // 但生产环境应监控此错误日志并告警
   }
 }
 

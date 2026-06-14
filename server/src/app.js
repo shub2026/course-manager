@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
 import { prisma } from './lib/prisma.js';
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
@@ -23,6 +24,12 @@ const app = express();
 
 // 信任代理（Nginx 反向代理需要）
 app.set('trust proxy', 1);
+
+// 安全修复：添加helmet安全响应头
+app.use(helmet({
+  contentSecurityPolicy: false, // 禁用CSP以避免与前端资源冲突
+  crossOriginEmbedderPolicy: false, // 允许跨域嵌入资源
+}));
 
 // CORS 配置：生产环境使用白名单，开发环境允许 localhost
 const allowedOrigins = process.env.CORS_ORIGINS 

@@ -185,11 +185,6 @@ router.put('/:id/status', roleMiddleware('admin', 'super_admin'), async (req, re
   try {
     const { id } = req.params
     const { isActive } = req.body
-    
-    // 调试日志
-    console.log('[DEBUG] PUT /api/users/:id/status')
-    console.log('[DEBUG] req.body:', JSON.stringify(req.body))
-    console.log('[DEBUG] isActive:', isActive)
 
     // 不能禁用自己
     if (parseInt(id) === req.user.id) {
