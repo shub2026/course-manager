@@ -145,7 +145,6 @@ const localFilters = computed({
   gap: 12px;
   align-items: center;
   flex-wrap: wrap;
-  margin-bottom: 16px;
 }
 
 .filter-name {

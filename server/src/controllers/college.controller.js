@@ -68,9 +68,9 @@ export async function updateCollege(req, res, next) {
         module: 'college',
         userId: req.user?.id,
         ip: req.ip,
-        details: { id: college.id, name, code },
+        details: { id: college.id, name: data.name || college.name, code: data.code },
         result: 'success',
-        message: `更新学院：${name}`,
+        message: `更新学院：${data.name || college.name}`,
       });
       
       success(res, college, '更新成功');

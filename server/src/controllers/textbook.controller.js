@@ -75,9 +75,9 @@ export async function updateTextbook(req, res, next) {
         module: 'textbook',
         userId: req.user?.id,
         ip: req.ip,
-        details: { id: textbook.id, name: title },
+        details: { id: textbook.id, name: updateData.title || textbook.title },
         result: 'success',
-        message: `更新教材：${title}`,
+        message: `更新教材：${updateData.title || textbook.title}`,
       });
 
       success(res, textbook, '更新成功');

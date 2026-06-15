@@ -65,9 +65,9 @@ export async function updateTrainingLevel(req, res, next) {
         module: 'training_level',
         userId: req.user?.id,
         ip: req.ip,
-        details: { id: Number(id), name },
+        details: { id: Number(id), name: data.name || level.name },
         result: 'success',
-        message: `更新培养层次：${name}`,
+        message: `更新培养层次：${data.name || level.name}`,
       });
       success(res, level, '更新成功');
     } catch (e) {

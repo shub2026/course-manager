@@ -17,7 +17,7 @@
         <el-form label-width="80px" size="small">
           <el-form-item label="周课时">
             <el-radio-group 
-              :value="editingSemester?.weeklyHours"
+              :model-value="editingSemester?.weeklyHours"
               @update:model-value="$emit('update-editing-semester', { ...editingSemester, weeklyHours: $event })"
               class="full-width"
             >
@@ -30,7 +30,7 @@
           </el-form-item>
           <el-form-item label="关联教材">
             <el-select
-              :value="editingTextbookId"
+              :model-value="editingTextbookId"
               @update:model-value="$emit('update-editing-textbook-id', $event)"
               filterable
               clearable

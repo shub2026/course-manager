@@ -151,7 +151,7 @@ export async function updateUser(req, res, next) {
 export async function updateUserStatus(req, res, next) {
   try {
     const { id } = req.params;
-    const { isActive } = req.body;
+    const { is_active } = req.body;
 
     if (parseInt(id) === req.user.id) {
       throw new AuthorizationError('不能禁用自己');
@@ -172,7 +172,7 @@ export async function updateUserStatus(req, res, next) {
 
     await prisma.users.update({
       where: { id: parseInt(id) },
-      data: { is_active: isActive },
+      data: { is_active },
     });
 
     await createAuditLog({
@@ -180,12 +180,12 @@ export async function updateUserStatus(req, res, next) {
       module: 'user',
       userId: req.user.id,
       ip: req.ip,
-      details: { id: user.id, username: user.username, is_active: isActive },
+      details: { id: user.id, username: user.username, is_active },
       result: 'success',
-      message: `${isActive ? '激活' : '禁用'}用户：${user.username}`,
+      message: `${is_active ? '激活' : '禁用'}用户：${user.username}`,
     });
 
-    success(res, null, `${isActive ? '激活' : '禁用'}成功`);
+    success(res, null, `${is_active ? '激活' : '禁用'}成功`);
   } catch (error) {
     next(error);
   }

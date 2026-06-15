@@ -61,9 +61,9 @@ export async function updateCourse(req, res, next) {
         module: 'course',
         userId: req.user?.id,
         ip: req.ip,
-        details: { id: course.id, name, code },
+        details: { id: course.id, name: data.name || course.name, code: data.code },
         result: 'success',
-        message: `更新课程：${name}`,
+        message: `更新课程：${data.name || course.name}`,
       });
 
       success(res, course, '更新成功');

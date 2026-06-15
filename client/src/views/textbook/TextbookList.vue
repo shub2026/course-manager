@@ -248,16 +248,6 @@ const pendingFile = ref(null)
 // 使用导出 composable
 const { exportData, downloadTemplate } = useExport('textbooks', '教材数据')
 
-// 使用排序 composable（注意：TextbookList 使用 filteredlist 而非 list）
-const { handleMoveUp, handleMoveDown } = useSortable(
-  filteredlist, 
-  updateTextbook, 
-  silentReload,
-  {
-    indexFinder: (item) => filteredlist.value.findIndex(i => i.id === item.id)
-  }
-)
-
 // 获取所有出版社列表
 const publishers = computed(() => {
   const pubs = new Set()
@@ -282,6 +272,16 @@ const filteredlist = computed(() => {
   }
   return result
 })
+
+// 使用排序 composable（注意：TextbookList 使用 filteredlist 而非 list）
+const { handleMoveUp, handleMoveDown } = useSortable(
+  filteredlist, 
+  updateTextbook, 
+  silentReload,
+  {
+    indexFinder: (item) => filteredlist.value.findIndex(i => i.id === item.id)
+  }
+)
 
 async function load() {
   loading.value = true

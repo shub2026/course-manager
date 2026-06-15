@@ -4,26 +4,27 @@
       <template #header>
         <div class="card-header">
           <span>班级管理</span>
+          <div class="card-header-actions">
+            <!-- 筛选器组件 -->
+            <ClassFilterBar
+              v-model:filters="filters"
+              :colleges="colleges"
+              :majors="majors"
+              :training-levels="trainingLevels"
+              :enrollment-years="enrollmentYears"
+              :plans="plans"
+              @change="resetPaginationAndLoad"
+              @search="load"
+              @export="exportData"
+              @download-template="downloadTemplate"
+              @import-success="onImportSuccess"
+              @import-error="onImportError"
+              @before-upload="beforeImport"
+              @add="openDialog"
+            />
+          </div>
         </div>
       </template>
-
-      <!-- 筛选器组件 -->
-      <ClassFilterBar
-        v-model:filters="filters"
-        :colleges="colleges"
-        :majors="majors"
-        :training-levels="trainingLevels"
-        :enrollment-years="enrollmentYears"
-        :plans="plans"
-        @change="resetPaginationAndLoad"
-        @search="load"
-        @export="exportData"
-        @download-template="downloadTemplate"
-        @import-success="onImportSuccess"
-        @import-error="onImportError"
-        @before-upload="beforeImport"
-        @add="openDialog"
-      />
 
       <!-- 表格组件 -->
       <ClassTable
@@ -188,11 +189,11 @@ async function load() {
     }
     
     const res = await getClasses(params)
-    list.value = res.items || []
-    pagination.value.total = res.total || 0
+    list.value = res?.data?.items || []
+    pagination.value.total = res?.data?.total || 0
     
-    if (res.allEnrollmentYears) {
-      allEnrollmentYears.value = res.allEnrollmentYears
+    if (res?.data?.allEnrollmentYears) {
+      allEnrollmentYears.value = res.data.allEnrollmentYears
     }
   } catch (error) {
     ElMessage.error('加载失败：' + (error.message || '未知错误'))
@@ -209,12 +210,17 @@ async function loadBaseData() {
       getTrainingLevels(),
       getColleges(),
     ])
-    majors.value = majorsRes || []
-    plans.value = plansRes || []
-    trainingLevels.value = levelsRes || []
-    colleges.value = collegesRes || []
+    majors.value = majorsRes?.data || []
+    plans.value = plansRes?.data || []
+    trainingLevels.value = levelsRes?.data || []
+    colleges.value = collegesRes?.data || []
   } catch (error) {
     console.error('加载基础数据失败:', error)
+    if (error.response?.status === 401) {
+      ElMessage.warning('请先登录后再使用班级管理功能')
+    } else {
+      ElMessage.error('加载基础数据失败，请刷新页面重试')
+    }
   }
 }
 
@@ -426,6 +432,12 @@ onMounted(() => {
 .card-header {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+}
+
+.card-header-actions {
+  display: flex;
+  gap: 12px;
   align-items: center;
 }
 

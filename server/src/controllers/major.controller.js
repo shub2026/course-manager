@@ -86,9 +86,9 @@ export async function updateMajor(req, res, next) {
         module: 'major',
         userId: req.user?.id,
         ip: req.ip,
-        details: { id: major.id, name, code },
+        details: { id: major.id, name: data.name || major.name, code: data.code },
         result: 'success',
-        message: `更新专业：${name}`,
+        message: `更新专业：${data.name || major.name}`,
       });
       
       success(res, major, '更新成功');

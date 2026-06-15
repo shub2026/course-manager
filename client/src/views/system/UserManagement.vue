@@ -209,7 +209,7 @@ function showCreateDialog() {
   formData.value = {
     username: '',
     password: '',
-    real_name: '',
+    realName: '',
     email: '',
     role: authStore.userInfo?.role === 'admin' ? 'viewer' : 'admin'
   }
@@ -221,10 +221,10 @@ function showEditDialog(user) {
   formData.value = {
     id: user.id,
     username: user.username,
-    real_name: user.real_name,
+    realName: user.realName,
     email: user.email,
     role: user.role,
-    is_active: user.is_active
+    isActive: user.isActive
   }
   dialogVisible.value = true
 }
